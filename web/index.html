@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinway IDE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+ 
+  <!-- 1. ШАПКА -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">Pinway</span>
+      <span class="sketch-name">blink_wifi</span>
+    </div>
+ 
+    <div class="controls">
+      <button type="button" id="btn-board">ESP32 Dev Module</button>
+      <button type="button" id="btn-port">Port: not selected</button>
+      <button type="button" id="btn-tools">Tools</button>
+      <button type="button" id="btn-compile">Compile</button>
+      <button type="button" id="btn-upload">Upload</button>
+    </div>
+  </header>
+ 
+  <!-- 2. Робоча обл.-->
+  <main class="workspace">
+ 
+    <div class="editor-column">
+      <div class="tabs">
+        <button type="button" class="tab active">blink_wifi.ino</button>
+        <button type="button" class="tab">config.h</button>
+        <button type="button" class="tab-add" aria-label="New file">+</button>
+      </div>
+ 
+      <!-- CodeMirror -->
+      <div id="editor"></div>
+ 
+      <section class="output">
+        <h2>Output</h2>
+        <pre id="output-log">Compile log will appear here</pre>
+      </section>
+    </div>
+ 
+    <aside class="serial">
+      <h2>Serial monitor</h2>
+      <pre id="serial-log">Board output will appear here</pre>
+      <form class="serial-form">
+        <label for="serial-input" class="visually-hidden">Message to board</label>
+        <input id="serial-input" type="text" placeholder="Send message">
+        <button type="submit">Send</button>
+      </form>
+    </aside>
+ 
+  </main>
+ 
+  <!-- 3. Футер-->
+  <footer class="statusbar">
+    <p>ESP32 Dev Module · 240 MHz · 4 MB Flash</p>
+    <nav class="links" aria-label="Project links">
+      <a href="#" target="_blank" rel="noopener">Project blog</a>
+      <a href="#" target="_blank" rel="noopener">GitHub</a>
+      <a href="#" target="_blank" rel="noopener">By BinioDev</a>
+    </nav>
+  </footer>
+ 
+  <!-- 4. ВІКНО НАЛАШТУВАНЬ ПЛАТИ (за замовчуванням приховане) -->
+  <dialog id="tools-dialog">
+    <form method="dialog">
+      <h2>Board settings</h2>
+ 
+      <label for="board">Board</label>
+      <select id="board">
+        <option>ESP32 Dev Module</option>
+        <option>ESP32-S3 Dev Module</option>
+        <option>ESP32-C3 Dev Module</option>
+        <option>Arduino Uno</option>
+      </select>
+ 
+      <label for="upload-speed">Upload speed</label>
+      <select id="upload-speed">
+        <option>921600</option>
+        <option>460800</option>
+        <option>115200</option>
+      </select>
+ 
+      <label for="partition">Partition scheme</label>
+      <select id="partition">
+        <option>Default 4MB with spiffs</option>
+        <option>No OTA (2MB APP / 2MB SPIFFS)</option>
+        <option>Huge APP (3MB No OTA)</option>
+      </select>
+ 
+      <label for="psram">PSRAM</label>
+      <select id="psram">
+        <option>Disabled</option>
+        <option>Enabled</option>
+      </select>
+ 
+      <details>
+        <summary>Advanced</summary>
+ 
+        <label for="cpu">CPU Frequency</label>
+        <select id="cpu">
+          <option>240 MHz</option>
+          <option>160 MHz</option>
+          <option>80 MHz</option>
+        </select>
+ 
+        <label for="flash-mode">Flash Mode</label>
+        <select id="flash-mode">
+          <option>QIO</option>
+          <option>DIO</option>
+        </select>
+ 
+        <label for="debug">Core Debug Level</label>
+        <select id="debug">
+          <option>None</option>
+          <option>Error</option>
+          <option>Info</option>
+          <option>Verbose</option>
+        </select>
+ 
+        <label for="erase">Erase all flash before upload</label>
+        <select id="erase">
+          <option>Disabled</option>
+          <option>Enabled</option>
+        </select>
+      </details>
+ 
+      <button type="submit">Done</button>
+    </form>
+  </dialog>
+ 
+  <script src="app.js"></script>
+</body>
+</html>
+ 
