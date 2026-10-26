@@ -1,0 +1,33 @@
+{
+  "name": "noai-webide",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "vite web",
+    "build": "vite build web"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zen7q/NoAi-WebIDE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Zen7q/NoAi-WebIDE/issues"
+  },
+  "homepage": "https://github.com/Zen7q/NoAi-WebIDE#readme",
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@lezer/highlight": "^1.2.5"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}

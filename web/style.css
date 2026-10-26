@@ -200,10 +200,12 @@ a:focus-visible {
 #editor {
   flex: 1;
   min-height: 360px;
-  padding: 20px 24px;
-  font-family: var(--font-code);
-  font-size: 14px;
-  line-height: 24px;
+  position: relative;
+}
+
+.cm-editor {
+  position: absolute;
+  inset: 0;
 }
  
 .output {
