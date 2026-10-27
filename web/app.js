@@ -19,8 +19,13 @@ import {
   bracketMatching,
   indentOnInput,
 } from "@codemirror/language";
-import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+} from "@codemirror/autocomplete";
 import { cpp } from "@codemirror/lang-cpp";
+import { arduinoCompletions } from "./completion.js";
 import { tags as t } from "@lezer/highlight";
 
 /* 1. ТЕМА РЕДАКТОРА: кольори інтерфейсу */
@@ -50,6 +55,40 @@ const theme = EditorView.theme(
     ".cm-cursor": { borderLeftColor: "#3b6cf5" },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-content ::selection":
       { backgroundColor: "#1b2d5c" },
+
+    ".cm-tooltip": {
+      backgroundColor: "#0e1a38",
+      border: "1px solid #243a70",
+      borderRadius: "6px",
+      color: "#c9d4f2",
+    },
+    ".cm-tooltip.cm-tooltip-autocomplete": {
+      "& > ul": {
+        fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+        fontSize: "13px",
+      },
+      "& > ul > li": { padding: "2px 8px" },
+      "& > ul > li[aria-selected]": {
+        backgroundColor: "#1b2d5c",
+        color: "#ffffff",
+      },
+    },
+    ".cm-completionDetail": {
+      color: "#8393bc",
+      fontStyle: "normal",
+      marginLeft: "12px",
+    },
+    ".cm-completionMatchedText": {
+      textDecoration: "none",
+      color: "#7aa2f7",
+      fontWeight: "600",
+    },
+    ".cm-completionInfo": {
+      padding: "8px 12px",
+      fontFamily: '"Inter", system-ui, sans-serif',
+      fontSize: "12px",
+      color: "#aebbe0",
+    },
   },
   { dark: true }
 );
@@ -104,6 +143,7 @@ const view = new EditorView({
       indentOnInput(),
       bracketMatching(),
       closeBrackets(),
+      autocompletion({ override: [arduinoCompletions] }),
       cpp(),
       syntaxHighlighting(highlight),
       theme,
