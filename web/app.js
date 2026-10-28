@@ -177,5 +177,32 @@ initLibraries({
   },
 });
 
+/* 8. КНОПКА COMPILE */
+const compileButton = document.querySelector("#btn-compile");
+const outputLog = document.querySelector("#output-log");
+
+compileButton.addEventListener("click", async () => {
+  compileButton.disabled = true;
+  outputLog.textContent = "Compiling…";
+
+  try {
+    const response = await fetch("/api/compile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fqbn: document.querySelector("#board").value,
+        code: getCode(),
+      }),
+    });
+    const result = await response.json();
+    const status = result.ok ? "Success" : "Failed";
+    outputLog.textContent = status + "\n\n" + (result.log ?? result.error ?? "");
+  } catch (error) {
+    outputLog.textContent = "Could not reach the server. Is it running?";
+  } finally {
+    compileButton.disabled = false;
+  }
+});
+
 // Тимчасова перевірка: виведемо довжину коду в консоль браузера
 console.log("Код у редакторі, символів:", getCode().length);
