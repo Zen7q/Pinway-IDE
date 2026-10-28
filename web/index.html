@@ -18,6 +18,7 @@
     <div class="controls">
       <button type="button" id="btn-board">ESP32 Dev Module</button>
       <button type="button" id="btn-port">Port: not selected</button>
+      <button type="button" id="btn-libraries">Libraries</button>
       <button type="button" id="btn-tools">Tools</button>
       <button type="button" id="btn-compile">Compile</button>
       <button type="button" id="btn-upload">Upload</button>
@@ -132,6 +133,20 @@
       <button type="submit">Done</button>
     </form>
   </dialog>
+
+  <dialog id="libraries-dialog">
+  <h2>Libraries</h2>
+  <label for="lib-search" class="visually-hidden">Search libraries</label>
+  <input id="lib-search" type="search" placeholder="Search libraries">
+  <ul id="lib-results" class="lib-list"></ul>
+
+  <h3>Added to sketch</h3>
+  <ul id="lib-added" class="lib-list"></ul>
+
+  <form method="dialog">
+    <button type="submit">Done</button>
+  </form>
+</dialog>
  
   <script type="module" src="app.js"></script>
 </body>

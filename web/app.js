@@ -26,6 +26,7 @@ import {
 } from "@codemirror/autocomplete";
 import { cpp } from "@codemirror/lang-cpp";
 import { arduinoCompletions } from "./completion.js";
+import { initLibraries } from "./libraries.js";
 import { tags as t } from "@lezer/highlight";
 
 /* 1. ТЕМА РЕДАКТОРА: кольори інтерфейсу */
@@ -166,6 +167,14 @@ function getCode() {
 const toolsDialog = document.querySelector("#tools-dialog");
 document.querySelector("#btn-tools").addEventListener("click", () => {
   toolsDialog.showModal();
+});
+
+/* 7. БІБЛІОТЕКИ */
+initLibraries({
+  onAdd(lib) {
+    console.log("Added library:", lib.name, "→ #include <" + lib.header + ">");
+    // ЗАВДАННЯ: вставити рядок #include на початок коду
+  },
 });
 
 // Тимчасова перевірка: виведемо довжину коду в консоль браузера

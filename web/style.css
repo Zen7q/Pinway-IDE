@@ -378,3 +378,59 @@ dialog button[type="submit"] {
     padding-right: 16px;
   }
 }
+
+#libraries-dialog {
+  width: min(560px, calc(100% - 32px));
+}
+
+dialog input[type="search"] {
+  width: 100%;
+}
+
+dialog h3 {
+  margin: 20px 0 4px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.lib-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lib-name {
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.lib-version,
+.lib-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.lib-desc {
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.lib-empty {
+  padding: 8px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}

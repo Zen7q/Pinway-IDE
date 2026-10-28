@@ -2,14 +2,18 @@ import core from "./data/arduino-core.json";
 
 /* 1. СТАН: яка плата вибрана і які команди додали бібліотеки */
 let currentFamily = "esp32";
-let libraryEntries = [];
+const libraryEntries = new Map();
 
 export function setBoardFamily(family) {
   currentFamily = family;
 }
 
-export function addLibraryEntries(entries) {
-  libraryEntries = libraryEntries.concat(entries);
+export function setLibraryEntries(libraryName, entries) {
+  libraryEntries.set(libraryName, entries);
+}
+
+export function removeLibraryEntries(libraryName) {
+  libraryEntries.delete(libraryName);
 }
 
 /* 2. ПЕРЕТВОРЕННЯ: запис із JSON у формат CodeMirror */
@@ -34,7 +38,8 @@ export function arduinoCompletions(context) {
     return null;
   }
 
-  const options = [...core, ...libraryEntries]
+  const fromLibraries = [...libraryEntries.values()].flat();
+  const options = [...core, ...fromLibraries]
     .filter(matchesBoard)
     .map(toCompletion);
 
