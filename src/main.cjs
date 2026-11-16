@@ -3,12 +3,16 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createSketch, createEntry, openSketch, projectPath, entries, projectFiles, buildSketch, diagnostics } = require('./projects.cjs');
 const { makeArduino, profiles, workspace } = require('./arduino.cjs');
+const templates = require('./templates.cjs');
 
 if (process.env.PINWAY_USER_DATA) app.setPath('userData', path.resolve(process.env.PINWAY_USER_DATA));
 const storage = app.getPath('userData');
 const runtime = app.isPackaged ? path.join(process.resourcesPath, 'arduino') : path.join(__dirname, '../.toolchain/runtime');
 const arduino = makeArduino(runtime, storage);
 const historyFile = path.join(storage, 'recent.json');
+const recoveryFile = path.join(storage, 'recovery.json');
+let recovery = null;
+let recoveryQueue = Promise.resolve();
 let win, project, recent = [], busy = false, scan, monitor, closing = false;
 let devices = [];
 const send = (type, data) => {
@@ -77,7 +81,20 @@ function operation(fn) {
 }
 
 const handlers = {
-  state: () => ({ recent, project, profiles }),
+  state: () => ({
+    recent, project, profiles, recovery,
+    templates: Object.entries(templates).map(([id, template]) => ({ id, name: template.name }))
+  }),
+  rememberSession: snapshot => {
+    if ((snapshot?.primary ?? null) !== (project?.primary ?? null)) return;
+    recoveryQueue = recoveryQueue.catch(() => {}).then(async () => {
+      const temporary = recoveryFile + '.tmp';
+      await fs.writeFile(temporary, JSON.stringify(snapshot), { mode: 0o600 });
+      await fs.rename(temporary, recoveryFile);
+      recovery = snapshot;
+    });
+    return recoveryQueue;
+  },
   prepare: () => arduino.initialize(),
   zoom: percent => {
     if (!Number.isInteger(percent) || percent < 70 || percent > 150) throw Error('Недопустимий масштаб.');
@@ -90,7 +107,7 @@ const handlers = {
       .map(({ fqbn, name }) => ({ id: fqbn, name }));
   },
   chooseFolder: async () => (await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })).filePaths[0],
-  create: async ({ parent, name }) => setProject(await createSketch(parent, name)),
+  create: async ({ parent, name, template }) => setProject(await createSketch(parent, name, template)),
   select: async () => {
     const chosen = (await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Arduino Sketch', extensions: ['ino'] }] })).filePaths[0];
     return chosen ? setProject(await openSketch(chosen)) : undefined;
@@ -115,6 +132,14 @@ const handlers = {
       await fs.writeFile(next, content, { mode: (await fs.stat(target)).mode & 0o777 });
       await fs.rename(next, target);
     } finally { await fs.rm(stage, { recursive: true, force: true }); }
+  },
+  pinoutSource: url => {
+    if (typeof url !== 'string') throw Error('Документація недоступна.');
+    const source = new URL(url);
+    if (source.protocol !== 'https:' || !['docs.arduino.cc', 'docs.espressif.com'].includes(source.hostname)) {
+      throw Error('Документація недоступна.');
+    }
+    return shell.openExternal(source.href);
   },
   reveal: () => project && shell.showItemInFolder(project.primary),
   dirtyPrompt: async () => (await dialog.showMessageBox(win, {
@@ -253,6 +278,7 @@ else {
   app.whenReady().then(async () => {
     recent = await fs.readFile(historyFile, 'utf8').then(JSON.parse).catch(() => []);
     if (!Array.isArray(recent)) recent = [];
+    recovery = await fs.readFile(recoveryFile, 'utf8').then(JSON.parse).catch(() => null);
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       { label: 'Pinway IDE', submenu: [{ role: 'about' }, { type: 'separator' },
         { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },

@@ -381,3 +381,73 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
   .welcome-content { display:block; padding:28px 30px; }
   .recents { margin-top:24px; }
 }
+
+
+#plot-view {
+  display:flex;
+  flex:1;
+  flex-direction:column;
+  min-height:0;
+}
+.plot-toolbar {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex:none;
+  min-height:34px;
+  padding:4px 9px;
+  background:#1b2028;
+}
+#plot-legend { display:flex; gap:8px; overflow:auto; }
+.plot-key {
+  display:inline-flex;
+  flex:none;
+  align-items:center;
+  gap:5px;
+  color:#c5d2e1;
+  font:11px var(--mono);
+}
+.plot-key::before { content:""; width:8px; height:8px; border-radius:3px; background:var(--series); }
+#plot-area { position:relative; flex:1; min-height:0; }
+#plot-canvas { display:block; width:100%; height:100%; }
+#plot-empty {
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-content:center;
+  padding:8px 16px;
+  margin:0;
+  text-align:center;
+  color:var(--soft);
+}
+#plot-empty code { color:var(--accent); margin-top:4px; }
+.pin-menu-action { justify-content:flex-start; }
+#pin-dialog { width:min(640px, 92vw); }
+#pin-note { color:var(--soft); line-height:1.45; }
+#pin-note:empty { display:none; }
+#pin-map {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  max-height:55vh;
+  overflow:auto;
+  margin:10px 0;
+}
+.pin-header { min-width:0; }
+.pin-header h3 { margin:6px 0; font-size:11px; color:var(--soft); }
+.pin-row {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  padding:6px 8px;
+  background:#1b222b;
+  border-bottom:1px solid #303c49;
+}
+.pin-row strong { min-width:40px; color:var(--accent); font:600 12px var(--mono); }
+.pin-row span { min-width:0; color:#b3c1d0; font-size:11px; overflow-wrap:anywhere; }
+#sketch-template { max-width:none; width:100%; min-height:30px; }
+.workspace { container-type:inline-size; }
+@container (max-width:410px) {
+  .panel-bar { gap:2px; padding-inline:4px; }
+  .panel-tab { padding-inline:6px; font-size:0; gap:3px; }
+}

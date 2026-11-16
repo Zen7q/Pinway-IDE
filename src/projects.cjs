@@ -4,14 +4,7 @@ const path = require('node:path');
 const textFile = /\.(ino|pde|cpp|cc|cxx|c|h|hh|hpp|s|asm|txt|md|json|ya?ml|csv|properties|ini|ld|py|sh)$/i;
 const sketchName = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,62}$/;
 const ignored = name => name.startsWith('.') || ['node_modules', 'build', 'dist'].includes(name);
-const starter = `void setup() {
-  // Налаштування виконується один раз.
-}
-
-void loop() {
-  // Код тут повторюється.
-}
-`;
+const templates = require('./templates.cjs');
 
 async function openSketch(file) {
   if (!/\.ino$/i.test(file)) throw Error('Виберіть файл .ino.');
@@ -23,7 +16,8 @@ async function openSketch(file) {
   return { root, primary, selected, name: path.basename(primary, path.extname(primary)) };
 }
 
-async function createSketch(parent, name) {
+async function createSketch(parent, name, template = 'empty') {
+  if (!Object.hasOwn(templates, template)) throw Error('Виберіть шаблон скетчу.');
   if (!sketchName.test(name) || name.endsWith('.')) {
     throw Error('Назва скетчу: до 63 символів, латинські літери, цифри, _, - або крапка.');
   }
@@ -33,7 +27,7 @@ async function createSketch(parent, name) {
     throw err;
   });
   const file = path.join(dir, name + '.ino');
-  await fs.writeFile(file, starter, { flag: 'wx' });
+  await fs.writeFile(file, templates[template].code, { flag: 'wx' });
   return openSketch(file);
 }
 

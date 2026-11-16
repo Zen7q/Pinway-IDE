@@ -6,6 +6,9 @@ import { autocompletion, completeFromList } from '@codemirror/autocomplete';
 import { setDiagnostics, lintGutter } from '@codemirror/lint';
 import { oneDark } from '@codemirror/theme-one-dark';
 import completions from './arduino-completions.json';
+import { pinouts } from './pinouts';
+import plotData from './plot-data.cjs';
+const { parsePlotLine } = plotData;
 
 const $ = id => document.getElementById(id);
 const call = (action, data) => window.pinway.call(action, data);
@@ -50,11 +53,44 @@ let panelCollapsed = localStorage.getItem('pinway.panelCollapsed') === 'true';
 const serialLines = [];
 let serialTail = '';
 let serialSize = 0;
+const plotHistory = [];
+const plotColors = ['#75dfbc', '#82b7ff', '#ffc47f', '#ef9cce', '#c4adff', '#cbe57b', '#70dce8', '#ffa9a5'];
+let plotLegendKey = '';
+let recoveryTimer;
+let restoringSession = false;
+let quittingSession = false;
+let orphanDrafts = {};
 let serialTime = '';
 const serialClock = new Intl.DateTimeFormat('uk', {
   hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3
 });
 let seen = new Set(), lastPorts = '', libraryResults = [], libraryVersions = {}, libraryBusy = false;
+
+function rememberSession(includeDrafts = true) {
+  clearTimeout(recoveryTimer);
+  recoveryTimer = undefined;
+  if (restoringSession || (quittingSession && includeDrafts)) return Promise.resolve();
+  let snapshot = null;
+  if (project) {
+    const drafts = includeDrafts ? { ...orphanDrafts } : {};
+    if (includeDrafts) {
+      for (const [file, doc] of files) {
+        if (isDirty(doc)) drafts[file] = { text: doc.state.sliceDoc(), base: doc.saved };
+      }
+    }
+    snapshot = { primary: project.primary, active: activeFile, tabs: [...files.keys()], drafts };
+  }
+  return call('rememberSession', snapshot).catch(e => {
+    error(Error('Не вдалося записати дані відновлення: ' + e.message), true);
+  });
+}
+function scheduleRecovery() {
+  if (restoringSession || recoveryTimer) return;
+  recoveryTimer = setTimeout(() => void rememberSession(), 180);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && project) void rememberSession();
+});
 
 const zoomMin = 70;
 const zoomMax = 150;
@@ -90,6 +126,11 @@ function append(channel, text) {
     for (const part of parts.slice(0, -1)) {
       const line = (serialTail + part).replace(/\r$/, '').slice(-8192);
       serialLines.push({ time: serialTime, text: line });
+      const sample = parsePlotLine(line);
+      if (sample.length) {
+        plotHistory.push(sample);
+        if (plotHistory.length > 150) plotHistory.shift();
+      }
       serialSize += line.length + 1;
       serialTail = '';
       serialTime = timestamp;
@@ -112,6 +153,7 @@ function append(channel, text) {
       pendingConsole = '';
     }
     if (tab === 'serial' && !panelCollapsed) renderSerial();
+    if (tab === 'plot' && !panelCollapsed) renderPlot();
   });
 }
 function renderSerial() {
@@ -124,11 +166,91 @@ function renderSerial() {
     .map(line => (stamps ? line.time + '  ' : '') + line.text).join('\n').slice(-400000);
   if (follow) log.scrollTop = log.scrollHeight;
 }
+function renderPlot() {
+  const canvas = $('plot-canvas');
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const labels = [...new Set(plotHistory.flatMap(sample => sample.map(point => point.label)))].slice(0, 8);
+  $('plot-empty').hidden = labels.length > 0;
+  const legendKey = labels.join('|');
+  if (legendKey !== plotLegendKey) {
+    plotLegendKey = legendKey;
+    $('plot-legend').replaceChildren(...labels.map((label, index) => {
+      const item = node('span', 'plot-key', label);
+      item.style.setProperty('--series', plotColors[index]);
+      return item;
+    }));
+  }
+  const width = rect.width;
+  const height = rect.height;
+  const scale = window.devicePixelRatio;
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  if (!labels.length || width < 80 || height < 34) return;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  const points = plotHistory.flat().filter(point => labels.includes(point.label)).map(point => point.value);
+  // Normalize before calculating the range so very large finite values do not overflow.
+  const magnitude = Math.max(1, ...points.map(Math.abs));
+  let min = Math.min(...points) / magnitude;
+  let max = Math.max(...points) / magnitude;
+  if (min === max) { min -= 0.05; max += 0.05; }
+  const left = 58;
+  const right = width - 12;
+  const top = 9;
+  const bottom = height - 10;
+  const formatter = new Intl.NumberFormat('uk', { notation: 'compact', maximumFractionDigits: 2 });
+  ctx.font = '10px monospace';
+  for (let i = 0; i <= 3; i++) {
+    const y = top + (bottom - top) * i / 3;
+    ctx.strokeStyle = '#303947';
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(right, y);
+    ctx.stroke();
+    ctx.fillStyle = '#9baabe';
+    ctx.fillText(formatter.format((max - (max - min) * i / 3) * magnitude), 4, y + 3, left - 9);
+  }
+  for (const [series, label] of labels.entries()) {
+    ctx.strokeStyle = ctx.fillStyle = plotColors[series];
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let connected = false;
+    const dots = [];
+    for (const [index, sample] of plotHistory.entries()) {
+      const value = sample.find(point => point.label === label)?.value;
+      if (value === undefined) { connected = false; continue; }
+      const x = plotHistory.length === 1 ? right : left + (right - left) * index / (plotHistory.length - 1);
+      const y = bottom - (bottom - top) * (value / magnitude - min) / (max - min);
+      if (connected) ctx.lineTo(x, y);
+      else ctx.moveTo(x, y);
+      connected = true;
+      dots.push([x, y]);
+    }
+    ctx.stroke();
+    if (dots.length < 8) {
+      for (const [x, y] of dots) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+new ResizeObserver(() => {
+  if (tab === 'plot' && !panelCollapsed) renderPlot();
+}).observe($('plot-area'));
+
 function error(e, log = false) {
   status(e.message, 'error');
   if (log) append('console', '\n' + e.message + '\n');
 }
 function clearLog(name) {
+  if (name === 'plot') {
+    plotHistory.length = 0;
+    renderPlot();
+    return;
+  }
   if (name === 'console') pendingConsole = '';
   else {
     serialLines.length = 0;
@@ -140,7 +262,7 @@ function clearLog(name) {
 }
 function showPanel(next) {
   tab = next;
-  for (const name of ['console', 'serial', 'problems']) {
+  for (const name of ['console', 'serial', 'plot', 'problems']) {
     const expanded = name === next && !panelCollapsed;
     $(name + '-tab').classList.toggle('active', expanded);
     $(name + '-tab').setAttribute('aria-expanded', expanded);
@@ -154,9 +276,11 @@ function showPanel(next) {
   $('console-log').hidden = next !== 'console';
   $('problems-log').hidden = next !== 'problems';
   $('serial-view').hidden = next !== 'serial';
+  $('plot-view').hidden = next !== 'plot';
   $('serial-controls').hidden = panelCollapsed || next !== 'serial';
   $('clear').hidden = panelCollapsed || next === 'problems';
   if (!panelCollapsed && next === 'serial') renderSerial();
+  if (!panelCollapsed && next === 'plot') renderPlot();
   if (!panelCollapsed && next === 'console') $('console-log').scrollTop = $('console-log').scrollHeight;
 }
 function togglePanel(next = tab) {
@@ -280,6 +404,7 @@ function createState(file, content) {
         if (activeFile === file) {
           if (update.docChanged && wasDirty !== isDirty(doc)) renderTabs();
           if (update.docChanged || update.selectionSet) cursor(update.state);
+          if (update.docChanged) scheduleRecovery();
         }
       })
     ]
@@ -324,6 +449,7 @@ async function openFile(file, location) {
   renderTree();
   renderTabs();
   editor.focus();
+  scheduleRecovery();
 }
 async function save(all = false) {
   if (!project) return;
@@ -334,6 +460,7 @@ async function save(all = false) {
     doc.saved = next;
   }
   renderTabs();
+  await rememberSession();
 }
 async function canClose() {
   if (![...files.values()].some(isDirty)) return true;
@@ -342,7 +469,11 @@ async function canClose() {
   if (choice === 0) await save(true);
   return true;
 }
-async function acceptProject(value) {
+async function acceptProject(value, session) {
+  clearTimeout(recoveryTimer);
+  recoveryTimer = undefined;
+  restoringSession = !!session;
+  orphanDrafts = {};
   project = value;
   const saved = value && projectProfiles.get(value.primary);
   settings = new Map(Object.entries(structuredClone(saved?.options || legacyOptions)));
@@ -360,6 +491,7 @@ async function acceptProject(value) {
   buildSnapshots.clear();
   clearLog('console');
   clearLog('serial');
+  clearLog('plot');
   seen.clear();
   devicePort = '';
   chip = '';
@@ -376,10 +508,47 @@ async function acceptProject(value) {
     showPanel('console');
     append('console', 'Готово до збірки. Виберіть профіль плати у шапці.\n');
     renderPorts();
-    await loadFolder(value.root);
-    await openFile(value.selected);
-    status('Проєкт відкрито', 'success');
+    let conflicts = 0;
+    let recovered = 0;
+    try {
+      await loadFolder(value.root);
+      if (session) {
+        const drafts = session.drafts || {};
+        const tabs = new Set([...(session.tabs || []), ...Object.keys(drafts)]);
+        for (const file of tabs) {
+          const draft = drafts[file];
+          try {
+            const savedContent = await call('read', file);
+            const text = draft?.text ?? savedContent;
+            files.set(file, { state: createState(file, text), saved: savedContent });
+            if (text !== savedContent) {
+              recovered++;
+              if (draft.base !== savedContent) conflicts++;
+            }
+          } catch {
+            if (draft) orphanDrafts[file] = draft;
+          }
+        }
+        const active = files.has(session.active) ? session.active : value.selected;
+        await openFile(active);
+      } else {
+        await openFile(value.selected);
+      }
+    } finally {
+      restoringSession = false;
+    }
+    await rememberSession();
+    if (Object.keys(orphanDrafts).length) {
+      status('Деякі файли відсутні. Їхні чернетки залишено в даних відновлення.', 'error');
+    } else if (conflicts) {
+      status('Відновлено чернетки. Деякі файли змінено на диску, перевірте їх перед збереженням.', 'error');
+    } else if (recovered) {
+      status('Відновлено незбережені зміни', 'success');
+    } else {
+      status('Проєкт відкрито', 'success');
+    }
   } else {
+    await rememberSession();
     const state = await call('state');
     recent = state.recent;
     renderRecent();
@@ -511,6 +680,9 @@ function setPort(port) {
 function renderTools() {
   const menu = $('tools-menu');
   menu.replaceChildren();
+  const pins = button('menu-row pin-menu-action', '', openPins);
+  pins.append(icon('pins'), node('span', '', 'Карта пінів'));
+  menu.append(pins, node('hr'));
   groupLabel(menu, 'Порт');
   const select = node('select', 'tools-select');
   select.setAttribute('aria-label', 'Послідовний порт');
@@ -559,6 +731,8 @@ function renderPorts() {
   $('device-status').title = devicePort;
   $('serial-toggle').disabled = !!task || (!devicePort && !monitorPort);
   $('serial-toggle').textContent = monitorPort ? 'Закрити порт' : 'Відкрити порт';
+  $('plot-monitor').disabled = $('serial-toggle').disabled;
+  $('plot-monitor').textContent = $('serial-toggle').textContent;
   $('baud').disabled = !!monitorPort;
   $('serial-command').disabled = $('serial-send-button').disabled = !monitorPort || !!task;
   if (!$('tools-menu').hidden) renderTools();
@@ -817,7 +991,13 @@ async function shortcut(action) {
   if (action === 'quit' || action === 'window') {
     if (task || changing) return status('Зачекайте, поки поточна операція завершиться.');
     changing = true;
-    try { if (await canClose()) await call('quit', action === 'quit'); }
+    try {
+      if (await canClose()) {
+        quittingSession = true;
+        await rememberSession(false);
+        await call('quit', action === 'quit');
+      }
+    }
     catch (e) { error(e); }
     finally { changing = false; }
   }
@@ -859,7 +1039,7 @@ $('new-form').onsubmit = async e => {
   $('create').disabled = true;
   try {
     if (!await canClose()) return;
-    const value = await call('create', { parent, name: $('name').value.trim() });
+    const value = await call('create', { parent, name: $('name').value.trim(), template: $('sketch-template').value });
     $('new-dialog').close();
     await acceptProject(value);
   } catch (e) {
@@ -959,7 +1139,7 @@ document.addEventListener('keydown', e => {
 });
 $('verify').onclick = () => void build(false);
 $('upload').onclick = () => void build(true);
-for (const name of ['console', 'serial', 'problems']) {
+for (const name of ['console', 'serial', 'plot', 'problems']) {
   $(name + '-tab').onclick = () => togglePanel(name);
 }
 $('panel-toggle').onclick = () => togglePanel();
@@ -979,6 +1159,46 @@ $('serial-send').onsubmit = async event => {
 };
 $('clear').onclick = () => clearLog(tab);
 $('serial-toggle').onclick = toggleSerial;
+$('plot-monitor').onclick = toggleSerial;
+function openPins() {
+  closeMenus();
+  $('pin-query').value = '';
+  renderPins();
+  $('pin-dialog').showModal();
+  if (!$('pin-query').hidden) $('pin-query').focus();
+}
+$('pin-query').oninput = renderPins;
+$('pin-source').onclick = () => void call('pinoutSource', pinouts[board?.id]?.source).catch(error);
+
+function renderPins() {
+  const map = pinouts[board?.id];
+  $('pin-title').textContent = map?.title || 'Карта пінів';
+  $('pin-query').hidden = $('pin-source').hidden = !map;
+  const container = $('pin-map');
+  container.replaceChildren();
+  if (!map) {
+    $('pin-note').textContent = board
+      ? 'Для цього профілю карти ще немає.'
+      : 'Спочатку виберіть плату.';
+    return;
+  }
+  const note = map.reference ? 'Довідкова схема. Назва профілю Dev Module не визначає фізичну розводку вашої плати.' : '';
+  $('pin-note').textContent = [note, map.note].filter(Boolean).join(' ');
+  const search = $('pin-query').value.trim().toLowerCase();
+  for (const group of map.groups) {
+    const matches = group.pins.filter(pin => (pin.name + ' ' + pin.functions).toLowerCase().includes(search));
+    if (!matches.length) continue;
+    const block = node('section', 'pin-header');
+    block.append(node('h3', '', group.label));
+    for (const pin of matches) {
+      const row = node('div', 'pin-row');
+      row.append(node('strong', '', pin.name), node('span', '', pin.functions));
+      block.append(row);
+    }
+    container.append(block);
+  }
+  if (!container.firstChild) container.append(node('p', '', 'Пінів не знайдено.'));
+}
 $('library-search').onsubmit = e => { e.preventDefault(); void searchLibraries(); };
 $('refresh-index').onclick = refreshIndex;
 const split = $('split');
@@ -1067,11 +1287,25 @@ async function init() {
   const state = await call('state');
   profiles = state.profiles;
   recent = state.recent;
+  for (const template of state.templates) {
+    if (template.id !== 'empty') $('sketch-template').append(new Option(template.name, template.id));
+  }
   renderRecent();
-  status('Підготовка інструментів Arduino…');
+  if (state.recovery?.primary) {
+    changing = true;
+    try {
+      const workspace = await call('reopen', state.recovery.primary);
+      await acceptProject(workspace, state.recovery);
+    } catch (e) {
+      error(Error('Не вдалося відновити попередній проєкт: ' + e.message), true);
+    } finally {
+      changing = false;
+    }
+  }
+  if (!project && !state.recovery?.primary) status('Підготовка інструментів Arduino…');
   try {
     await call('prepare');
-    if (!project) status('Готово');
+    if (!project && !state.recovery?.primary) status('Готово');
   } catch (e) { error(e); }
   void poll();
   catalogState = 'Завантаження каталогу плат…';

@@ -23,6 +23,7 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path class="knobs" d="M8 4v4m8 2v4m-6 2v4"/></symbol>
+  <symbol id="i-pins" viewBox="0 0 24 24"><path d="M8 4h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 8h3m-3 4h3m-3 4h3m12-8h3m-3 4h3m-3 4h3M10 9h4v6h-4z"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zM9 3v3m6-3v3m-6 12v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/></symbol>
   <symbol id="i-usb" viewBox="0 0 24 24"><path d="M12 20V4m-3 3 3-3 3 3m-3 9-5-4v-2m5 4 5-4V8"/><circle cx="12" cy="20" r="1.5"/><circle cx="7" cy="9" r="1.5"/><rect x="16" y="6" width="2" height="2"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -101,9 +102,10 @@
       <div id="split" role="separator" aria-label="Висота консолі" aria-orientation="horizontal" tabindex="0"></div>
       <div id="panel" class="panel">
         <div class="panel-bar">
-          <button id="console-tab" class="panel-tab active"><span data-icon="terminal"></span>Консоль</button>
-          <button id="serial-tab" class="panel-tab"><span data-icon="activity"></span>Serial Monitor</button>
-          <button id="problems-tab" class="panel-tab"><span data-icon="problems"></span>Проблеми<span id="problem-count" hidden></span></button>
+          <button id="console-tab" title="Консоль" class="panel-tab active"><span data-icon="terminal"></span>Консоль</button>
+          <button id="serial-tab" title="Serial Monitor" class="panel-tab"><span data-icon="activity"></span>Serial Monitor</button>
+          <button id="plot-tab" title="Plotter" class="panel-tab"><span data-icon="activity"></span>Plotter</button>
+          <button id="problems-tab" title="Проблеми" class="panel-tab"><span data-icon="problems"></span>Проблеми<span id="problem-count" hidden></span></button>
           <span class="spacer"></span>
           <button id="clear" class="button bare compact">Очистити</button>
           <button id="panel-toggle" class="icon-button" aria-label="Згорнути нижню панель" title="Згорнути нижню панель" aria-controls="panel-content" aria-expanded="true"><span data-icon="down"></span></button>
@@ -126,6 +128,17 @@
               <button id="serial-send-button" class="button compact" type="submit" disabled>Надіслати</button>
             </form>
           </div>
+          <div id="plot-view" hidden>
+            <div class="plot-toolbar">
+              <span id="plot-legend"></span>
+              <span class="spacer"></span>
+              <button id="plot-monitor" class="button compact">Відкрити порт</button>
+            </div>
+            <div id="plot-area">
+              <canvas id="plot-canvas" aria-label="Графік даних із послідовного порту"></canvas>
+              <p id="plot-empty">Немає числових даних. Надішліть із плати рядок на кшталт <code>temp:24.5 humidity:60</code>.</p>
+            </div>
+          </div>
           <div id="problems-log" aria-label="Проблеми збірки" hidden></div>
         </div>
       </div>
@@ -146,6 +159,7 @@
   <form id="new-form">
     <div class="dialog-head"><div><div class="eyebrow">РОБОЧИЙ ПРОСТІР</div><h2>Новий проєкт</h2></div><button type="button" class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
     <label class="field">Назва скетчу<input id="name" placeholder="MySketch" required maxlength="63" autocomplete="off"></label>
+    <label class="field">Шаблон<select id="sketch-template"><option value="empty">Порожній скетч</option></select></label>
     <label class="field">Розташування</label>
     <div class="folder-picker"><span id="parent-label">Папку не вибрано</span><button id="pick-folder" type="button" class="button compact">Вибрати…</button></div>
     <p id="new-error" class="error" hidden></p>
@@ -164,6 +178,13 @@
 <dialog id="quick-dialog" aria-label="Швидке відкриття файла">
   <input id="quick-query" type="search" placeholder="Назва або шлях до файла" aria-label="Швидкий пошук файла" autocomplete="off">
   <div id="quick-results" aria-label="Знайдені файли"></div>
+</dialog>
+<dialog id="pin-dialog" aria-labelledby="pin-title">
+  <div class="dialog-head"><h2 id="pin-title">Карта пінів</h2><button type="button" aria-label="Закрити" class="icon-button dismiss" data-icon="x"></button></div>
+  <p id="pin-note"></p>
+  <input id="pin-query" type="search" placeholder="GPIO, SDA, SCL…" aria-label="Знайти пін" autocomplete="off">
+  <div id="pin-map"></div>
+  <button id="pin-source" type="button" class="button compact">Документація виробника</button>
 </dialog>
 </body>
 </html>
