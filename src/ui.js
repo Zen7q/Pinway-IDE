@@ -56,6 +56,25 @@ const serialClock = new Intl.DateTimeFormat('uk', {
 });
 let seen = new Set(), lastPorts = '', libraryResults = [], libraryVersions = {}, libraryBusy = false;
 
+const zoomMin = 70;
+const zoomMax = 150;
+const zoomDefault = 100;
+let zoomPercent = Number(localStorage.getItem('pinway.zoom')) || zoomDefault;
+
+function setZoom(value) {
+  zoomPercent = Math.max(zoomMin, Math.min(zoomMax, Math.round(value)));
+  $('zoom-reset').textContent = zoomPercent + '%';
+  $('zoom-out').disabled = zoomPercent === zoomMin;
+  $('zoom-in').disabled = zoomPercent === zoomMax;
+  localStorage.setItem('pinway.zoom', String(zoomPercent));
+  return call('zoom', zoomPercent).catch(error);
+}
+const zoomActions = {
+  zoomIn: () => setZoom(zoomPercent + 10),
+  zoomOut: () => setZoom(zoomPercent - 10),
+  zoomReset: () => setZoom(zoomDefault)
+};
+
 function status(message, kind = '') {
   $('status').textContent = message;
   $('status').title = message;
@@ -786,6 +805,7 @@ $('quick-query').onkeydown = event => {
   }
 };
 async function shortcut(action) {
+  if (Object.hasOwn(zoomActions, action)) return zoomActions[action]();
   if (action === 'new') return newDialog();
   if (action === 'quickOpen') return openQuick();
   if (action === 'open' && !$('entry-dialog').open) return changeProject(() => call('select'));
@@ -914,7 +934,18 @@ $('board-query').onkeydown = event => {
 };
 $('tools-button').onclick = () => toggleMenu('tools');
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu-anchor')) closeMenus(); });
+$('zoom-in').onclick = zoomActions.zoomIn;
+$('zoom-out').onclick = zoomActions.zoomOut;
+$('zoom-reset').onclick = zoomActions.zoomReset;
 document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    const action = { '+': 'zoomIn', '=': 'zoomIn', '-': 'zoomOut', '0': 'zoomReset' }[e.key];
+    if (action) {
+      e.preventDefault();
+      void zoomActions[action]();
+      return;
+    }
+  }
   if (e.key === 'Escape' && $('tools-menu').querySelector('.tools-select:open')) return;
   if (e.key === 'Escape' && !$('board-menu').hidden) {
     closeMenus();
@@ -1032,6 +1063,7 @@ window.addEventListener('resize', () => {
 });
 
 async function init() {
+  await setZoom(zoomPercent);
   const state = await call('state');
   profiles = state.profiles;
   recent = state.recent;

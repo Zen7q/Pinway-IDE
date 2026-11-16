@@ -79,6 +79,10 @@ function operation(fn) {
 const handlers = {
   state: () => ({ recent, project, profiles }),
   prepare: () => arduino.initialize(),
+  zoom: percent => {
+    if (!Number.isInteger(percent) || percent < 70 || percent > 150) throw Error('Недопустимий масштаб.');
+    win.webContents.setZoomFactor(percent / 100);
+  },
   catalog: async () => {
     const { boards } = await arduino.json(['board', 'listall']);
     return (boards || [])
@@ -261,7 +265,13 @@ else {
         { label: 'Закрити проєкт', accelerator: 'Cmd+Shift+W', click: command('close') },
         { label: 'Закрити вікно', accelerator: 'Cmd+W', click: command('window') }
       ] },
-      { role: 'editMenu' }, { role: 'windowMenu' }
+      { role: 'editMenu' },
+      { label: 'Вигляд', submenu: [
+        { label: 'Збільшити масштаб', accelerator: 'CmdOrCtrl+=', click: command('zoomIn') },
+        { label: 'Зменшити масштаб', accelerator: 'CmdOrCtrl+-', click: command('zoomOut') },
+        { label: 'Фактичний розмір', accelerator: 'CmdOrCtrl+0', click: command('zoomReset') }
+      ] },
+      { role: 'windowMenu' }
     ]));
     createWindow();
   });

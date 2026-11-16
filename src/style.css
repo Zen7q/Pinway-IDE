@@ -357,3 +357,27 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
 .library-row p { color:#acb9c8; margin:4px 0 0; font-size:12px; }
 .library-row small { display:block; color:var(--accent); margin-top:5px; }
 .library-row .button { margin-top:7px; }
+
+
+.zoom-controls { display:flex; align-items:center; flex:none; gap:1px; }
+.zoom-controls button {
+  flex:none;
+  min-width:20px;
+  min-height:22px;
+  padding:0 4px;
+  border-radius:4px;
+  color:inherit;
+}
+.zoom-controls button:hover:not(:disabled) { background:#39444f; color:#fff; }
+#zoom-reset { min-width:41px; font-variant-numeric:tabular-nums; }
+@media (max-width:690px) {
+  .chrome { gap:6px; padding-inline:64px 10px; }
+  .toolbar { gap:3px; }
+  .toolbar .button { padding-inline:6px; gap:4px; }
+  #board-label { max-width:clamp(66px, calc(100vw - 479px), 95px); }
+  #board-menu { position:fixed; top:59px; right:10px; left:auto; }
+  .statusbar { gap:7px; padding-inline:7px; }
+  #encoding { display:none; }
+  .welcome-content { display:block; padding:28px 30px; }
+  .recents { margin-top:24px; }
+}
