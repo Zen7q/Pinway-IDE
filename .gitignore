@@ -1,11 +1,5 @@
 node_modules/
+src/ui.bundle.js
+.toolchain/
 dist/
-.env
-.env.*
 .DS_Store
-Thumbs.db
-*.log
-npm-debug.log*
-.vscode/*
-!.vscode/settings.json
-.idea/

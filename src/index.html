@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'">
+<title>Pinway IDE</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="ui.bundle.js"></script>
+</head>
+<body>
+<svg class="symbols" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M7 19V5h7a4 4 0 0 1 0 8h-3m-4 3h5m4 3h2"/><circle cx="18" cy="19" r="1"/><circle cx="7" cy="19" r="1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6M8 12h12"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m9 7-5 5 5 5m6-10 5 5-5 5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path class="knobs" d="M8 4v4m8 2v4m-6 2v4"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zM9 3v3m6-3v3m-6 12v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/></symbol>
+  <symbol id="i-usb" viewBox="0 0 24 24"><path d="M12 20V4m-3 3 3-3 3 3m-3 9-5-4v-2m5 4 5-4V8"/><circle cx="12" cy="20" r="1.5"/><circle cx="7" cy="9" r="1.5"/><rect x="16" y="6" width="2" height="2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5m8 0h6"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5h4v14H4zm6 0h4v14h-4zm6 1 3-1 3 13-3 1z"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v6H5V6h6"/></symbol>
+</svg>
+<div id="app">
+  <header class="chrome">
+    <div class="title drag"><span class="title-indicator"></span><span id="caption">Pinway IDE</span></div>
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="menu-anchor"><button id="board-button" class="button" aria-haspopup="true" aria-expanded="false"><span data-icon="chip"></span><span id="board-label">Вибрати плату</span><span data-icon="down"></span></button><div id="board-menu" class="popover" hidden></div></div>
+      <button id="verify" class="button bare"><span data-icon="check"></span>Перевірити</button>
+      <button id="upload" class="button primary"><span data-icon="upload"></span>Завантажити</button>
+      <div class="menu-anchor"><button id="tools-button" class="button bare" aria-haspopup="true" aria-expanded="false"><span data-icon="settings"></span>Tools</button><div id="tools-menu" class="popover" hidden></div></div>
+    </div>
+    <span id="version" class="chrome-version">macOS · v0.1</span>
+  </header>
+  <main id="welcome">
+    <div class="welcome-content">
+      <section class="hero">
+        <div class="brand-mark" data-icon="logo"></div>
+        <div class="eyebrow">ARDUINO / ESP32 WORKBENCH</div>
+        <h1>Pinway IDE<span>.</span></h1>
+        <p>Пишіть, збирайте та завантажуйте прошивки для Arduino й ESP.</p>
+        <div class="welcome-actions">
+          <button id="new" class="button primary"><span data-icon="plus"></span>Новий проєкт <kbd>⌘N</kbd></button>
+          <button id="open" class="button"><span data-icon="folder"></span>Відкрити проєкт <kbd>⌘O</kbd></button>
+        </div>
+      </section>
+      <section class="recents" aria-label="Останні проєкти">
+        <div class="section-heading"><span>Останні проєкти</span><span id="recent-count" class="counter">00</span></div>
+        <div id="recent-list"></div>
+      </section>
+      <div class="welcome-footer"><span>01 / РОБОЧИЙ ПРОСТІР</span><span>ARDUINO C++ <i></i> MACOS</span></div>
+    </div>
+  </main>
+  <main id="workbench" hidden>
+    <aside class="sidebar">
+      <div class="side-heading"><button id="home" class="icon-button" title="Закрити проєкт" aria-label="Закрити проєкт"><span data-icon="back"></span></button><span>ПРОЄКТ</span><button id="reveal" class="icon-button reveal" title="Показати у Finder" aria-label="Показати у Finder"><span data-icon="open"></span></button></div>
+      <div class="root-heading"><span data-icon="folder"></span><span id="root-label"></span></div>
+      <div id="tree"></div>
+      <div class="side-footer"><span data-icon="code"></span><span>ARDUINO C++</span></div>
+    </aside>
+    <section class="workspace">
+      <div id="alerts" hidden></div>
+      <div id="tabs" class="tabs" aria-label="Відкриті файли"></div>
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div id="editor" aria-label="Редактор Arduino C++"></div>
+      <div id="split" role="separator" aria-label="Висота консолі" aria-orientation="horizontal" tabindex="0"></div>
+      <div id="panel" class="panel">
+        <div class="panel-bar">
+          <button id="console-tab" class="panel-tab active"><span data-icon="terminal"></span>Консоль</button>
+          <button id="serial-tab" class="panel-tab"><span data-icon="activity"></span>Serial Monitor</button>
+          <span class="spacer"></span>
+          <div id="serial-controls" hidden>
+            <label>Бод <select id="baud"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option selected>115200</option><option>230400</option><option>460800</option><option>921600</option></select></label>
+            <button id="serial-toggle" class="button compact">Відкрити порт</button>
+          </div>
+          <button id="clear" class="button bare compact">Очистити</button>
+        </div>
+        <pre id="console-log" class="log" tabindex="0"></pre>
+        <pre id="serial-log" class="log" tabindex="0" hidden></pre>
+      </div>
+    </section>
+  </main>
+  <footer class="statusbar">
+    <span id="status" role="status">Готово</span><span class="spacer"></span>
+    <span id="device-status" hidden><span class="status-dot"></span><span id="port-label">Порт не вибрано</span></span>
+    <span id="cursor" hidden>Ряд 1, стовп. 1</span><span id="encoding" hidden>UTF-8</span>
+  </footer>
+</div>
+<dialog id="new-dialog">
+  <form id="new-form">
+    <div class="dialog-head"><div><div class="eyebrow">РОБОЧИЙ ПРОСТІР</div><h2>Новий проєкт</h2></div><button type="button" class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
+    <label class="field">Назва скетчу<input id="name" placeholder="MySketch" required maxlength="63" autocomplete="off"></label>
+    <label class="field">Розташування</label>
+    <div class="folder-picker"><span id="parent-label">Папку не вибрано</span><button id="pick-folder" type="button" class="button compact">Вибрати…</button></div>
+    <p id="new-error" class="error" hidden></p>
+    <div class="dialog-actions"><button type="button" class="button dismiss">Скасувати</button><button id="create" type="submit" class="button primary">Створити</button></div>
+  </form>
+</dialog>
+<dialog id="libraries">
+  <div class="dialog-head"><div><div class="eyebrow">ARDUINO LIBRARY MANAGER</div><h2>Бібліотеки</h2></div><button class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
+  <div class="library-toolbar">
+    <form id="library-search" role="search"><input id="query" type="search" placeholder="Наприклад, ArduinoJson" aria-label="Назва бібліотеки"><button class="button primary" type="submit">Пошук</button></form>
+    <button id="refresh-index" class="button">Оновити індекс</button>
+  </div>
+  <p id="library-status" role="status"></p>
+  <div id="library-results"></div>
+</dialog>
+</body>
+</html>
