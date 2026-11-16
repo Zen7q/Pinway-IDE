@@ -260,6 +260,7 @@ async function acceptProject(value) {
   $('version').hidden = !!value;
   $('caption').textContent = value ? value.name + ' — Pinway IDE' : 'Pinway IDE';
   if (value) {
+    layoutSidebar();
     $('root-label').textContent = basename(value.root);
     $('root-label').title = value.root;
     showPanel('console');
@@ -566,6 +567,7 @@ function renderLibraries(list) {
   }
 }
 function showSidebar(panel) {
+  $('sidebar-split').hidden = !panel;
   for (const id of ['files-view', 'libraries-view']) {
     const control = $(id);
     const target = control.getAttribute('aria-controls');
@@ -802,7 +804,67 @@ split.onkeydown = e => {
   e.preventDefault();
   panelHeight($('panel').offsetHeight + (e.key === 'ArrowUp' ? 20 : -20));
 };
-window.addEventListener('resize', () => { if (project) panelHeight($('panel').offsetHeight); });
+const sidebarSplit = $('sidebar-split');
+const defaultSidebarWidth = 248;
+const minSidebarWidth = 208;
+let preferredSidebarWidth = Number(localStorage.getItem('pinway.sidebarWidth')) || defaultSidebarWidth;
+
+function layoutSidebar() {
+  const railWidth = $('sidebar').querySelector('.side-views').offsetWidth;
+  const maxWidth = Math.max(minSidebarWidth, Math.min(520, $('workbench').clientWidth - railWidth - 360));
+  const width = Math.max(minSidebarWidth, Math.min(maxWidth, preferredSidebarWidth));
+  $('sidebar').style.setProperty('--panel-width', width + 'px');
+  sidebarSplit.setAttribute('aria-valuemin', minSidebarWidth);
+  sidebarSplit.setAttribute('aria-valuemax', maxWidth);
+  sidebarSplit.setAttribute('aria-valuenow', width);
+}
+function resizeSidebar(width) {
+  preferredSidebarWidth = width;
+  layoutSidebar();
+  preferredSidebarWidth = Number(sidebarSplit.getAttribute('aria-valuenow'));
+}
+function saveSidebarWidth() {
+  localStorage.setItem('pinway.sidebarWidth', String(preferredSidebarWidth));
+}
+sidebarSplit.onpointerdown = event => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  event.preventDefault();
+  sidebarSplit.focus();
+  sidebarSplit.setPointerCapture(event.pointerId);
+  const width = Number(sidebarSplit.getAttribute('aria-valuenow'));
+  const start = event.clientX;
+  $('workbench').classList.add('resizing-sidebar');
+  sidebarSplit.classList.add('dragging');
+  sidebarSplit.onpointermove = move => resizeSidebar(width + move.clientX - start);
+};
+sidebarSplit.onlostpointercapture = () => {
+  sidebarSplit.onpointermove = null;
+  $('workbench').classList.remove('resizing-sidebar');
+  sidebarSplit.classList.remove('dragging');
+  saveSidebarWidth();
+};
+sidebarSplit.onkeydown = event => {
+  const width = Number(sidebarSplit.getAttribute('aria-valuenow'));
+  const sizes = {
+    ArrowLeft: width - 16,
+    ArrowRight: width + 16,
+    Home: minSidebarWidth,
+    End: Number(sidebarSplit.getAttribute('aria-valuemax'))
+  };
+  if (!Object.hasOwn(sizes, event.key)) return;
+  event.preventDefault();
+  resizeSidebar(sizes[event.key]);
+  saveSidebarWidth();
+};
+sidebarSplit.ondblclick = () => {
+  resizeSidebar(defaultSidebarWidth);
+  saveSidebarWidth();
+};
+window.addEventListener('resize', () => {
+  if (!project) return;
+  panelHeight($('panel').offsetHeight);
+  layoutSidebar();
+});
 
 async function init() {
   const state = await call('state');

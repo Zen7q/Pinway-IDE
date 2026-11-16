@@ -183,6 +183,7 @@ kbd{font:10px var(--mono);opacity:.66;margin-left:4px}
 .welcome-footer i{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--accent);vertical-align:middle;margin:0 8px}
 #workbench{display:flex;flex:1;overflow:hidden}
 .sidebar {
+  --panel-width:248px;
   display:flex;
   flex:none;
   min-height:0;
@@ -215,9 +216,29 @@ kbd{font:10px var(--mono);opacity:.66;margin-left:4px}
 #files-panel, #libraries {
   display:flex;
   flex-direction:column;
-  width:248px;
+  width:var(--panel-width);
   min-height:0;
-  border-right:1px solid var(--border);
+}
+#sidebar-split {
+  position:relative;
+  z-index:2;
+  flex:0 0 1px;
+  background:var(--border);
+  cursor:col-resize;
+  touch-action:none;
+}
+#sidebar-split::before {
+  content:"";
+  position:absolute;
+  inset:0 -4px;
+}
+#sidebar-split:hover, #sidebar-split:focus-visible, #sidebar-split.dragging {
+  background:var(--accent);
+  box-shadow:0 0 0 1px var(--accent);
+}
+#workbench.resizing-sidebar, #workbench.resizing-sidebar * {
+  cursor:col-resize !important;
+  user-select:none;
 }
 .side-heading {
   display:flex;

@@ -80,6 +80,22 @@ async function screenshot(page, name) {
   await page.locator('#files-panel').waitFor();
   expect.equal(await editorLeft(), expandedLeft);
   console.log('OK: vertical sidebar controls collapse and reopen either panel');
+  const sidebarSplit = page.getByRole('separator', { name: 'Ширина бічної панелі' });
+  const handle = await sidebarSplit.boundingBox();
+  const dragX = handle.x + handle.width / 2;
+  const dragY = handle.y + handle.height / 2;
+  await page.mouse.move(dragX, dragY);
+  await page.mouse.down();
+  await page.mouse.move(dragX + 80, dragY, { steps: 5 });
+  await page.mouse.up();
+  expect.equal(await editorLeft(), expandedLeft + 80);
+  await sidebarSplit.press('ArrowLeft');
+  expect.equal(await editorLeft(), expandedLeft + 64);
+  await sidebarSplit.dblclick();
+  expect.equal(await editorLeft(), expandedLeft);
+  await sidebarSplit.press('ArrowRight');
+  const restoredSidebarWidth = await sidebarSplit.getAttribute('aria-valuenow');
+  console.log('OK: sidebar drag, keyboard resize and reset');
 
   const ino = path.join(sketches, 'PinwaySmoke/PinwaySmoke.ino');
   expect.match(await fs.readFile(ino, 'utf8'), /void setup\(\)/);
@@ -217,6 +233,8 @@ async function screenshot(page, name) {
   await page.locator('#recent-list').getByRole('button', { name: /New Sketch/ }).click();
   await status(page, 'Проєкт відкрито');
   await page.locator('.cm-line').getByText('Saved on close', { exact: false }).waitFor();
+  expect.equal(await page.locator('#sidebar-split').getAttribute('aria-valuenow'), restoredSidebarWidth);
+  console.log('OK: sidebar width persists across restart');
   console.log('OK: open noncanonical sketch / tree / .ino diagnostic mapping / discard and save / recents after restart');
   console.log('Packaged smoke checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

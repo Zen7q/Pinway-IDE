@@ -68,7 +68,7 @@
     </div>
   </main>
   <main id="workbench" hidden>
-    <aside class="sidebar" aria-label="Бічна панель">
+    <aside id="sidebar" class="sidebar" aria-label="Бічна панель">
       <nav class="side-views" aria-label="Панелі проєкту">
         <button id="files-view" class="side-view" title="Файли" aria-label="Файли" aria-controls="files-panel" aria-expanded="true"><span data-icon="folder"></span></button>
         <button id="libraries-view" class="side-view" title="Бібліотеки" aria-label="Бібліотеки" aria-controls="libraries" aria-expanded="false"><span data-icon="book"></span></button>
@@ -90,6 +90,7 @@
         <p id="library-status" aria-live="polite"></p>
         <div id="library-results"></div>
       </section>
+      <div id="sidebar-split" role="separator" aria-label="Ширина бічної панелі" aria-orientation="vertical" aria-controls="sidebar" tabindex="0" title="Перетягніть, щоб змінити ширину"></div>
     </aside>
     <section class="workspace">
       <div id="alerts" hidden></div>
