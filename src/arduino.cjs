@@ -41,7 +41,14 @@ function execute(bin, args, { env = process.env, output, timeout = 120000, keepI
       resolve({ ok: code === 0 && !reason, stdout, stderr, reason, code, signal });
     });
   });
-  return { stop, done };
+  function write(text) {
+    if (!child.stdin?.writable) return Promise.reject(Error('Монітор порту закрито.'));
+    return new Promise((resolve, reject) => {
+      child.stdin.write(text, error => error ? reject(error) : resolve());
+    });
+  }
+  child.stdin?.on('error', () => { /* writes report errors through their callbacks */ });
+  return { stop, done, write };
 }
 
 function makeArduino(runtime, storage) {

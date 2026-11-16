@@ -32,13 +32,28 @@ const basename = p => p.split('/').at(-1);
 const dirname = p => p.slice(0, p.lastIndexOf('/')) || '/';
 const files = new Map();
 const folders = new Map();
-const settings = new Map(Object.entries(JSON.parse(localStorage.getItem('pinway.options') || '{}')));
-const saveOptions = () => localStorage.setItem('pinway.options', JSON.stringify(Object.fromEntries(settings)));
+const projectProfiles = new Map(Object.entries(JSON.parse(localStorage.getItem('pinway.projectProfiles') || '{}')));
+const legacyOptions = JSON.parse(localStorage.getItem('pinway.options') || '{}');
+const legacyBoard = localStorage.getItem('pinway.board') || '';
+let settings = new Map();
+function saveProfile() {
+  if (!project) return;
+  if (board) settings.set(board.id, options);
+  projectProfiles.set(project.primary, { board, options: Object.fromEntries(settings) });
+  localStorage.setItem('pinway.projectProfiles', JSON.stringify(Object.fromEntries(projectProfiles)));
+}
 const completionMode = new Compartment();
 let project, recent = [], profiles = [], catalogState = '', board, options = {}, devicePort = '', devices = [], portMissing = false, chip = '';
-let savedBoard = localStorage.getItem('pinway.board') || '';
 let editor, activeFile, selectedFolder, report = [], buildSnapshots = new Map(), monitorPort = '';
-let task = '', tab = 'console', changing = false, parent = '', pendingConsole = '', pendingSerial = '', paint = 0;
+let task = '', tab = 'console', changing = false, parent = '', pendingConsole = '', paint = 0;
+let panelCollapsed = localStorage.getItem('pinway.panelCollapsed') === 'true';
+const serialLines = [];
+let serialTail = '';
+let serialSize = 0;
+let serialTime = '';
+const serialClock = new Intl.DateTimeFormat('uk', {
+  hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3
+});
 let seen = new Set(), lastPorts = '', libraryResults = [], libraryVersions = {}, libraryBusy = false;
 
 function status(message, kind = '') {
@@ -47,23 +62,48 @@ function status(message, kind = '') {
   $('status').dataset.kind = kind;
 }
 function append(channel, text) {
-  if (channel === 'console') pendingConsole += text;
-  else pendingSerial += text;
+  if (channel === 'console') {
+    pendingConsole += text;
+  } else if (text) {
+    const timestamp = serialClock.format(Date.now());
+    const parts = text.split('\n');
+    if (!serialTail) serialTime = timestamp;
+    for (const part of parts.slice(0, -1)) {
+      const line = (serialTail + part).replace(/\r$/, '').slice(-8192);
+      serialLines.push({ time: serialTime, text: line });
+      serialSize += line.length + 1;
+      serialTail = '';
+      serialTime = timestamp;
+    }
+    serialTail = (serialTail + parts.at(-1)).slice(-8192);
+    let remove = 0;
+    while (serialLines.length - remove > 2000 || serialSize > 400000) {
+      serialSize -= serialLines[remove++].text.length + 1;
+    }
+    serialLines.splice(0, remove);
+  }
   if (paint) return;
   paint = requestAnimationFrame(() => {
     paint = 0;
-    for (const [id, content] of [['console-log', pendingConsole], ['serial-log', pendingSerial]]) {
-      if (!content) continue;
-      const el = $(id);
-      const follow = el.scrollHeight - el.scrollTop < el.clientHeight + 35;
-      // Retain the complete build log. Serial output is an unbounded stream.
-      const next = id === 'serial-log' ? (el.textContent + content).slice(-400000) : null;
-      if (next !== null) el.textContent = next;
-      else el.append(document.createTextNode(content));
-      if (follow) el.scrollTop = el.scrollHeight;
+    if (pendingConsole) {
+      const log = $('console-log');
+      const follow = log.scrollHeight - log.scrollTop < log.clientHeight + 35;
+      log.append(document.createTextNode(pendingConsole));
+      if (follow) log.scrollTop = log.scrollHeight;
+      pendingConsole = '';
     }
-    pendingConsole = pendingSerial = '';
+    if (tab === 'serial' && !panelCollapsed) renderSerial();
   });
+}
+function renderSerial() {
+  const filter = $('serial-filter').value.toLowerCase();
+  const stamps = $('serial-timestamps').checked;
+  const log = $('serial-log');
+  const follow = log.scrollHeight - log.scrollTop < log.clientHeight + 35;
+  const lines = serialTail ? [...serialLines, { time: serialTime, text: serialTail }] : serialLines;
+  log.textContent = lines.filter(line => line.text.toLowerCase().includes(filter))
+    .map(line => (stamps ? line.time + '  ' : '') + line.text).join('\n').slice(-400000);
+  if (follow) log.scrollTop = log.scrollHeight;
 }
 function error(e, log = false) {
   status(e.message, 'error');
@@ -71,19 +111,58 @@ function error(e, log = false) {
 }
 function clearLog(name) {
   if (name === 'console') pendingConsole = '';
-  else pendingSerial = '';
+  else {
+    serialLines.length = 0;
+    serialSize = 0;
+    serialTail = '';
+    serialTime = '';
+  }
   $(name + '-log').replaceChildren();
 }
 function showPanel(next) {
   tab = next;
-  for (const name of ['console', 'serial']) {
-    $(name + '-tab').classList.toggle('active', name === next);
-    $(name + '-tab').setAttribute('aria-pressed', name === next);
-    $(name + '-log').hidden = name !== next;
+  for (const name of ['console', 'serial', 'problems']) {
+    const expanded = name === next && !panelCollapsed;
+    $(name + '-tab').classList.toggle('active', expanded);
+    $(name + '-tab').setAttribute('aria-expanded', expanded);
   }
-  $('serial-controls').hidden = next !== 'serial';
-  const log = $(next + '-log');
-  log.scrollTop = log.scrollHeight;
+  $('panel').classList.toggle('collapsed', panelCollapsed);
+  $('panel-content').hidden = $('split').hidden = panelCollapsed;
+  $('panel-toggle').setAttribute('aria-expanded', !panelCollapsed);
+  const label = panelCollapsed ? 'Розгорнути нижню панель' : 'Згорнути нижню панель';
+  $('panel-toggle').setAttribute('aria-label', label);
+  $('panel-toggle').title = label;
+  $('console-log').hidden = next !== 'console';
+  $('problems-log').hidden = next !== 'problems';
+  $('serial-view').hidden = next !== 'serial';
+  $('serial-controls').hidden = panelCollapsed || next !== 'serial';
+  $('clear').hidden = panelCollapsed || next === 'problems';
+  if (!panelCollapsed && next === 'serial') renderSerial();
+  if (!panelCollapsed && next === 'console') $('console-log').scrollTop = $('console-log').scrollHeight;
+}
+function togglePanel(next = tab) {
+  panelCollapsed = next === tab && !panelCollapsed;
+  localStorage.setItem('pinway.panelCollapsed', String(panelCollapsed));
+  showPanel(next);
+}
+function renderProblems() {
+  const count = $('problem-count');
+  count.hidden = !report.length;
+  count.textContent = String(report.length);
+  const list = $('problems-log');
+  list.replaceChildren();
+  if (!report.length) list.append(node('p', 'problem-empty', 'Немає помилок чи попереджень. Натисніть «Перевірити», щоб зібрати скетч.'));
+  for (const problem of report) {
+    const kind = problem.severity === 'warning' ? 'Попередження' : 'Помилка';
+    const item = button('problem-row', '', () => void openFile(problem.file, problem).catch(error));
+    const badge = node('span', 'problem-kind', kind);
+    badge.dataset.severity = problem.severity;
+    const detail = node('span', 'problem-detail');
+    detail.append(node('strong', '', problem.message),
+      node('small', '', problem.file.slice(project.root.length + 1) + ':' + problem.line + ':' + problem.column));
+    item.append(badge, detail);
+    list.append(item);
+  }
 }
 function renderRecent() {
   $('recent-count').textContent = String(recent.length).padStart(2, '0');
@@ -198,7 +277,7 @@ function showDiagnostics() {
   editor.dispatch(setDiagnostics(editor.state, marks));
 }
 let openTicket = 0;
-async function openFile(file) {
+async function openFile(file, location) {
   if (!project) return;
   const owner = project;
   const ticket = ++openTicket;
@@ -215,6 +294,12 @@ async function openFile(file) {
   else editor.setState(doc.state);
   if (/\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(file)) editor.dispatch({ effects: completionMode.reconfigure(arduinoComplete()) });
   $('breadcrumb').textContent = [project.name, ...file.slice(project.root.length + 1).split('/')].join('  ›  ');
+  if (location) {
+    const doc = editor.state.doc;
+    const line = doc.line(Math.min(doc.lines, Math.max(1, location.line)));
+    const head = Math.min(line.to, line.from + Math.max(0, location.column - 1));
+    editor.dispatch({ selection: { anchor: head }, effects: EditorView.scrollIntoView(head, { y: 'center' }) });
+  }
   cursor(editor.state);
   showDiagnostics();
   renderTree();
@@ -240,6 +325,11 @@ async function canClose() {
 }
 async function acceptProject(value) {
   project = value;
+  const saved = value && projectProfiles.get(value.primary);
+  settings = new Map(Object.entries(structuredClone(saved?.options || legacyOptions)));
+  board = null;
+  const selected = saved ? saved.board : value && profiles.find(p => p.id === legacyBoard);
+  setBoard(selected, false);
   selectedFolder = value?.root;
   showSidebar('files-panel');
   editor?.destroy();
@@ -247,6 +337,7 @@ async function acceptProject(value) {
   files.clear();
   folders.clear();
   report = [];
+  renderProblems();
   buildSnapshots.clear();
   clearLog('console');
   clearLog('serial');
@@ -318,16 +409,19 @@ function toggleMenu(name) {
   if (name === 'board') $('board-query').focus();
 }
 function groupLabel(menu, text) { menu.append(node('h3', '', text)); }
-function setBoard(next) {
+function setBoard(next, persist = true) {
   if (board?.id) settings.set(board.id, options);
-  board = next;
-  savedBoard = next.id;
-  options = settings.get(next.id) || {};
-  localStorage.setItem('pinway.board', next.id);
-  $('board-label').textContent = next.name;
+  board = next || null;
+  options = board ? { ...settings.get(board.id) } : {};
+  $('board-label').textContent = board?.name || 'Вибрати плату';
   if (editor && /\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(activeFile)) {
     editor.dispatch({ effects: completionMode.reconfigure(arduinoComplete()) });
   }
+  if (!board) {
+    optsFor = optionError = '';
+    optionRows = [];
+  }
+  if (persist) saveProfile();
   void fetchOptions();
 }
 let optsFor = '', optionRows = [], optionError = '';
@@ -419,7 +513,7 @@ function renderTools() {
     for (const v of option.values) s.append(new Option(v.value_label, v.value));
     s.value = options[option.option] || option.values.find(v => v.selected)?.value || s.options[0]?.value;
     s.disabled = !!task;
-    s.addEventListener('change', () => { options[option.option] = s.value; settings.set(board.id, options); saveOptions(); });
+    s.addEventListener('change', () => { options[option.option] = s.value; saveProfile(); });
     const label = node('label', 'tools-field');
     label.append(node('span', '', option.option_label), s);
     menu.append(label);
@@ -447,6 +541,7 @@ function renderPorts() {
   $('serial-toggle').disabled = !!task || (!devicePort && !monitorPort);
   $('serial-toggle').textContent = monitorPort ? 'Закрити порт' : 'Відкрити порт';
   $('baud').disabled = !!monitorPort;
+  $('serial-command').disabled = $('serial-send-button').disabled = !monitorPort || !!task;
   if (!$('tools-menu').hidden) renderTools();
   if (!$('board-menu').hidden) renderBoardDevices();
 }
@@ -469,13 +564,7 @@ async function detect(device) {
       setBoard(p || profiles[0]);
       status('Визначено профіль: ' + found.board.name, 'success');
     } else {
-      if (board?.id) settings.set(board.id, options);
-      board = null;
-      options = {};
-      optsFor = optionError = '';
-      optionRows = [];
-      $('board-label').textContent = 'Вибрати плату';
-      if (editor && /\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(activeFile)) editor.dispatch({ effects: completionMode.reconfigure(arduinoComplete()) });
+      setBoard(null);
       status(chip ? 'Чип ' + chip + ' · виберіть профіль плати' : 'Модель не визначено. Виберіть профіль вручну.');
       if ($('board-menu').hidden) toggleMenu('board');
     }
@@ -517,12 +606,14 @@ async function build(upload) {
   status(upload ? 'Підготовка до завантаження…' : 'Компіляція…');
   clearLog('console');
   report = [];
+  renderProblems();
   showDiagnostics();
   try {
     await save(true);
     buildSnapshots = new Map([...files].map(([k, v]) => [k, v.saved]));
     const result = await call('build', selection);
     report = result.diagnostics;
+    renderProblems();
     // Apply diagnostics to files that haven't been opened yet as well.
     for (const file of new Set(report.map(d => d.file))) {
       if (!buildSnapshots.has(file)) {
@@ -641,8 +732,62 @@ async function refreshIndex() {
   } catch (e) { $('library-status').textContent = e.message; error(e, true); }
   finally { libraryBusy = false; setTask(''); renderLibraries(libraryResults); }
 }
+let quickFiles = [];
+let quickIndex = 0;
+function renderQuick() {
+  const query = $('quick-query').value.toLowerCase().trim();
+  const search = query.split(/\s+/);
+  const result = quickFiles.filter(entry => search.every(word => entry.relative.toLowerCase().includes(word)))
+    .sort((a, b) => Number(b.name.toLowerCase().startsWith(query)) - Number(a.name.toLowerCase().startsWith(query))
+      || a.relative.localeCompare(b.relative)).slice(0, 80);
+  const list = $('quick-results');
+  list.replaceChildren();
+  if (!result.length) list.append(node('p', 'quick-empty', 'Файлів не знайдено.'));
+  for (const [index, entry] of result.entries()) {
+    const choice = button('menu-row quick-result', '', () => {
+      $('quick-dialog').close();
+      void openFile(entry.file).catch(error);
+    });
+    choice.setAttribute('aria-current', index === quickIndex);
+    choice.append(node('strong', '', entry.name), node('small', '', entry.relative));
+    list.append(choice);
+  }
+  list.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+async function openQuick() {
+  if (!project || changing || document.querySelector('dialog[open]')) return;
+  const owner = project;
+  const dialog = $('quick-dialog');
+  quickFiles = [];
+  quickIndex = 0;
+  $('quick-query').value = '';
+  $('quick-results').replaceChildren(node('p', 'quick-empty', 'Читання файлів…'));
+  dialog.showModal();
+  $('quick-query').focus();
+  try {
+    const items = await call('projectFiles');
+    if (project !== owner || !dialog.open) return;
+    quickFiles = items;
+    renderQuick();
+  } catch (e) {
+    if (dialog.open) $('quick-results').textContent = e.message;
+  }
+}
+$('quick-query').oninput = () => { quickIndex = 0; renderQuick(); };
+$('quick-query').onkeydown = event => {
+  const rows = $('quick-results').querySelectorAll('button');
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    rows[quickIndex]?.click();
+  } else if (rows.length && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+    event.preventDefault();
+    quickIndex = Math.min(rows.length - 1, Math.max(0, quickIndex + (event.key === 'ArrowDown' ? 1 : -1)));
+    renderQuick();
+  }
+};
 async function shortcut(action) {
   if (action === 'new') return newDialog();
+  if (action === 'quickOpen') return openQuick();
   if (action === 'open' && !$('entry-dialog').open) return changeProject(() => call('select'));
   if (action === 'close' && project) return changeProject(() => call('close'));
   if (action === 'save') {
@@ -775,12 +920,32 @@ document.addEventListener('keydown', e => {
     closeMenus();
     $('board-button').focus();
   } else if (e.key === 'Escape') closeMenus();
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && project) {
+    e.preventDefault();
+    void openQuick();
+  }
   if (e.metaKey && e.key.toLowerCase() === 's') { e.preventDefault(); void shortcut('save'); }
 });
 $('verify').onclick = () => void build(false);
 $('upload').onclick = () => void build(true);
-$('console-tab').onclick = () => showPanel('console');
-$('serial-tab').onclick = () => showPanel('serial');
+for (const name of ['console', 'serial', 'problems']) {
+  $(name + '-tab').onclick = () => togglePanel(name);
+}
+$('panel-toggle').onclick = () => togglePanel();
+$('serial-filter').oninput = renderSerial;
+$('serial-timestamps').onchange = renderSerial;
+$('serial-send').onsubmit = async event => {
+  event.preventDefault();
+  if (!monitorPort || task) return;
+  const input = $('serial-command');
+  const command = input.value;
+  if (!command) return;
+  const endings = { lf: '\n', crlf: '\r\n', none: '' };
+  try {
+    await call('serialSend', { port: monitorPort, text: command + endings[$('serial-ending').value] });
+    if (input.value === command) input.value = '';
+  } catch (e) { error(e); }
+};
 $('clear').onclick = () => clearLog(tab);
 $('serial-toggle').onclick = toggleSerial;
 $('library-search').onsubmit = e => { e.preventDefault(); void searchLibraries(); };
@@ -862,7 +1027,7 @@ sidebarSplit.ondblclick = () => {
 };
 window.addEventListener('resize', () => {
   if (!project) return;
-  panelHeight($('panel').offsetHeight);
+  if (!panelCollapsed) panelHeight($('panel').offsetHeight);
   layoutSidebar();
 });
 
@@ -870,8 +1035,6 @@ async function init() {
   const state = await call('state');
   profiles = state.profiles;
   recent = state.recent;
-  const initial = profiles.find(p => p.id === savedBoard);
-  if (initial) setBoard(initial);
   renderRecent();
   status('Підготовка інструментів Arduino…');
   try {
@@ -887,8 +1050,9 @@ async function init() {
       if (!merged.has(p.id)) merged.set(p.id, p);
     }
     profiles = [...merged.values()];
-    const restored = profiles.find(p => p.id === savedBoard);
-    if (!board && restored) setBoard(restored);
+    if (project && !board && !projectProfiles.has(project.primary)) {
+      setBoard(profiles.find(p => p.id === legacyBoard), false);
+    }
     catalogState = '';
   } catch (e) {
     catalogState = 'Не вдалося завантажити каталог плат.';

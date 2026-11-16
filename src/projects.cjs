@@ -44,6 +44,18 @@ async function entries(root) {
     .map(e => ({ name: e.name, path: path.join(root, e.name), folder: e.isDirectory(), editable: textFile.test(e.name) }));
 }
 
+async function projectFiles(root) {
+  const result = [];
+  async function walk(folder) {
+    for (const entry of await entries(folder)) {
+      if (entry.folder) await walk(entry.path);
+      else if (entry.editable) result.push({ name: entry.name, file: entry.path, relative: path.relative(root, entry.path) });
+    }
+  }
+  await walk(root);
+  return result;
+}
+
 async function projectPath(project, file, directory = false) {
   if (!project || typeof file !== 'string') throw Error('Спочатку відкрийте проєкт.');
   const actual = await fs.realpath(file);
@@ -121,4 +133,4 @@ function diagnostics(log, project, prepared) {
   });
 }
 
-module.exports = { openSketch, createSketch, createEntry, entries, projectPath, buildSketch, diagnostics };
+module.exports = { openSketch, createSketch, createEntry, entries, projectFiles, projectPath, buildSketch, diagnostics };

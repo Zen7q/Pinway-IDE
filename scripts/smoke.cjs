@@ -96,6 +96,31 @@ async function screenshot(page, name) {
   await sidebarSplit.press('ArrowRight');
   const restoredSidebarWidth = await sidebarSplit.getAttribute('aria-valuenow');
   console.log('OK: sidebar drag, keyboard resize and reset');
+  const consoleTab = page.locator('#console-tab');
+  const serialTab = page.locator('#serial-tab');
+  const editorHeight = (await page.locator('#editor').boundingBox()).height;
+  await consoleTab.click();
+  await page.locator('#panel-content').waitFor({ state: 'hidden' });
+  expect.ok((await page.locator('#editor').boundingBox()).height > editorHeight);
+  await serialTab.click();
+  await page.locator('#serial-view').waitFor();
+  expect.ok(await page.locator('#serial-command').isDisabled());
+  await instance.evaluate(({ BrowserWindow }) => {
+    const wc = BrowserWindow.getAllWindows()[0].webContents;
+    wc.send('event', 'serial', 'alpha\r\nbe');
+    wc.send('event', 'serial', 'ta\n');
+  });
+  await page.locator('#serial-log').filter({ hasText: 'beta' }).waitFor();
+  expect.match(await page.locator('#serial-log').textContent(), /\d{2}:\d{2}:\d{2}.*alpha/);
+  await page.locator('#serial-filter').fill('beta');
+  expect.doesNotMatch(await page.locator('#serial-log').textContent(), /alpha/);
+  await page.locator('#serial-timestamps').uncheck();
+  expect.equal(await page.locator('#serial-log').textContent(), 'beta');
+  await page.locator('#panel-toggle').click();
+  await page.locator('#panel-content').waitFor({ state: 'hidden' });
+  await consoleTab.click();
+  await page.locator('#console-log').waitFor();
+  console.log('OK: collapse and restore panel, serial buffer, timestamps and filter');
 
   const ino = path.join(sketches, 'PinwaySmoke/PinwaySmoke.ino');
   expect.match(await fs.readFile(ino, 'utf8'), /void setup\(\)/);
@@ -131,6 +156,13 @@ async function screenshot(page, name) {
   expect.equal(await fs.readFile(created, 'utf8'), '#pragma once');
   await page.locator('#entry-dialog').getByRole('button', { name: 'Скасувати' }).click();
   await page.locator('#tabs').getByRole('button', { name: 'PinwaySmoke.ino' }).click();
+  await page.keyboard.press('Meta+P');
+  await page.locator('#quick-query').fill('src/helpers');
+  await page.locator('#quick-results button').filter({ hasText: 'helpers.h' }).waitFor();
+  await page.locator('#quick-query').press('Enter');
+  await page.locator('#tabs .active').filter({ hasText: 'helpers.h' }).waitFor();
+  await page.locator('#tabs').getByRole('button', { name: 'PinwaySmoke.ino' }).click();
+  console.log('OK: Cmd+P opens a file in a nested folder');
   await selectBoard(page, 'XIAO_ESP32S3');
   console.log('OK: nested folder and editable file, duplicate protection, selection from full board catalog');
 
@@ -161,6 +193,10 @@ async function screenshot(page, name) {
   expect.match(await page.locator('.cm-line').filter({ has: page.locator('.cm-lintRange-error') }).first().textContent(), /missingPinwaySymbol/);
   expect.match(await page.locator('#console-log').textContent(), /PinwaySmoke\.ino:2:\d+: error:/);
   await screenshot(page, 'editor');
+  await page.locator('#problems-tab').click();
+  await page.locator('#problems-log button').filter({ hasText: 'missingPinwaySymbol' }).click();
+  await page.locator('#cursor').filter({ hasText: 'Ряд 2' }).waitFor();
+  console.log('OK: problems panel jumps to the compiler diagnostic line');
   await edit(page, '#include <PinwayMissingHeader.h>\n' + good);
   await page.locator('#verify').click();
   await status(page, 'Не знайдено заголовок');
@@ -196,6 +232,11 @@ async function screenshot(page, name) {
     await status(page, 'Компіляція успішна.', 390000);
     console.log('OK: compiled sketch that uses the installed ArduinoJson library');
   }
+
+  await selectBoard(page, 'Arduino Nano');
+  await page.locator('#tools-button').click();
+  await page.getByLabel('Processor', { exact: true }).selectOption('atmega328old');
+  await page.keyboard.press('Escape');
 
   const old = await fs.readFile(ino, 'utf8');
   await edit(page, good + '\n// Unsaved');
@@ -235,6 +276,16 @@ async function screenshot(page, name) {
   await page.locator('.cm-line').getByText('Saved on close', { exact: false }).waitFor();
   expect.equal(await page.locator('#sidebar-split').getAttribute('aria-valuenow'), restoredSidebarWidth);
   console.log('OK: sidebar width persists across restart');
+  expect.equal(await page.locator('#board-label').textContent(), 'Arduino Uno R3');
+  await page.locator('#home').click();
+  await page.locator('#recent-list button').filter({ hasText: 'PinwaySmoke' }).click();
+  await status(page, 'Проєкт відкрито');
+  expect.equal(await page.locator('#board-label').textContent(), 'Arduino Nano');
+  await page.locator('#tools-button').click();
+  const processor = page.getByLabel('Processor', { exact: true });
+  await processor.waitFor();
+  expect.equal(await processor.inputValue(), 'atmega328old');
+  console.log('OK: board and bootloader are restored separately for each project');
   console.log('OK: open noncanonical sketch / tree / .ino diagnostic mapping / discard and save / recents after restart');
   console.log('Packaged smoke checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

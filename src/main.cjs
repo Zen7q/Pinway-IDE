@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { createSketch, createEntry, openSketch, projectPath, entries, buildSketch, diagnostics } = require('./projects.cjs');
+const { createSketch, createEntry, openSketch, projectPath, entries, projectFiles, buildSketch, diagnostics } = require('./projects.cjs');
 const { makeArduino, profiles, workspace } = require('./arduino.cjs');
 
 if (process.env.PINWAY_USER_DATA) app.setPath('userData', path.resolve(process.env.PINWAY_USER_DATA));
@@ -98,6 +98,7 @@ const handlers = {
     return setProject(sketch);
   },
   close: () => setProject(null),
+  projectFiles: async () => project ? projectFiles(project.root) : [],
   children: async dir => entries(await projectPath(project, dir, true)),
   createEntry: payload => operation(() => createEntry(project, payload)),
   read: async file => fs.readFile(await projectPath(project, file), 'utf8'),
@@ -194,7 +195,7 @@ const handlers = {
     await refresh();
     checkedPort(port);
     await closeMonitor();
-    const job = arduino.start(['monitor', '--port', port, '--config', 'baudrate=' + baud, '--quiet'], {
+    const job = arduino.start(['monitor', '--port', port, '--config', 'baudrate=' + baud, '--quiet', '--raw'], {
       timeout: 0, keepInput: true, limit: 8192, output: text => send('serial', text)
     });
     const open = { ...job, port };
@@ -207,6 +208,13 @@ const handlers = {
       send('monitor', null);
     });
   }),
+  serialSend: async ({ port, text }) => {
+    if (!monitor || monitor.port !== port) throw Error('Спочатку відкрийте послідовний порт.');
+    if (typeof text !== 'string' || !text.length || Buffer.byteLength(text) > 4096 || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(text)) {
+      throw Error('Введіть текст команди до 4096 байтів.');
+    }
+    await monitor.write(text);
+  },
   serialClose: closeMonitor
 };
 
@@ -248,6 +256,7 @@ else {
       { label: 'Файл', submenu: [
         { label: 'Новий проєкт', accelerator: 'Cmd+N', click: command('new') },
         { label: 'Відкрити скетч', accelerator: 'Cmd+O', click: command('open') },
+        { label: 'Швидко відкрити файл', accelerator: 'CmdOrCtrl+P', click: command('quickOpen') },
         { label: 'Зберегти файл', accelerator: 'Cmd+S', click: command('save') },
         { label: 'Закрити проєкт', accelerator: 'Cmd+Shift+W', click: command('close') },
         { label: 'Закрити вікно', accelerator: 'Cmd+W', click: command('window') }
