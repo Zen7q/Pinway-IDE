@@ -33,6 +33,7 @@
 </svg>
 <div id="app">
   <header class="chrome">
+    <button id="home" class="icon-button" title="Закрити проєкт" aria-label="Закрити проєкт" hidden><span data-icon="back"></span></button>
     <div class="title drag"><span class="title-indicator"></span><span id="caption">Pinway IDE</span></div>
     <div id="toolbar" class="toolbar" hidden>
       <div class="menu-anchor"><button id="board-button" class="button" aria-haspopup="true" aria-expanded="false"><span data-icon="chip"></span><span id="board-label">Вибрати плату</span><span data-icon="down"></span></button><div id="board-menu" class="popover" hidden>
@@ -68,11 +69,10 @@
   </main>
   <main id="workbench" hidden>
     <aside class="sidebar" aria-label="Бічна панель">
-      <div class="side-views">
-        <button id="home" class="icon-button" title="Закрити проєкт" aria-label="Закрити проєкт"><span data-icon="back"></span></button>
-        <button id="files-view" class="side-view" aria-controls="files-panel" aria-pressed="true"><span data-icon="folder"></span>Файли</button>
-        <button id="libraries-view" class="side-view" aria-controls="libraries" aria-pressed="false"><span data-icon="book"></span>Бібліотеки</button>
-      </div>
+      <nav class="side-views" aria-label="Панелі проєкту">
+        <button id="files-view" class="side-view" title="Файли" aria-label="Файли" aria-controls="files-panel" aria-expanded="true"><span data-icon="folder"></span></button>
+        <button id="libraries-view" class="side-view" title="Бібліотеки" aria-label="Бібліотеки" aria-controls="libraries" aria-expanded="false"><span data-icon="book"></span></button>
+      </nav>
       <section id="files-panel" aria-label="Файли проєкту">
         <div class="side-heading">
           <button class="root-heading" id="root-select" aria-label="Вибрати корінь проєкту"><span data-icon="folder"></span><span id="root-label"></span></button>

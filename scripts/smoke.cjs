@@ -61,6 +61,26 @@ async function screenshot(page, name) {
   await page.locator('#parent-label').filter({ hasText: sketches }).waitFor();
   await page.locator('#create').click();
   await status(page, 'Проєкт відкрито');
+  const filesView = page.getByRole('button', { name: 'Файли', exact: true });
+  const librariesView = page.getByRole('button', { name: 'Бібліотеки', exact: true });
+  const editorLeft = async () => (await page.locator('#editor').boundingBox()).x;
+  const expandedLeft = await editorLeft();
+  await filesView.click();
+  await page.locator('#files-panel').waitFor({ state: 'hidden' });
+  const collapsedLeft = await editorLeft();
+  expect.ok(collapsedLeft < expandedLeft && collapsedLeft > 0);
+  expect.equal(await filesView.getAttribute('aria-expanded'), 'false');
+  await librariesView.click();
+  await page.locator('#libraries').waitFor();
+  expect.equal(await editorLeft(), expandedLeft);
+  await librariesView.click();
+  await page.locator('#libraries').waitFor({ state: 'hidden' });
+  expect.equal(await editorLeft(), collapsedLeft);
+  await filesView.click();
+  await page.locator('#files-panel').waitFor();
+  expect.equal(await editorLeft(), expandedLeft);
+  console.log('OK: vertical sidebar controls collapse and reopen either panel');
+
   const ino = path.join(sketches, 'PinwaySmoke/PinwaySmoke.ino');
   expect.match(await fs.readFile(ino, 'utf8'), /void setup\(\)/);
   await page.locator('#verify').click();

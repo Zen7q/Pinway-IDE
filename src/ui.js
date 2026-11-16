@@ -241,7 +241,7 @@ async function canClose() {
 async function acceptProject(value) {
   project = value;
   selectedFolder = value?.root;
-  showFiles();
+  showSidebar('files-panel');
   editor?.destroy();
   editor = activeFile = undefined;
   files.clear();
@@ -256,7 +256,7 @@ async function acceptProject(value) {
   portMissing = false;
   closeMenus();
   $('welcome').hidden = !!value;
-  for (const x of ['workbench', 'toolbar', 'device-status', 'cursor', 'encoding']) $(x).hidden = !value;
+  for (const x of ['workbench', 'toolbar', 'home', 'device-status', 'cursor', 'encoding']) $(x).hidden = !value;
   $('version').hidden = !!value;
   $('caption').textContent = value ? value.name + ' — Pinway IDE' : 'Pinway IDE';
   if (value) {
@@ -565,18 +565,22 @@ function renderLibraries(list) {
     area.append(row);
   }
 }
-function showFiles() {
-  $('files-panel').hidden = false;
-  $('libraries').hidden = true;
-  $('files-view').setAttribute('aria-pressed', 'true');
-  $('libraries-view').setAttribute('aria-pressed', 'false');
+function showSidebar(panel) {
+  for (const id of ['files-view', 'libraries-view']) {
+    const control = $(id);
+    const target = control.getAttribute('aria-controls');
+    const expanded = target === panel;
+    $(target).hidden = !expanded;
+    control.setAttribute('aria-expanded', expanded);
+  }
+}
+function toggleSidebar(control) {
+  const panel = control.getAttribute('aria-controls');
+  const opening = $(panel).hidden;
+  showSidebar(opening ? panel : null);
+  if (opening && panel === 'libraries') void openLibraries();
 }
 async function openLibraries() {
-  if (!$('libraries').hidden) return;
-  $('files-panel').hidden = true;
-  $('libraries').hidden = false;
-  $('files-view').setAttribute('aria-pressed', 'false');
-  $('libraries-view').setAttribute('aria-pressed', 'true');
   $('query').focus();
   if (libraryBusy) return;
   libraryBusy = true;
@@ -699,8 +703,9 @@ $('new-form').onsubmit = async e => {
   } finally { changing = false; $('create').disabled = false; }
 };
 document.querySelectorAll('.dismiss').forEach(b => { b.onclick = () => b.closest('dialog').close(); });
-$('files-view').onclick = showFiles;
-$('libraries-view').onclick = openLibraries;
+for (const id of ['files-view', 'libraries-view']) {
+  $(id).onclick = event => toggleSidebar(event.currentTarget);
+}
 $('root-select').onclick = () => {
   selectedFolder = project.root;
   renderTree();

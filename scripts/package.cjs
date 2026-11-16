@@ -8,7 +8,7 @@ async function main() {
   const runtime = path.join(project, '.toolchain/runtime');
   fs.accessSync(path.join(runtime, 'seed/packages'));
   const [out] = await packager({
-    dir: project, out: path.join(project, 'dist'), name: 'Pinway IDE',
+    dir: project, out: path.resolve(project, process.env.PINWAY_PACKAGE_OUT || 'dist'), name: 'Pinway IDE',
     platform: 'darwin', arch: 'arm64', appBundleId: 'dev.binio.pinway',
     overwrite: true, asar: true, prune: false, icon: path.join(project, 'dist/Pinway.icns'),
     ignore: [/^\/(?:dist|\.toolchain|\.git|node_modules|scripts|tests|assets|web|server)(?:\/|$)/, /^\/src\/ui\.js$/],
