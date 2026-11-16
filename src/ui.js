@@ -398,29 +398,29 @@ function renderTools() {
   const menu = $('tools-menu');
   menu.replaceChildren();
   groupLabel(menu, 'Порт');
-  const select = node('select');
+  const select = node('select', 'tools-select');
   select.setAttribute('aria-label', 'Послідовний порт');
   select.append(new Option('Не вибрано', ''));
   for (const d of devices) select.append(new Option(basename(d.address) + ' · ' + deviceName(d), d.address));
   select.value = devicePort;
   select.disabled = !!task;
   select.addEventListener('change', () => setPort(select.value));
-  const field = node('label', '', 'USB');
-  field.append(select);
+  const field = node('label', 'tools-field');
+  field.append(node('span', '', 'USB'), select);
   menu.append(field, node('hr'));
   groupLabel(menu, 'Параметри плати');
   if (!board) menu.append(node('p', '', 'Виберіть профіль плати.'));
   else if (optionError) menu.append(node('p', '', optionError));
   else if (!optionRows.length) menu.append(node('p', '', 'Цей профіль не має додаткових параметрів.'));
   for (const option of optionRows) {
-    const s = node('select');
+    const s = node('select', 'tools-select');
     s.setAttribute('aria-label', option.option_label);
     for (const v of option.values) s.append(new Option(v.value_label, v.value));
     s.value = options[option.option] || option.values.find(v => v.selected)?.value || s.options[0]?.value;
     s.disabled = !!task;
     s.addEventListener('change', () => { options[option.option] = s.value; settings.set(board.id, options); saveOptions(); });
-    const label = node('label', '', option.option_label);
-    label.append(s);
+    const label = node('label', 'tools-field');
+    label.append(node('span', '', option.option_label), s);
     menu.append(label);
   }
 }
@@ -768,6 +768,7 @@ $('board-query').onkeydown = event => {
 $('tools-button').onclick = () => toggleMenu('tools');
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu-anchor')) closeMenus(); });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('tools-menu').querySelector('.tools-select:open')) return;
   if (e.key === 'Escape' && !$('board-menu').hidden) {
     closeMenus();
     $('board-button').focus();
