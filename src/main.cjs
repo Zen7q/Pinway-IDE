@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { createSketch, openSketch, projectPath, entries, buildSketch, diagnostics } = require('./projects.cjs');
+const { createSketch, createEntry, openSketch, projectPath, entries, buildSketch, diagnostics } = require('./projects.cjs');
 const { makeArduino, profiles, workspace } = require('./arduino.cjs');
 
 if (process.env.PINWAY_USER_DATA) app.setPath('userData', path.resolve(process.env.PINWAY_USER_DATA));
@@ -79,6 +79,12 @@ function operation(fn) {
 const handlers = {
   state: () => ({ recent, project, profiles }),
   prepare: () => arduino.initialize(),
+  catalog: async () => {
+    const { boards } = await arduino.json(['board', 'listall']);
+    return (boards || [])
+      .filter(({ fqbn }) => /^(arduino:avr|esp32:esp32):[\w-]+$/.test(fqbn))
+      .map(({ fqbn, name }) => ({ id: fqbn, name }));
+  },
   chooseFolder: async () => (await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })).filePaths[0],
   create: async ({ parent, name }) => setProject(await createSketch(parent, name)),
   select: async () => {
@@ -93,6 +99,7 @@ const handlers = {
   },
   close: () => setProject(null),
   children: async dir => entries(await projectPath(project, dir, true)),
+  createEntry: payload => operation(() => createEntry(project, payload)),
   read: async file => fs.readFile(await projectPath(project, file), 'utf8'),
   write: async ({ file, content }) => {
     if (typeof content !== 'string' || Buffer.byteLength(content) > 4 * 1024 * 1024) throw Error('Файл перевищує 4 МБ.');
@@ -135,7 +142,7 @@ const handlers = {
       });
       const result = { diagnostics: diagnostics(build.stderr + '\n' + build.stdout, project, prepared), ok: build.ok };
       if (!build.ok) return { ...result, message: build.reason || (/No such file or directory/.test(build.stderr)
-        ? 'Не знайдено заголовок. Перевірте назву й встановіть потрібну бібліотеку через Tools → Бібліотеки.'
+        ? 'Не знайдено заголовок. Перевірте назву й встановіть потрібну бібліотеку на вкладці «Бібліотеки» зліва.'
         : 'Компіляція не вдалася. Перегляньте консоль.') };
       if (!upload) return { ...result, message: 'Компіляція успішна.' };
 

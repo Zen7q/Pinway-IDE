@@ -22,7 +22,8 @@ async function edit(page, content) {
 async function selectBoard(page, label) {
   const button = page.locator('#board-button');
   if (await button.getAttribute('aria-expanded') !== 'true') await button.click();
-  await page.locator('#board-menu button').filter({ hasText: label }).click();
+  await page.getByLabel('Пошук плати').fill(label);
+  await page.locator('.board-choice').filter({ has: page.getByText(label, { exact: true }) }).click();
 }
 async function launch(env) {
   instance = await _electron.launch({ executablePath: appPath, args, env, timeout: 45000 });
@@ -74,6 +75,29 @@ async function screenshot(page, name) {
   expect.equal(await fs.readFile(ino, 'utf8'), good);
   console.log('OK: create / folder selection / completion / Cmd+S without hardware');
 
+  await page.getByRole('button', { name: 'Нова папка', exact: true }).click();
+  await page.locator('#entry-name').fill('src');
+  await page.locator('#entry-create').click();
+  await status(page, 'Папку створено');
+  await page.getByRole('button', { name: 'Новий файл', exact: true }).click();
+  await page.locator('#entry-name').fill('helpers.h');
+  await page.locator('#entry-create').click();
+  await status(page, 'Файл створено');
+  const created = path.join(path.dirname(ino), 'src/helpers.h');
+  expect.equal(await fs.readFile(created, 'utf8'), '');
+  await edit(page, '#pragma once');
+  await page.keyboard.press('Meta+S');
+  await status(page, 'Файл збережено');
+  await page.getByRole('button', { name: 'Новий файл', exact: true }).click();
+  await page.locator('#entry-name').fill('helpers.h');
+  await page.locator('#entry-create').click();
+  await page.locator('#entry-error').filter({ hasText: 'вже є' }).waitFor();
+  expect.equal(await fs.readFile(created, 'utf8'), '#pragma once');
+  await page.locator('#entry-dialog').getByRole('button', { name: 'Скасувати' }).click();
+  await page.locator('#tabs').getByRole('button', { name: 'PinwaySmoke.ino' }).click();
+  await selectBoard(page, 'XIAO_ESP32S3');
+  console.log('OK: nested folder and editable file, duplicate protection, selection from full board catalog');
+
   const cases = libraries ? ['Arduino Uno R3'] : ['Arduino Uno R3', 'Arduino Nano', 'ESP32 Dev Module', 'ESP32C3 Dev Module'];
   for (const board of cases) {
     await selectBoard(page, board);
@@ -108,24 +132,30 @@ async function screenshot(page, name) {
   console.log('OK: missing port, .ino line diagnostics, missing library');
 
   if (libraries) {
-    await page.locator('#tools-button').click();
-    await page.getByRole('button', { name: 'Бібліотеки…' }).click();
+    await page.getByRole('button', { name: 'Бібліотеки', exact: true }).click();
+    await page.locator('#library-status').filter({ hasText: 'Введіть назву' }).waitFor();
+    await page.locator('#editor').waitFor();
     await page.locator('#query').fill('ArduinoJson');
-    await page.getByRole('button', { name: 'Пошук', exact: true }).click();
-    const library = page.locator('.library-row').filter({ has: page.getByText('ArduinoJson', { exact: true }) });
-    await library.getByRole('button', { name: /^Встановити/ }).waitFor();
+    await page.locator('#library-search button[type="submit"]').click();
+    const library = page.locator('.library-row').filter({ has: page.locator('strong').filter({ hasText: /^ArduinoJson$/ }) });
+    const install = library.getByRole('button', { name: /^Встановити/ });
+    await install.waitFor({ timeout: 45000 }).catch(async error => {
+      console.error(await page.locator('#library-status').textContent());
+      console.error(await page.locator('#library-results').innerText());
+      throw error;
+    });
     const names = await page.locator('.library-row strong').allTextContents();
     expect.ok(names.length && names.every(name => name.toLowerCase().includes('arduinojson')));
-    await library.getByRole('button', { name: /^Встановити/ }).click();
+    await install.click();
     await library.getByText(/^Встановлено: /).waitFor({ timeout: 90000 }).catch(async error => {
       console.error(await page.locator('#library-status').textContent());
       throw error;
     });
     console.log('OK: ArduinoJson installation, ' + await library.locator('small').textContent());
     await screenshot(page, 'libraries');
-    await page.locator('#libraries .dismiss').click();
+    await page.getByRole('button', { name: 'Файли', exact: true }).click();
     await edit(page, '#include <ArduinoJson.h>\nvoid setup() { JsonDocument doc; doc["pinway"] = true; }\nvoid loop() {}');
-    await selectBoard(page, 'ESP32 Dev Module');
+    await selectBoard(page, 'XIAO_ESP32S3');
     await page.locator('#verify').click();
     await status(page, 'Компіляція успішна.', 390000);
     console.log('OK: compiled sketch that uses the installed ArduinoJson library');

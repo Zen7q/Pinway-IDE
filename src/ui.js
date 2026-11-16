@@ -29,14 +29,15 @@ function button(cls, text, fn) {
   return b;
 }
 const basename = p => p.split('/').at(-1);
+const dirname = p => p.slice(0, p.lastIndexOf('/')) || '/';
 const files = new Map();
 const folders = new Map();
 const settings = new Map(Object.entries(JSON.parse(localStorage.getItem('pinway.options') || '{}')));
 const saveOptions = () => localStorage.setItem('pinway.options', JSON.stringify(Object.fromEntries(settings)));
 const completionMode = new Compartment();
-let project, recent = [], profiles = [], board, options = {}, devicePort = '', devices = [], portMissing = false, chip = '';
+let project, recent = [], profiles = [], catalogState = '', board, options = {}, devicePort = '', devices = [], portMissing = false, chip = '';
 let savedBoard = localStorage.getItem('pinway.board') || '';
-let editor, activeFile, report = [], buildSnapshots = new Map(), monitorPort = '';
+let editor, activeFile, selectedFolder, report = [], buildSnapshots = new Map(), monitorPort = '';
 let task = '', tab = 'console', changing = false, parent = '', pendingConsole = '', pendingSerial = '', paint = 0;
 let seen = new Set(), lastPorts = '', libraryResults = [], libraryVersions = {}, libraryBusy = false;
 
@@ -115,12 +116,15 @@ function renderTabs() {
 async function loadFolder(dir) { folders.set(dir, await call('children', dir)); }
 function renderTree() {
   const root = $('tree');
+  $('root-select').classList.toggle('active', selectedFolder === project?.root);
   function group(dir) {
     const fragment = document.createDocumentFragment();
     for (const child of folders.get(dir) || []) {
-      const row = button('tree-node' + (child.path === activeFile ? ' active' : ''), '', async () => {
+      const selected = child.folder ? child.path === selectedFolder : child.path === activeFile;
+      const row = button('tree-node' + (selected ? ' active' : ''), '', async () => {
         try {
           if (!child.folder) return await openFile(child.path);
+          selectedFolder = child.path;
           if (folders.has(child.path)) {
             for (const p of folders.keys()) if (p === child.path || p.startsWith(child.path + '/')) folders.delete(p);
           } else await loadFolder(child.path);
@@ -206,6 +210,7 @@ async function openFile(file) {
     files.set(file, doc);
   }
   activeFile = file;
+  selectedFolder = dirname(file);
   if (!editor) editor = new EditorView({ state: doc.state, parent: $('editor') });
   else editor.setState(doc.state);
   if (/\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(file)) editor.dispatch({ effects: completionMode.reconfigure(arduinoComplete()) });
@@ -235,6 +240,8 @@ async function canClose() {
 }
 async function acceptProject(value) {
   project = value;
+  selectedFolder = value?.root;
+  showFiles();
   editor?.destroy();
   editor = activeFile = undefined;
   files.clear();
@@ -280,7 +287,7 @@ async function changeProject(action) {
   finally { changing = false; }
 }
 function newDialog() {
-  if (changing || task || $('new-dialog').open || $('libraries').open) return;
+  if (changing || task || $('new-dialog').open || $('entry-dialog').open) return;
   parent = '';
   $('new-form').reset();
   $('parent-label').textContent = 'Папку не вибрано';
@@ -300,9 +307,14 @@ function toggleMenu(name) {
   closeMenus();
   if (!opened) return;
   if (name === 'tools') renderTools();
-  else renderBoards();
+  else {
+    $('board-query').value = '';
+    renderBoards();
+    renderBoardDevices();
+  }
   menu.hidden = false;
   $(name + '-button').setAttribute('aria-expanded', 'true');
+  if (name === 'board') $('board-query').focus();
 }
 function groupLabel(menu, text) { menu.append(node('h3', '', text)); }
 function setBoard(next) {
@@ -338,17 +350,33 @@ async function fetchOptions() {
 }
 function deviceName(device) { return device.matches.length === 1 && !['10c4', '1a86', '0403', '067b', '303a'].includes((device.vid || '').toLowerCase().replace(/^0x/, '')) ? device.matches[0].name : 'Послідовний USB-пристрій'; }
 function renderBoards() {
-  const menu = $('board-menu');
+  const query = $('board-query').value.toLowerCase().trim();
+  const tokens = query ? query.split(/\s+/) : [];
+  const matches = profiles.filter(p => {
+    const label = (p.name + ' ' + p.id).toLowerCase();
+    return tokens.every(token => label.includes(token));
+  });
+  const menu = $('board-results');
+  const fragment = document.createDocumentFragment();
+  for (const p of matches) {
+    const row = button('menu-row board-choice', '', () => {
+      setBoard(p);
+      closeMenus();
+      $('board-button').focus();
+      status('Профіль: ' + p.name);
+    });
+    row.append(node('span', '', p.name), node('small', '', p.id));
+    row.setAttribute('aria-pressed', board?.id === p.id);
+    fragment.append(row);
+  }
+  menu.replaceChildren(fragment);
+  menu.scrollTop = 0;
+  $('board-catalog').textContent = catalogState || (matches.length ? String(matches.length) + ' профілів' : 'Плат не знайдено.');
+}
+function renderBoardDevices() {
+  const menu = $('board-devices');
   menu.replaceChildren();
   if (chip) groupLabel(menu, 'Визначений чип: ' + chip);
-  groupLabel(menu, 'Профіль збірки');
-  for (const p of profiles) {
-    const row = button('menu-row', '', () => { setBoard(p); closeMenus(); status('Профіль: ' + p.name); });
-    row.append(node('span', '', p.name), node('small', '', p.chip === chip ? 'відповідає чипу' : p.chip || p.id));
-    row.setAttribute('aria-checked', board?.id === p.id);
-    menu.append(row);
-  }
-  menu.append(node('hr'));
   groupLabel(menu, 'Автовизначення');
   if (!devices.length) menu.append(node('p', '', 'Підключіть пристрій через USB.'));
   for (const d of devices) {
@@ -395,7 +423,6 @@ function renderTools() {
     label.append(s);
     menu.append(label);
   }
-  menu.append(node('hr'), button('menu-row', 'Бібліотеки…', () => { closeMenus(); void openLibraries(); }));
 }
 function renderPorts() {
   const alerts = $('alerts');
@@ -420,7 +447,7 @@ function renderPorts() {
   $('serial-toggle').textContent = monitorPort ? 'Закрити порт' : 'Відкрити порт';
   $('baud').disabled = !!monitorPort;
   if (!$('tools-menu').hidden) renderTools();
-  if (!$('board-menu').hidden) renderBoards();
+  if (!$('board-menu').hidden) renderBoardDevices();
 }
 function setTask(value) {
   task = value;
@@ -437,8 +464,8 @@ async function detect(device) {
     chip = found.chip || '';
     if (found.board && /^(arduino:avr|esp32:esp32):/.test(found.board.id)) {
       const p = profiles.find(x => x.id === found.board.id);
-      if (!p) profiles.push({ ...found.board, chip });
-      setBoard(p || profiles.at(-1));
+      if (!p) profiles.unshift({ ...found.board, chip });
+      setBoard(p || profiles[0]);
       status('Визначено профіль: ' + found.board.name, 'success');
     } else {
       if (board?.id) settings.set(board.id, options);
@@ -527,23 +554,42 @@ function renderLibraries(list) {
     const main = node('div');
     const installed = libraryVersions[item.name];
     main.append(node('strong', '', item.name), node('p', '', item.description || item.author || ''));
-    if (installed) main.append(node('small', '', 'Встановлено: ' + installed));
-    const action = button('button compact', installed ? 'Встановлено' : 'Встановити' + (item.version ? ' ' + item.version : ''), () => void install(item.name));
-    action.disabled = !!installed || libraryBusy || !!task;
-    row.append(main, action);
+    row.append(main);
+    if (installed) {
+      main.append(node('small', '', 'Встановлено: ' + installed));
+    } else {
+      const action = button('button compact', 'Встановити' + (item.version ? ' ' + item.version : ''), () => void install(item.name));
+      action.disabled = libraryBusy || !!task;
+      row.append(action);
+    }
     area.append(row);
   }
 }
+function showFiles() {
+  $('files-panel').hidden = false;
+  $('libraries').hidden = true;
+  $('files-view').setAttribute('aria-pressed', 'true');
+  $('libraries-view').setAttribute('aria-pressed', 'false');
+}
 async function openLibraries() {
-  if (!$('libraries').open) $('libraries').showModal();
+  if (!$('libraries').hidden) return;
+  $('files-panel').hidden = true;
+  $('libraries').hidden = false;
+  $('files-view').setAttribute('aria-pressed', 'false');
+  $('libraries-view').setAttribute('aria-pressed', 'true');
+  $('query').focus();
+  if (libraryBusy) return;
+  libraryBusy = true;
   $('library-status').textContent = 'Завантаження встановлених бібліотек…';
   try {
     libraryVersions = await call('installed');
-    libraryResults = Object.keys(libraryVersions).sort().map(name => ({ name }));
-    renderLibraries(libraryResults);
-    $('library-status').textContent = libraryResults.length ? 'Встановлені бібліотеки. Введіть назву для пошуку.' : 'Введіть назву бібліотеки для пошуку.';
-    $('query').focus();
-  } catch (e) { $('library-status').textContent = e.message; }
+  } catch (e) {
+    $('library-status').textContent = e.message;
+    return;
+  } finally {
+    libraryBusy = false;
+  }
+  await searchLibraries();
 }
 async function searchLibraries() {
   if (libraryBusy) return;
@@ -552,7 +598,15 @@ async function searchLibraries() {
   try {
     const query = $('query').value.trim();
     libraryResults = query ? await call('search', query) : Object.keys(libraryVersions).sort().map(name => ({ name }));
-    $('library-status').textContent = libraryResults.length ? 'Результатів: ' + libraryResults.length : 'Бібліотек не знайдено.';
+    if (!query) {
+      $('library-status').textContent = libraryResults.length
+        ? 'Встановлено: ' + libraryResults.length
+        : 'Введіть назву бібліотеки для пошуку.';
+    } else {
+      $('library-status').textContent = libraryResults.length
+        ? 'Результатів: ' + libraryResults.length
+        : 'Бібліотек не знайдено.';
+    }
   } catch (e) { $('library-status').textContent = e.message; }
   finally { libraryBusy = false; renderLibraries(libraryResults); }
 }
@@ -583,7 +637,7 @@ async function refreshIndex() {
 }
 async function shortcut(action) {
   if (action === 'new') return newDialog();
-  if (action === 'open') return changeProject(() => call('select'));
+  if (action === 'open' && !$('entry-dialog').open) return changeProject(() => call('select'));
   if (action === 'close' && project) return changeProject(() => call('close'));
   if (action === 'save') {
     try { if (project && !task && !changing) { await save(); status('Файл збережено', 'success'); } }
@@ -645,11 +699,74 @@ $('new-form').onsubmit = async e => {
   } finally { changing = false; $('create').disabled = false; }
 };
 document.querySelectorAll('.dismiss').forEach(b => { b.onclick = () => b.closest('dialog').close(); });
+$('files-view').onclick = showFiles;
+$('libraries-view').onclick = openLibraries;
+$('root-select').onclick = () => {
+  selectedFolder = project.root;
+  renderTree();
+};
+
+let entryTarget;
+function openEntryDialog(folder) {
+  if (!project || changing || task) return;
+  const parent = selectedFolder || project.root;
+  entryTarget = { parent, folder };
+  $('entry-form').reset();
+  $('entry-error').hidden = true;
+  $('entry-title').textContent = folder ? 'Нова папка' : 'Новий файл';
+  $('entry-name').placeholder = folder ? 'src' : 'helpers.h';
+  $('entry-location').textContent = basename(project.root) + parent.slice(project.root.length);
+  $('entry-dialog').showModal();
+  $('entry-name').focus();
+}
+$('new-file').onclick = () => openEntryDialog(false);
+$('new-folder').onclick = () => openEntryDialog(true);
+$('entry-form').onsubmit = async event => {
+  event.preventDefault();
+  if (changing || task) return;
+  changing = true;
+  $('entry-create').disabled = true;
+  $('entry-error').hidden = true;
+  try {
+    const { parent, folder } = entryTarget;
+    const entry = await call('createEntry', { parent, folder, name: $('entry-name').value.trim() });
+    $('entry-dialog').close();
+    await loadFolder(parent);
+    if (folder) {
+      selectedFolder = entry.path;
+      await loadFolder(entry.path);
+    } else if (entry.editable) {
+      await openFile(entry.path);
+    }
+    renderTree();
+    status(folder ? 'Папку створено' : 'Файл створено', 'success');
+  } catch (e) {
+    if ($('entry-dialog').open) {
+      $('entry-error').textContent = e.message;
+      $('entry-error').hidden = false;
+    } else error(e);
+  } finally {
+    changing = false;
+    $('entry-create').disabled = false;
+  }
+};
+
 $('board-button').onclick = () => toggleMenu('board');
+$('board-query').oninput = renderBoards;
+$('board-query').onkeydown = event => {
+  if (event.key === 'Enter') $('board-results').querySelector('button')?.click();
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    $('board-results').querySelector('button')?.focus();
+  }
+};
 $('tools-button').onclick = () => toggleMenu('tools');
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu-anchor')) closeMenus(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeMenus();
+  if (e.key === 'Escape' && !$('board-menu').hidden) {
+    closeMenus();
+    $('board-button').focus();
+  } else if (e.key === 'Escape') closeMenus();
   if (e.metaKey && e.key.toLowerCase() === 's') { e.preventDefault(); void shortcut('save'); }
 });
 $('verify').onclick = () => void build(false);
@@ -694,5 +811,21 @@ async function init() {
     if (!project) status('Готово');
   } catch (e) { error(e); }
   void poll();
+  catalogState = 'Завантаження каталогу плат…';
+  try {
+    const catalog = await call('catalog');
+    const merged = new Map(profiles.map(p => [p.id, p]));
+    for (const p of catalog.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!merged.has(p.id)) merged.set(p.id, p);
+    }
+    profiles = [...merged.values()];
+    const restored = profiles.find(p => p.id === savedBoard);
+    if (!board && restored) setBoard(restored);
+    catalogState = '';
+  } catch (e) {
+    catalogState = 'Не вдалося завантажити каталог плат.';
+    append('console', '\n' + e.message + '\n');
+  }
+  if (!$('board-menu').hidden) renderBoards();
 }
 void init().catch(error);

@@ -59,6 +59,21 @@ async function projectPath(project, file, directory = false) {
   return actual;
 }
 
+async function createEntry(project, { parent, name, folder }) {
+  if (typeof name !== 'string' || !name.trim() || /[\/\\\x00-\x1f]/.test(name) || ignored(name)) {
+    throw Error('Введіть видиму назву без роздільників шляху.');
+  }
+  const destination = path.join(await projectPath(project, parent, true), name);
+  try {
+    if (folder) await fs.mkdir(destination);
+    else await fs.writeFile(destination, '', { flag: 'wx' });
+  } catch (error) {
+    if (error.code === 'EEXIST') throw Error('У цій папці вже є елемент з такою назвою.');
+    throw error;
+  }
+  return { path: destination, editable: !folder && textFile.test(name) };
+}
+
 async function buildSketch(project, workspace) {
   const folder = path.basename(project.root);
   if (sketchName.test(folder) && project.primary === path.join(project.root, folder + '.ino')) {
@@ -106,4 +121,4 @@ function diagnostics(log, project, prepared) {
   });
 }
 
-module.exports = { openSketch, createSketch, entries, projectPath, buildSketch, diagnostics };
+module.exports = { openSketch, createSketch, createEntry, entries, projectPath, buildSketch, diagnostics };
