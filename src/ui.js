@@ -11,7 +11,6 @@ import plotData from './plot-data.cjs';
 const { parsePlotLine } = plotData;
 
 const $ = id => document.getElementById(id);
-const desktopInspector = document.documentElement.dataset.host === 'tauri';
 const call = (action, data) => window.pinway.call(action, data);
 const icon = name => {
   const el = document.createElement('span');
@@ -39,11 +38,15 @@ const folders = new Map();
 const projectProfiles = new Map(Object.entries(JSON.parse(localStorage.getItem('pinway.projectProfiles') || '{}')));
 const legacyOptions = JSON.parse(localStorage.getItem('pinway.options') || '{}');
 const legacyBoard = localStorage.getItem('pinway.board') || '';
+const favoriteBoards = new Set(JSON.parse(localStorage.getItem('pinway.favoriteBoards') || '[]'));
+let manualBoard = null;
+let catalogLoaded = false;
+let autoPort = true;
 let settings = new Map();
 function saveProfile() {
   if (!project) return;
   if (board) settings.set(board.id, options);
-  projectProfiles.set(project.primary, { board, options: Object.fromEntries(settings) });
+  projectProfiles.set(project.primary, { board: manualBoard, options: Object.fromEntries(settings) });
   localStorage.setItem('pinway.projectProfiles', JSON.stringify(Object.fromEntries(projectProfiles)));
 }
 const completionMode = new Compartment();
@@ -480,7 +483,8 @@ async function acceptProject(value, session) {
   settings = new Map(Object.entries(structuredClone(saved?.options || legacyOptions)));
   board = null;
   const selected = saved ? saved.board : value && profiles.find(p => p.id === legacyBoard);
-  setBoard(selected, false);
+  manualBoard = selected || null;
+  setBoard(manualBoard, false);
   selectedFolder = value?.root;
   showSidebar('files-panel');
   editor?.destroy();
@@ -495,6 +499,7 @@ async function acceptProject(value, session) {
   clearLog('plot');
   seen.clear();
   devicePort = '';
+  autoPort = true;
   chip = '';
   portMissing = false;
   closeMenus();
@@ -507,8 +512,7 @@ async function acceptProject(value, session) {
     $('root-label').textContent = basename(value.root);
     $('root-label').title = value.root;
     showPanel('console');
-    if (desktopInspector && innerWidth >= 1050) toggleMenu('tools');
-    append('console', 'Готово до збірки. Виберіть профіль плати у шапці.\n');
+    append('console', 'Готово до збірки.\n');
     renderPorts();
     let conflicts = 0;
     let recovered = 0;
@@ -577,9 +581,8 @@ function newDialog() {
   $('new-dialog').showModal();
 }
 
-function closeMenus(keepInspector = false) {
+function closeMenus() {
   for (const name of ['board', 'tools']) {
-    if (keepInspector && name === 'tools') continue;
     $(name + '-menu').hidden = true;
     $(name + '-button').setAttribute('aria-expanded', 'false');
   }
@@ -587,13 +590,12 @@ function closeMenus(keepInspector = false) {
 function toggleMenu(name) {
   const menu = $(name + '-menu');
   const opened = menu.hidden;
-  closeMenus(desktopInspector && name === 'board');
+  closeMenus();
   if (!opened) return;
   if (name === 'tools') renderTools();
   else {
     $('board-query').value = '';
     renderBoards();
-    renderBoardDevices();
   }
   menu.hidden = false;
   $(name + '-button').setAttribute('aria-expanded', 'true');
@@ -614,6 +616,7 @@ function setBoard(next, persist = true) {
   }
   if (persist) saveProfile();
   if (!$('tools-menu').hidden) renderTools();
+  if (!$('board-menu').hidden) renderBoards();
   void fetchOptions();
 }
 let optsFor = '', optionRows = [], optionError = '';
@@ -635,44 +638,58 @@ async function fetchOptions() {
   }
   if (!$('tools-menu').hidden) renderTools();
 }
-function deviceName(device) { return device.matches.length === 1 && !['10c4', '1a86', '0403', '067b', '303a'].includes((device.vid || '').toLowerCase().replace(/^0x/, '')) ? device.matches[0].name : 'Послідовний USB-пристрій'; }
+const bridgeVendors = new Set(['10c4', '1a86', '0403', '067b', '303a']);
+const usbVendor = device => (device.vid || '').toLowerCase().replace(/^0x/, '');
+function usbProfile(device) {
+  return device.matches.length === 1 && !bridgeVendors.has(usbVendor(device)) ? device.matches[0] : null;
+}
+function deviceName(device) {
+  return usbProfile(device)?.name || 'Послідовний USB-пристрій';
+}
 function renderBoards() {
-  const query = $('board-query').value.toLowerCase().trim();
-  const tokens = query ? query.split(/\s+/) : [];
+  const tokens = $('board-query').value.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const matches = profiles.filter(p => {
     const label = (p.name + ' ' + p.id).toLowerCase();
     return tokens.every(token => label.includes(token));
   });
   const menu = $('board-results');
   const fragment = document.createDocumentFragment();
-  for (const p of matches) {
-    const row = button('menu-row board-choice', '', () => {
-      setBoard(p);
-      closeMenus(desktopInspector);
-      $('board-button').focus();
-      status('Профіль: ' + p.name);
-    });
-    row.append(node('span', '', p.name), node('small', '', p.id));
-    row.setAttribute('aria-pressed', board?.id === p.id);
-    fragment.append(row);
+  function addGroup(title, boards) {
+    if (!boards.length) return;
+    if (title) groupLabel(fragment, title);
+    for (const p of boards) {
+      const item = node('div', 'board-item');
+      const choice = button('menu-row board-choice', '', () => {
+        manualBoard = p;
+        setBoard(p);
+        closeMenus();
+        $('board-button').focus();
+        status('Профіль: ' + p.name);
+      });
+      choice.append(node('span', '', p.name), node('small', '', p.id));
+      choice.setAttribute('aria-pressed', String(board?.id === p.id));
+      const favorite = button('icon-button board-favorite', '', () => {
+        if (!favoriteBoards.delete(p.id)) favoriteBoards.add(p.id);
+        localStorage.setItem('pinway.favoriteBoards', JSON.stringify([...favoriteBoards]));
+        renderBoards();
+        [...menu.querySelectorAll('.board-favorite')].find(button => button.dataset.board === p.id)?.focus();
+      });
+      favorite.dataset.board = p.id;
+      const saved = favoriteBoards.has(p.id);
+      favorite.setAttribute('aria-pressed', String(saved));
+      favorite.setAttribute('aria-label', 'Улюблена плата: ' + p.name);
+      favorite.title = saved ? 'Видалити з улюблених' : 'Додати до улюблених';
+      favorite.append(icon('star'));
+      item.append(choice, favorite);
+      fragment.append(item);
+    }
   }
+  const favorites = matches.filter(p => favoriteBoards.has(p.id));
+  addGroup('Улюблені', favorites);
+  addGroup(favorites.length ? 'Інші плати' : '', matches.filter(p => !favoriteBoards.has(p.id)));
   menu.replaceChildren(fragment);
   menu.scrollTop = 0;
   $('board-catalog').textContent = catalogState || (matches.length ? String(matches.length) + ' профілів' : 'Плат не знайдено.');
-}
-function renderBoardDevices() {
-  const menu = $('board-devices');
-  menu.replaceChildren();
-  if (chip) groupLabel(menu, 'Визначений чип: ' + chip);
-  groupLabel(menu, 'Автовизначення');
-  if (!devices.length) menu.append(node('p', '', 'Підключіть пристрій через USB.'));
-  for (const d of devices) {
-    const row = button('menu-row', '', () => { closeMenus(desktopInspector); void detect(d); });
-    row.append(node('span', '', 'Автовизначення · ' + basename(d.address)));
-    row.title = deviceName(d);
-    row.disabled = !!task;
-    menu.append(row);
-  }
 }
 function setPort(port) {
   if (port !== devicePort) chip = '';
@@ -684,17 +701,6 @@ function setPort(port) {
 function renderTools() {
   const menu = $('tools-menu');
   menu.replaceChildren();
-  if (desktopInspector) {
-    const heading = node('div', 'inspector-heading');
-    const summary = node('div', 'inspector-summary');
-    summary.append(node('strong', '', 'Плата'), node('small', '', board?.name || 'Виберіть профіль'));
-    const close = button('icon-button', '', () => closeMenus());
-    close.setAttribute('aria-label', 'Закрити інспектор');
-    close.title = 'Закрити інспектор';
-    close.append(icon('x'));
-    heading.append(icon('chip'), summary, close);
-    menu.append(heading);
-  }
   const pins = button('menu-row pin-menu-action', '', openPins);
   pins.append(icon('pins'), node('span', '', 'Карта пінів'));
   menu.append(pins, node('hr'));
@@ -705,7 +711,15 @@ function renderTools() {
   for (const d of devices) select.append(new Option(basename(d.address) + ' · ' + deviceName(d), d.address));
   select.value = devicePort;
   select.disabled = !!task;
-  select.addEventListener('change', () => setPort(select.value));
+  select.addEventListener('change', () => {
+    const device = devices.find(d => d.address === select.value);
+    autoPort = !!device;
+    if (device) void detect(device);
+    else {
+      setPort('');
+      if (!manualBoard) setBoard(null, false);
+    }
+  });
   const field = node('label', 'tools-field');
   field.append(node('span', '', 'USB'), select);
   menu.append(field, node('hr'));
@@ -751,7 +765,6 @@ function renderPorts() {
   $('baud').disabled = !!monitorPort;
   $('serial-command').disabled = $('serial-send-button').disabled = !monitorPort || !!task;
   if (!$('tools-menu').hidden) renderTools();
-  if (!$('board-menu').hidden) renderBoardDevices();
 }
 function setTask(value) {
   task = value;
@@ -759,23 +772,31 @@ function setTask(value) {
   renderPorts();
 }
 async function detect(device) {
-  if (task) return;
+  if (task || !project) return;
+  if (!manualBoard && device.address !== devicePort) setBoard(null, false);
   setPort(device.address);
+  if (manualBoard) return;
+  const attachedBoard = usbProfile(device);
+  if (attachedBoard) {
+    if (!profiles.some(p => p.id === attachedBoard.id)) profiles.unshift(attachedBoard);
+    setBoard(profiles.find(p => p.id === attachedBoard.id), false);
+    status('Вибрано плату: ' + attachedBoard.name, 'success');
+    return;
+  }
+  if (monitorPort) return;
   setTask('probe');
   status('Визначення чипа: ' + basename(device.address) + '…');
   try {
     const found = await call('probe', device.address);
+    if (devicePort !== device.address || !devices.some(d => d.key === device.key)) return;
     chip = found.chip || '';
-    if (found.board && /^(arduino:avr|esp32:esp32):/.test(found.board.id)) {
-      const p = profiles.find(x => x.id === found.board.id);
-      if (!p) profiles.unshift({ ...found.board, chip });
-      setBoard(p || profiles[0]);
-      status('Визначено профіль: ' + found.board.name, 'success');
-    } else {
-      setBoard(null);
-      status(chip ? 'Чип ' + chip + ' · виберіть профіль плати' : 'Модель не визначено. Виберіть профіль вручну.');
-      if ($('board-menu').hidden) toggleMenu('board');
-    }
+    if (manualBoard) return;
+    const genericId = chip ? 'esp32:esp32:' + chip.toLowerCase().replace('-', '') : '';
+    const selected = profiles.find(p => p.id === (found.board?.id || genericId));
+    setBoard(selected, false);
+    status(selected ? 'Вибрано плату: ' + selected.name
+      : chip ? 'Чип ' + chip + ' · виберіть профіль плати' : 'Модель не визначено. Виберіть профіль плати.',
+    selected ? 'success' : undefined);
   } catch (e) { error(e, true); }
   finally { setTask(''); }
 }
@@ -783,21 +804,27 @@ async function poll() {
   try {
     const found = await call('ports');
     const fingerprint = JSON.stringify(found);
-    if (fingerprint === lastPorts) return;
-    lastPorts = fingerprint;
-    const previous = new Map(devices.map(d => [d.address, d.key]));
-    devices = found;
-    const sameDevice = address => devices.some(dev => dev.address === address && dev.key === previous.get(address));
-    for (const address of seen) if (!sameDevice(address)) seen.delete(address);
-    if (devicePort && !sameDevice(devicePort)) {
-      const old = devicePort;
-      devicePort = '';
-      chip = '';
-      portMissing = true;
-      append('console', '\nПорт від’єднано: ' + old + '\n');
-      if (!task) status('Порт від’єднано. Редагування доступне.');
+    if (fingerprint !== lastPorts) {
+      lastPorts = fingerprint;
+      const previous = new Map(devices.map(d => [d.address, d.key]));
+      devices = found;
+      const sameDevice = address => devices.some(dev => dev.address === address && dev.key === previous.get(address));
+      for (const address of seen) if (!sameDevice(address)) seen.delete(address);
+      if (devicePort && !sameDevice(devicePort)) {
+        const old = devicePort;
+        devicePort = '';
+        chip = '';
+        portMissing = true;
+        if (!manualBoard) setBoard(null, false);
+        append('console', '\nПорт від’єднано: ' + old + '\n');
+        if (!task) status('Порт від’єднано. Редагування доступне.');
+      }
+      if (project) renderPorts();
     }
-    if (project) renderPorts();
+    if (project && !changing && !task && !devicePort && autoPort && catalogLoaded) {
+      const candidates = devices.filter(d => usbVendor(d) || usbProfile(d));
+      if (candidates.length === 1 && !seen.has(candidates[0].address)) void detect(candidates[0]);
+    }
   } catch (e) {
     if (!task && lastPorts !== 'error') status(e.message, 'error');
     lastPorts = 'error';
@@ -809,7 +836,7 @@ async function build(upload) {
   if (!board) { if ($('board-menu').hidden) toggleMenu('board'); return error(Error('Виберіть профіль плати у шапці.'), true); }
   if (upload && !devicePort) { if ($('tools-menu').hidden) toggleMenu('tools'); return error(Error('Виберіть підключений порт у Tools.'), true); }
   const selection = { upload, board: board.id, options: { ...options }, port: devicePort };
-  closeMenus(desktopInspector);
+  closeMenus();
   setTask('build');
   status(upload ? 'Підготовка до завантаження…' : 'Компіляція…');
   clearLog('console');
@@ -1129,7 +1156,7 @@ $('board-query').onkeydown = event => {
 };
 $('tools-button').onclick = () => toggleMenu('tools');
 document.addEventListener('pointerdown', e => {
-  if (!e.target.closest('.menu-anchor, #tools-menu, #tools-button')) closeMenus(desktopInspector);
+  if (!e.target.closest('.menu-anchor, #tools-menu, #tools-button')) closeMenus();
 });
 $('zoom-in').onclick = zoomActions.zoomIn;
 $('zoom-out').onclick = zoomActions.zoomOut;
@@ -1145,7 +1172,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape' && CSS.supports('selector(select:open)') && $('tools-menu').querySelector('.tools-select:open')) return;
   if (e.key === 'Escape' && !$('board-menu').hidden) {
-    closeMenus(desktopInspector);
+    closeMenus();
     $('board-button').focus();
   } else if (e.key === 'Escape') closeMenus();
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && project) {
@@ -1178,7 +1205,7 @@ $('clear').onclick = () => clearLog(tab);
 $('serial-toggle').onclick = toggleSerial;
 $('plot-monitor').onclick = toggleSerial;
 function openPins() {
-  closeMenus(desktopInspector);
+  closeMenus();
   $('pin-query').value = '';
   renderPins();
   $('pin-dialog').showModal();
@@ -1334,13 +1361,15 @@ async function init() {
     }
     profiles = [...merged.values()];
     if (project && !board && !projectProfiles.has(project.primary)) {
-      setBoard(profiles.find(p => p.id === legacyBoard), false);
+      manualBoard = profiles.find(p => p.id === legacyBoard) || null;
+      setBoard(manualBoard, false);
     }
     catalogState = '';
   } catch (e) {
     catalogState = 'Не вдалося завантажити каталог плат.';
     append('console', '\n' + e.message + '\n');
   }
+  catalogLoaded = true;
   if (!$('board-menu').hidden) renderBoards();
 }
 void init().catch(error);

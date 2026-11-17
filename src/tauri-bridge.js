@@ -1,10 +1,6 @@
 if (window.__TAURI__) {
   const toolbar = document.getElementById('toolbar');
   toolbar.before(document.querySelector('.zoom-controls'));
-  const tools = document.getElementById('tools-menu');
-  tools.classList.remove('popover');
-  tools.classList.add('board-inspector');
-  document.querySelector('.workspace').after(tools);
   document.getElementById('version').textContent = 'v0.2';
   const { core, event, window: controls } = window.__TAURI__;
   document.documentElement.dataset.host = 'tauri';

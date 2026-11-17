@@ -40,9 +40,12 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.65;strok
 }
 #board-menu .board-search { flex:none; padding:4px; }
 #board-catalog { flex:none; color:var(--soft); padding:8px 8px 5px; font-size:11px; }
-#board-devices { flex:none; max-height:125px; overflow:auto; border-bottom:1px solid #3b4450; }
 #board-results { min-height:0; overflow:auto; }
-.board-choice { align-items:flex-start; flex-direction:column; gap:3px; }
+.board-item { display:flex; gap:3px; align-items:center; }
+.board-choice { min-width:0; align-items:flex-start; flex-direction:column; gap:3px; }
+.board-favorite { display:grid; place-items:center; width:32px; height:32px; }
+.board-favorite[aria-pressed="true"] { color:#ffcc73; }
+.board-favorite[aria-pressed="true"] svg { fill:currentColor; }
 .board-choice small { margin:0; font:10px var(--mono); overflow-wrap:anywhere; }
 .popover hr{border:0;border-top:1px solid #3b4450;margin:7px 0}
 .popover p{color:var(--soft);margin:8px}
@@ -494,8 +497,7 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
   padding:0 10px 8px;
 }
 [data-host="tauri"] .sidebar,
-[data-host="tauri"] .workspace,
-[data-host="tauri"] .board-inspector {
+[data-host="tauri"] .workspace {
   background:#1b1f23;
   border:1px solid var(--border);
   border-radius:10px;
@@ -518,36 +520,6 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
 [data-host="tauri"] .breadcrumb { color:#b1bac6; }
 [data-host="tauri"] .panel, [data-host="tauri"] .statusbar { background:#161a1e; }
 [data-host="tauri"] .statusbar { border-color:#272d33; }
-[data-host="tauri"] #tools-menu.board-inspector {
-  flex:0 0 264px;
-  min-width:0;
-  width:264px;
-  padding:9px;
-  max-width:none;
-  max-height:none;
-  height:100%;
-  overflow:auto;
-}
-.inspector-heading { display:flex; gap:9px; align-items:center; padding:5px 3px 10px; }
-.inspector-heading > span { color:var(--accent); }
-.inspector-summary { min-width:0; flex:1; }
-.inspector-summary strong, .inspector-summary small { display:block; }
-.inspector-summary small { margin-top:4px; color:var(--soft); overflow-wrap:anywhere; }
-[data-host="tauri"] #tools-menu .tools-field {
-  grid-template-columns:minmax(0,1fr);
-  gap:4px;
-  padding:5px 4px;
-}
-[data-host="tauri"] #tools-menu .tools-field > span { font-size:11px; }
-@media (max-width:1010px) {
-  [data-host="tauri"] #tools-menu.board-inspector {
-    position:absolute;
-    z-index:6;
-    inset:0 10px 8px auto;
-    height:auto;
-    box-shadow:0 12px 30px #0009;
-  }
-}
 @media (max-width:690px) {
   [data-host="tauri"] .chrome { padding-inline:63px 8px; }
   [data-host="tauri"] .chrome .zoom-controls { display:none; }

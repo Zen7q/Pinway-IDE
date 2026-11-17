@@ -32,6 +32,7 @@
   <symbol id="i-problems" viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 4.5 3 18a1.3 1.3 0 0 0 1.1 2h15.8a1.3 1.3 0 0 0 1.1-2L13.7 4.5a2 2 0 0 0-3.4 0Z"/></symbol>
   <symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5h4v14H4zm6 0h4v14h-4zm6 1 3-1 3 13-3 1z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9L12 3Z"/></symbol>
   <symbol id="i-open" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v6H5V6h6"/></symbol>
 </svg>
 <div id="app">
@@ -41,7 +42,6 @@
     <div id="toolbar" class="toolbar" hidden>
       <div class="menu-anchor"><button id="board-button" class="button" aria-haspopup="true" aria-expanded="false"><span data-icon="chip"></span><span id="board-label">Вибрати плату</span><span data-icon="down"></span></button><div id="board-menu" class="popover" hidden>
         <label class="board-search"><input id="board-query" type="search" placeholder="Пошук плати або FQBN" aria-label="Пошук плати" autocomplete="off"></label>
-        <div id="board-devices"></div>
         <div id="board-catalog" aria-live="polite"></div>
         <div id="board-results"></div>
       </div></div>
