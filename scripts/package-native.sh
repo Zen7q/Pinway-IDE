@@ -6,6 +6,7 @@ if [[ -x "$root/.toolchain/rust/cargo/bin/cargo" ]]; then
   export RUSTUP_HOME="$root/.toolchain/rust/rustup" CARGO_HOME="$root/.toolchain/rust/cargo"
   export PATH="$CARGO_HOME/bin:$PATH"
 fi
+bash scripts/assets.sh
 cargo build --locked --manifest-path native/Cargo.toml
 out="${PINWAY_NATIVE_OUT:-$root/dist/native}"
 app="$out/Pinway IDE.app"

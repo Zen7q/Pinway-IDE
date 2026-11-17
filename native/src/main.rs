@@ -69,6 +69,9 @@ struct Pinway {
     bottom: bool,
     serial_tab: bool,
     tools: bool,
+    pins: bool,
+    plot: bool,
+    completion: bool,
     board_menu: bool,
     monitor: Option<Arc<arduino::Monitor>>,
     last_poll: Instant,
@@ -88,16 +91,54 @@ fn label(v: &Value, key: &str) -> String {
 }
 impl Pinway {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_visuals(egui::Visuals::dark());
+        let mut style = (*cc.egui_ctx.style()).clone();
+        style.spacing.item_spacing = egui::vec2(8., 7.);
+        style.spacing.button_padding = egui::vec2(10., 6.);
+        style.visuals = egui::Visuals::dark();
+        style.visuals.panel_fill = egui::Color32::from_rgb(27, 31, 35);
+        style.visuals.window_fill = egui::Color32::from_rgb(34, 42, 51);
+        style.visuals.extreme_bg_color = egui::Color32::from_rgb(17, 21, 24);
+        style.visuals.selection.bg_fill = egui::Color32::from_rgb(36, 53, 77);
+        style.visuals.selection.stroke =
+            egui::Stroke::new(1., egui::Color32::from_rgb(145, 186, 255));
+        style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(36, 42, 49);
+        style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(45, 55, 68);
+        style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(40, 70, 109);
+        cc.egui_ctx.set_style(style);
         let storage = directories::ProjectDirs::from("dev", "binio", "Pinway")
             .unwrap()
             .data_local_dir()
             .to_path_buf();
         fs::create_dir_all(&storage).unwrap();
-        let prefs = fs::read(storage.join("workspace.json"))
+        let mut prefs: Preferences = fs::read(storage.join("workspace.json"))
             .ok()
             .and_then(|x| serde_json::from_slice(&x).ok())
             .unwrap_or_default();
+        if !storage.join("workspace.json").exists() {
+            if let Some(base) = directories::BaseDirs::new() {
+                let legacy = base.data_dir().join("dev.binio.pinway.tauri");
+                if let Ok(bytes) = fs::read(legacy.join("recent.json")) {
+                    if let Ok(recent) = serde_json::from_slice::<Vec<Project>>(&bytes) {
+                        prefs.recent = recent.into_iter().map(|p| p.primary).collect();
+                    }
+                }
+                if let Ok(bytes) = fs::read(legacy.join("recovery.json")) {
+                    if let Ok(recovery) = serde_json::from_slice::<Value>(&bytes) {
+                        prefs.active = recovery["active"]
+                            .as_str()
+                            .or(recovery["primary"].as_str())
+                            .map(PathBuf::from);
+                        if let Some(drafts) = recovery["drafts"].as_object() {
+                            for (path, draft) in drafts {
+                                if let Some(text) = draft["text"].as_str() {
+                                    prefs.drafts.insert(PathBuf::from(path), text.into());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         let executable = std::env::current_exe().unwrap();
         let bundled = executable.parent().unwrap().join("../Resources/arduino");
         let runtime = if bundled.is_dir() {
@@ -130,6 +171,9 @@ impl Pinway {
             bottom: true,
             serial_tab: false,
             tools: false,
+            pins: false,
+            plot: false,
+            completion: false,
             board_menu: false,
             monitor: None,
             last_poll: Instant::now(),
@@ -146,6 +190,9 @@ impl Pinway {
         };
         if let Some(path) = app.prefs.active.clone() {
             app.open(path);
+        }
+        for path in app.prefs.drafts.keys().cloned().collect::<Vec<_>>() {
+            app.open_doc(path);
         }
         let cli = app.cli.clone();
         let tx = app.tx.clone();
@@ -171,11 +218,14 @@ impl Pinway {
             options: self.prefs.options.clone(),
             recent: self.prefs.recent.clone(),
             active: self.docs.get(self.active).map(|d| d.path.clone()),
+            drafts: self.prefs.drafts.clone(),
             ..Default::default()
         };
         for d in &self.docs {
             if d.text != d.saved {
                 prefs.drafts.insert(d.path.clone(), d.text.clone());
+            } else {
+                prefs.drafts.remove(&d.path);
             }
         }
         if let Ok(bytes) = serde_json::to_vec(&prefs) {
@@ -459,7 +509,16 @@ impl eframe::App for Pinway {
             .exact_height(48.)
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
-                    ui.strong("Pinway IDE");
+                    ui.label(
+                        RichText::new(
+                            self.project
+                                .as_ref()
+                                .map(|p| format!("{} — Pinway IDE", p.name))
+                                .unwrap_or("Pinway IDE".into()),
+                        )
+                        .strong()
+                        .size(16.),
+                    );
                     if ui.small_button("−").clicked() {
                         ctx.set_zoom_factor((ctx.zoom_factor() - 0.1).max(0.7));
                     }
@@ -550,41 +609,80 @@ impl eframe::App for Pinway {
                         });
                 });
         }
+        if self.pins {
+            egui::Window::new("Карта пінів")
+                .open(&mut self.pins)
+                .show(ctx, |ui| {
+                    let pins: Value =
+                        serde_json::from_str(include_str!("../pinouts.json")).unwrap();
+                    if let Some(board) = pins.get(&self.prefs.board) {
+                        egui::ScrollArea::vertical()
+                            .max_height(500.)
+                            .show(ui, |ui| {
+                                ui.heading(label(board, "title"));
+                                for group in arduino::array(&board["groups"]) {
+                                    ui.strong(label(group, "label"));
+                                    egui::Grid::new(label(group, "label")).striped(true).show(
+                                        ui,
+                                        |ui| {
+                                            for pin in arduino::array(&group["pins"]) {
+                                                ui.monospace(label(pin, "name"));
+                                                ui.label(label(pin, "functions"));
+                                                ui.end_row();
+                                            }
+                                        },
+                                    );
+                                    ui.separator();
+                                }
+                            });
+                    } else {
+                        ui.label("Виберіть Uno, Nano або еталонну плату ESP32 / ESP32-C3.");
+                    }
+                });
+        }
         if self.tools {
-            egui::Window::new("Tools").show(ctx, |ui| {
-                self.ports_ui(ui);
-                for option in self.details.clone() {
-                    let key = label(&option, "option");
-                    let selected = self.prefs.options.entry(key.clone()).or_insert_with(|| {
-                        arduino::array(&option["values"])
-                            .iter()
-                            .find(|v| v["selected"] == true)
-                            .or_else(|| arduino::array(&option["values"]).first())
-                            .map(|v| label(v, "value"))
-                            .unwrap_or_default()
-                    });
-                    let selected_label = arduino::array(&option["values"])
-                        .iter()
-                        .find(|v| label(v, "value") == *selected)
-                        .map(|v| label(v, "value_label"))
-                        .unwrap_or_default();
-                    ui.label(label(&option, "option_label"));
-                    egui::ComboBox::from_id_salt(key)
-                        .selected_text(selected_label)
-                        .show_ui(ui, |ui| {
-                            for v in arduino::array(&option["values"]) {
-                                ui.selectable_value(
-                                    selected,
-                                    label(v, "value"),
-                                    label(v, "value_label"),
-                                );
-                            }
+            egui::Window::new("Tools")
+                .collapsible(false)
+                .resizable(false)
+                .default_width(420.)
+                .default_pos(egui::pos2(ctx.screen_rect().right() - 445., 58.))
+                .show(ctx, |ui| {
+                    self.ports_ui(ui);
+                    if ui.button("Карта пінів").clicked() {
+                        self.pins = true;
+                    }
+                    for option in self.details.clone() {
+                        let key = label(&option, "option");
+                        let selected = self.prefs.options.entry(key.clone()).or_insert_with(|| {
+                            arduino::array(&option["values"])
+                                .iter()
+                                .find(|v| v["selected"] == true)
+                                .or_else(|| arduino::array(&option["values"]).first())
+                                .map(|v| label(v, "value"))
+                                .unwrap_or_default()
                         });
-                }
-                if ui.button("Закрити").clicked() {
-                    self.tools = false;
-                }
-            });
+                        let selected_label = arduino::array(&option["values"])
+                            .iter()
+                            .find(|v| label(v, "value") == *selected)
+                            .map(|v| label(v, "value_label"))
+                            .unwrap_or_default();
+                        ui.label(label(&option, "option_label"));
+                        egui::ComboBox::from_id_salt(key)
+                            .selected_text(selected_label)
+                            .show_ui(ui, |ui| {
+                                for v in arduino::array(&option["values"]) {
+                                    ui.selectable_value(
+                                        selected,
+                                        label(v, "value"),
+                                        label(v, "value_label"),
+                                    );
+                                }
+                            });
+                    }
+                    if ui.button("Закрити").clicked() {
+                        self.tools = false;
+                    }
+                });
         }
         egui::SidePanel::left("activity")
             .exact_width(42.)
@@ -628,8 +726,24 @@ impl eframe::App for Pinway {
                 .default_height(180.)
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
-                        ui.selectable_value(&mut self.serial_tab, false, "Консоль");
-                        ui.selectable_value(&mut self.serial_tab, true, "Serial Monitor");
+                        if ui
+                            .selectable_label(!self.serial_tab && !self.plot, "Консоль")
+                            .clicked()
+                        {
+                            self.serial_tab = false;
+                            self.plot = false;
+                        }
+                        if ui
+                            .selectable_label(self.serial_tab && !self.plot, "Serial Monitor")
+                            .clicked()
+                        {
+                            self.serial_tab = true;
+                            self.plot = false;
+                        }
+                        if ui.selectable_label(self.plot, "Plotter").clicked() {
+                            self.plot = true;
+                            self.serial_tab = true;
+                        }
                         if ui.button("Очистити").clicked() {
                             if self.serial_tab {
                                 self.serial.clear();
@@ -671,6 +785,67 @@ impl eframe::App for Pinway {
                             }
                         }
                     });
+                    if self.plot {
+                        let samples: Vec<Vec<f32>> = self
+                            .serial
+                            .lines()
+                            .filter_map(|line| {
+                                let values: Option<Vec<f32>> = line
+                                    .split(|c: char| c == ',' || c.is_whitespace())
+                                    .filter(|s| !s.is_empty())
+                                    .map(|s| {
+                                        s.rsplit(':')
+                                            .next()
+                                            .unwrap_or("")
+                                            .parse::<f32>()
+                                            .ok()
+                                            .filter(|v| v.is_finite())
+                                    })
+                                    .collect();
+                                values.filter(|v| !v.is_empty() && v.len() <= 8)
+                            })
+                            .rev()
+                            .take(150)
+                            .collect();
+                        let (rect, _) = ui.allocate_exact_size(
+                            egui::vec2(ui.available_width(), 100.),
+                            egui::Sense::hover(),
+                        );
+                        let all: Vec<f32> = samples.iter().flatten().copied().collect();
+                        let min = all.iter().copied().fold(f32::INFINITY, f32::min);
+                        let max = all.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+                        let colors = [
+                            egui::Color32::LIGHT_BLUE,
+                            egui::Color32::LIGHT_GREEN,
+                            egui::Color32::GOLD,
+                            egui::Color32::LIGHT_RED,
+                        ];
+                        for series in 0..8 {
+                            let points: Vec<_> = samples
+                                .iter()
+                                .rev()
+                                .enumerate()
+                                .filter_map(|(i, v)| {
+                                    v.get(series).map(|value| {
+                                        egui::pos2(
+                                            rect.left()
+                                                + rect.width() * i as f32
+                                                    / (samples.len().max(2) - 1) as f32,
+                                            rect.bottom()
+                                                - rect.height() * (value - min)
+                                                    / (max - min).max(1.),
+                                        )
+                                    })
+                                })
+                                .collect();
+                            if points.len() > 1 {
+                                ui.painter().add(egui::Shape::line(
+                                    points,
+                                    egui::Stroke::new(1.5, colors[series % 4]),
+                                ));
+                            }
+                        }
+                    }
                     egui::ScrollArea::both()
                         .stick_to_bottom(true)
                         .show(ui, |ui| {
@@ -712,14 +887,63 @@ impl eframe::App for Pinway {
                     ui.fonts(|f| f.layout_job(job))
                 };
                 egui::ScrollArea::both().show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut d.text)
-                            .font(egui::TextStyle::Monospace)
-                            .code_editor()
-                            .desired_width(f32::INFINITY)
-                            .desired_rows(36)
-                            .layouter(&mut layouter),
-                    );
+                    let output = egui::TextEdit::multiline(&mut d.text)
+                        .font(egui::TextStyle::Monospace)
+                        .code_editor()
+                        .desired_width(f32::INFINITY)
+                        .desired_rows(36)
+                        .layouter(&mut layouter)
+                        .show(ui);
+                    let show_completion = output.response.has_focus()
+                        && ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::Space));
+                    if show_completion {
+                        self.completion = true;
+                    }
+                    if self.completion {
+                        if let Some(cursor) = output.cursor_range {
+                            let chars: Vec<char> = d.text.chars().collect();
+                            let end = cursor.primary.ccursor.index.min(chars.len());
+                            let start = chars[..end]
+                                .iter()
+                                .rposition(|c| !c.is_alphanumeric() && *c != '_' && *c != '.')
+                                .map_or(0, |i| i + 1);
+                            let prefix: String = chars[start..end].iter().collect();
+                            let completions: Vec<Value> =
+                                serde_json::from_str(include_str!("../completions.json")).unwrap();
+                            egui::Window::new("Автодоповнення").collapsible(false).show(
+                                ui.ctx(),
+                                |ui| {
+                                    for item in completions
+                                        .iter()
+                                        .filter(|item| label(item, "label").starts_with(&prefix))
+                                        .take(12)
+                                    {
+                                        let name = label(item, "label");
+                                        if ui
+                                            .button(format!("{} {}", name, label(item, "detail")))
+                                            .clicked()
+                                        {
+                                            let start_byte = d
+                                                .text
+                                                .char_indices()
+                                                .nth(start)
+                                                .map_or(d.text.len(), |x| x.0);
+                                            let end_byte = d
+                                                .text
+                                                .char_indices()
+                                                .nth(end)
+                                                .map_or(d.text.len(), |x| x.0);
+                                            d.text.replace_range(start_byte..end_byte, &name);
+                                            self.completion = false;
+                                        }
+                                    }
+                                    if ui.button("Закрити").clicked() {
+                                        self.completion = false;
+                                    }
+                                },
+                            );
+                        }
+                    }
                 });
             } else {
                 ui.add_space(80.);
@@ -778,15 +1002,99 @@ impl eframe::App for Pinway {
             });
         }
     }
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+    fn on_exit(&mut self) {
         self.persist();
         if let Some(m) = self.monitor.take() {
             m.stop();
         }
     }
 }
+fn smoke_upload(path: PathBuf, upload: bool) -> Result<()> {
+    let storage = directories::ProjectDirs::from("dev", "binio", "Pinway")
+        .unwrap()
+        .data_local_dir()
+        .to_path_buf();
+    let cli = arduino::Arduino::new(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.toolchain/runtime"),
+        storage,
+    );
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        while let Ok(event) = rx.recv() {
+            if let Event::Output(_, line) = event {
+                print!("{line}");
+            }
+        }
+    });
+    let app = AppHandle(tx);
+    let ports = cli.ports()?;
+    if ports.len() != 1 {
+        return Err("Для перевірки потрібна одна підключена плата".into());
+    }
+    let probe = cli.probe(&ports[0], &app)?;
+    let chip = label(&probe, "chip");
+    if chip != "ESP32-C3" {
+        return Err(format!("Очікувалася ESP32-C3, визначено {chip}"));
+    }
+    let project = projects::open(&path)?;
+    let temp = tempfile::tempdir().map_err(projects::err)?;
+    let input = projects::stage(&project, temp.path())?;
+    let output = temp.path().join("output");
+    let sketch = input.directory.to_string_lossy().to_string();
+    let result = cli.run(
+        &[
+            "compile".into(),
+            "--fqbn".into(),
+            "esp32:esp32:esp32c3".into(),
+            "--build-path".into(),
+            output.to_string_lossy().to_string(),
+            sketch.clone(),
+        ],
+        600,
+        Some(app.clone()),
+    )?;
+    if !result.ok {
+        return Err(arduino::message(&result));
+    }
+    if upload {
+        let result = cli.run(
+            &[
+                "upload".into(),
+                "--fqbn".into(),
+                "esp32:esp32:esp32c3".into(),
+                "--port".into(),
+                label(&ports[0], "address"),
+                "--input-dir".into(),
+                output.to_string_lossy().to_string(),
+                sketch,
+            ],
+            180,
+            Some(app),
+        )?;
+        if !result.ok {
+            return Err(arduino::message(&result));
+        }
+    }
+    println!("Native Rust smoke completed successfully");
+    Ok(())
+}
+
 fn main() -> eframe::Result {
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).is_some_and(|arg| arg == "--smoke") {
+        let path = args.get(2).expect("Specify sketch path");
+        if let Err(error) = smoke_upload(
+            PathBuf::from(path),
+            args.iter().any(|arg| arg == "--upload"),
+        ) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+
     let options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1320., 820.])
             .with_min_inner_size([850., 560.]),
