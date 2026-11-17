@@ -75,6 +75,7 @@
       <nav class="side-views" aria-label="Панелі проєкту">
         <button id="files-view" class="side-view" title="Файли" aria-label="Файли" aria-controls="files-panel" aria-expanded="true"><span data-icon="folder"></span></button>
         <button id="libraries-view" class="side-view" title="Бібліотеки" aria-label="Бібліотеки" aria-controls="libraries" aria-expanded="false"><span data-icon="book"></span></button>
+        <button id="settings-view" class="side-view" title="Налаштування" aria-label="Налаштування"><span data-icon="settings"></span></button>
       </nav>
       <section id="files-panel" aria-label="Файли проєкту">
         <div class="side-heading">
@@ -187,5 +188,28 @@
   <div id="pin-map"></div>
   <button id="pin-source" type="button" class="button compact">Документація виробника</button>
 </dialog>
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <div class="dialog-head"><div><div class="eyebrow">PINWAY IDE</div><h2 id="settings-title">Налаштування</h2></div><button type="button" class="icon-button dismiss" aria-label="Закрити налаштування" data-icon="x"></button></div>
+  <section class="settings-section">
+    <h3>Вигляд</h3>
+    <label class="settings-row"><span>Тема</span><select id="setting-theme"><option value="dark">Темна</option><option value="light">Світла</option><option value="system">Як у системі</option></select></label>
+    <div class="settings-row"><span>Акцентний колір</span><div id="accent-swatches" role="group" aria-label="Акцентний колір"></div></div>
+    <label class="settings-row"><span>Власний колір</span><input id="setting-accent" type="color" aria-label="Власний акцентний колір"></label>
+    <label class="settings-row"><span>Масштаб програми</span><select id="setting-zoom"></select></label>
+  </section>
+  <section class="settings-section">
+    <h3>Редактор</h3>
+    <label class="settings-row"><span>Розмір шрифту</span><select id="setting-font"><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option></select></label>
+    <label class="settings-row"><span>Перенесення довгих рядків</span><input id="setting-wrap" type="checkbox"></label>
+    <label class="settings-row"><span>Автозбереження <small>Через 1,2 секунди після редагування</small></span><input id="setting-autosave" type="checkbox"></label>
+  </section>
+  <section class="settings-section">
+    <h3>Запуск</h3>
+    <label class="settings-row"><span>Відновлювати попередній сеанс</span><input id="setting-restore" type="checkbox"></label>
+  </section>
+  <div class="settings-footer">Зміни застосовуються одразу.</div>
+</dialog>
+
 </body>
 </html>

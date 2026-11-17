@@ -49,6 +49,47 @@ function saveProfile() {
   projectProfiles.set(project.primary, { board: manualBoard, options: Object.fromEntries(settings) });
   localStorage.setItem('pinway.projectProfiles', JSON.stringify(Object.fromEntries(projectProfiles)));
 }
+const preferences = { theme: 'dark', accent: '#91baff', fontSize: 13, wrap: true, autosave: false, restore: true, ...JSON.parse(localStorage.getItem('pinway.preferences') || '{}') };
+const editorAppearance = new Compartment();
+const editorWrapping = new Compartment();
+const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+let autosaveTimer;
+let saveQueue = Promise.resolve();
+function lightTheme() {
+  return preferences.theme === 'light' || (preferences.theme === 'system' && !systemTheme.matches);
+}
+function editorTheme() {
+  return [lightTheme() ? [] : oneDark, EditorView.theme({
+    '&': { backgroundColor: 'var(--editor-bg)', color: 'var(--editor-text)', fontSize: preferences.fontSize + 'px' },
+    '.cm-gutters': { backgroundColor: 'var(--editor-bg)', color: 'var(--sub)' },
+    '.cm-content': { caretColor: 'var(--accent)' },
+    '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--line-bg)' }
+  })];
+}
+function applyPreferences() {
+  const root = document.documentElement;
+  root.dataset.theme = lightTheme() ? 'light' : 'dark';
+  root.style.setProperty('--accent', preferences.accent);
+  root.style.colorScheme = lightTheme() ? 'light' : 'dark';
+  localStorage.setItem('pinway.preferences', JSON.stringify(preferences));
+  for (const doc of files.values()) {
+    const change = { effects: [editorAppearance.reconfigure(editorTheme()), editorWrapping.reconfigure(preferences.wrap ? EditorView.lineWrapping : [])] };
+    if (editor && editor.state === doc.state) editor.dispatch(change);
+    else doc.state = doc.state.update(change).state;
+  }
+  document.querySelectorAll('.accent-swatch').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.color === preferences.accent)));
+}
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  if (!preferences.autosave || !project) return;
+  const owner = project;
+  autosaveTimer = setTimeout(() => {
+    if (project !== owner || !preferences.autosave) return;
+    if (task || changing) { scheduleAutosave(); return; }
+    void save(true).catch(e => error(e, true));
+  }, 1200);
+}
+systemTheme.addEventListener('change', () => applyPreferences());
 const completionMode = new Compartment();
 let project, recent = [], profiles = [], catalogState = '', board, options = {}, devicePort = '', devices = [], portMissing = false, chip = '';
 let editor, activeFile, selectedFolder, report = [], buildSnapshots = new Map(), monitorPort = '';
@@ -397,10 +438,9 @@ function createState(file, content) {
   return EditorState.create({
     doc: content,
     extensions: [
-      basicSetup, oneDark, EditorState.lineSeparator.of(content.includes('\r\n') ? '\r\n' : '\n'),
+      basicSetup, editorAppearance.of(editorTheme()), EditorState.lineSeparator.of(content.includes('\r\n') ? '\r\n' : '\n'),
       ...(/\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(file) ? [cpp(), completionMode.of(arduinoComplete())] : []),
-      lintGutter(), EditorView.lineWrapping,
-      EditorView.theme({ '&': { backgroundColor: '#181c23' }, '.cm-gutters': { backgroundColor: '#171b21' } }),
+      lintGutter(), editorWrapping.of(preferences.wrap ? EditorView.lineWrapping : []),
       EditorView.updateListener.of(update => {
         const doc = files.get(file);
         if (!doc) return;
@@ -409,7 +449,7 @@ function createState(file, content) {
         if (activeFile === file) {
           if (update.docChanged && wasDirty !== isDirty(doc)) renderTabs();
           if (update.docChanged || update.selectionSet) cursor(update.state);
-          if (update.docChanged) scheduleRecovery();
+          if (update.docChanged) { scheduleRecovery(); scheduleAutosave(); }
         }
       })
     ]
@@ -456,7 +496,16 @@ async function openFile(file, location) {
   editor.focus();
   scheduleRecovery();
 }
-async function save(all = false) {
+function save(all = false) {
+  const owner = project;
+  const pending = saveQueue.then(() => {
+    if (project !== owner) return;
+    return persistFiles(all);
+  });
+  saveQueue = pending.catch(() => {});
+  return pending;
+}
+async function persistFiles(all) {
   if (!project) return;
   for (const [file, doc] of files) {
     if ((!all && file !== activeFile) || !isDirty(doc)) continue;
@@ -479,6 +528,7 @@ async function acceptProject(value, session) {
   recoveryTimer = undefined;
   restoringSession = !!session;
   orphanDrafts = {};
+  clearTimeout(autosaveTimer);
   project = value;
   const saved = value && projectProfiles.get(value.primary);
   settings = new Map(Object.entries(structuredClone(saved?.options || legacyOptions)));
@@ -1176,6 +1226,39 @@ $('new-form').onsubmit = async e => {
     } else error(e);
   } finally { changing = false; $('create').disabled = false; }
 };
+$('settings-view').onclick = () => {
+  closeMenus();
+  $('setting-theme').value = preferences.theme;
+  $('setting-accent').value = preferences.accent;
+  $('setting-font').value = String(preferences.fontSize);
+  $('setting-wrap').checked = preferences.wrap;
+  $('setting-autosave').checked = preferences.autosave;
+  $('setting-restore').checked = preferences.restore;
+  $('setting-zoom').value = String(zoomPercent);
+  $('settings-dialog').showModal();
+};
+for (const [id, key] of [['theme','theme'],['accent','accent'],['font','fontSize'],['wrap','wrap'],['autosave','autosave'],['restore','restore']]) {
+  $('setting-' + id).addEventListener('change', event => {
+    const input = event.target;
+    preferences[key] = input.type === 'checkbox' ? input.checked : key === 'fontSize' ? Number(input.value) : input.value;
+    applyPreferences();
+    if (key === 'autosave') scheduleAutosave();
+  });
+}
+for (const value of [70,80,90,100,110,120,130,140,150]) $('setting-zoom').append(new Option(value + '%', String(value)));
+$('setting-zoom').onchange = event => void setZoom(Number(event.target.value));
+for (const [name,color] of [['Блакитний','#91baff'],['М’ятний','#75dfbc'],['Фіолетовий','#b69cff'],['Рожевий','#ef9cce'],['Помаранчевий','#ffb878'],['Жовтий','#e5cd70']]) {
+  const swatch = button('accent-swatch','', () => {
+    preferences.accent = color;
+    $('setting-accent').value = color;
+    applyPreferences();
+  });
+  swatch.dataset.color = color;
+  swatch.style.setProperty('--swatch', color);
+  swatch.setAttribute('aria-label', name);
+  swatch.setAttribute('aria-pressed', String(color === preferences.accent));
+  $('accent-swatches').append(swatch);
+}
 document.querySelectorAll('.dismiss').forEach(b => { b.onclick = () => b.closest('dialog').close(); });
 for (const id of ['files-view', 'libraries-view']) {
   $(id).onclick = event => toggleSidebar(event.currentTarget);
@@ -1421,6 +1504,7 @@ window.addEventListener('resize', () => {
 });
 
 async function init() {
+  applyPreferences();
   await setZoom(zoomPercent);
   const state = await call('state');
   profiles = state.profiles;
@@ -1429,7 +1513,7 @@ async function init() {
     if (template.id !== 'empty') $('sketch-template').append(new Option(template.name, template.id));
   }
   renderRecent();
-  if (state.recovery?.primary) {
+  if (preferences.restore && state.recovery?.primary) {
     changing = true;
     try {
       const workspace = await call('reopen', state.recovery.primary);
@@ -1440,10 +1524,10 @@ async function init() {
       changing = false;
     }
   }
-  if (!project && !state.recovery?.primary) status('Підготовка інструментів Arduino…');
+  if (!project && !(preferences.restore && state.recovery?.primary)) status('Підготовка інструментів Arduino…');
   try {
     await call('prepare');
-    if (!project && !state.recovery?.primary) status('Готово');
+    if (!project && !(preferences.restore && state.recovery?.primary)) status('Готово');
   } catch (e) { error(e); }
   void poll();
   catalogState = 'Завантаження каталогу плат…';
