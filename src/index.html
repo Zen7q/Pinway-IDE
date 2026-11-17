@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinway IDE</title>
+<link rel="stylesheet" href="style.css">
+  <script defer src="tauri-bridge.js"></script>
+<script defer src="ui.bundle.js"></script>
+</head>
+<body>
+<svg class="symbols" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M7 19V5h7a4 4 0 0 1 0 8h-3m-4 3h5m4 3h2"/><circle cx="18" cy="19" r="1"/><circle cx="7" cy="19" r="1"/></symbol>
+  <symbol id="i-file-add" viewBox="0 0 24 24"><path d="M6 21V3h8l4 4v4M14 3v5h4M16 13v8m-4-4h8"/></symbol>
+  <symbol id="i-folder-add" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9H3zM12 10v7m-3.5-3.5h7"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5m-5 0a8 8 0 0 1 14-5l2 5M4 12l2 5a8 8 0 0 0 14-5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6M8 12h12"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m9 7-5 5 5 5m6-10 5 5-5 5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path class="knobs" d="M8 4v4m8 2v4m-6 2v4"/></symbol>
+  <symbol id="i-pins" viewBox="0 0 24 24"><path d="M8 4h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 8h3m-3 4h3m-3 4h3m12-8h3m-3 4h3m-3 4h3M10 9h4v6h-4z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zM9 3v3m6-3v3m-6 12v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3"/></symbol>
+  <symbol id="i-usb" viewBox="0 0 24 24"><path d="M12 20V4m-3 3 3-3 3 3m-3 9-5-4v-2m5 4 5-4V8"/><circle cx="12" cy="20" r="1.5"/><circle cx="7" cy="9" r="1.5"/><rect x="16" y="6" width="2" height="2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5m8 0h6"/></symbol>
+  <symbol id="i-problems" viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 4.5 3 18a1.3 1.3 0 0 0 1.1 2h15.8a1.3 1.3 0 0 0 1.1-2L13.7 4.5a2 2 0 0 0-3.4 0Z"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5h4v14H4zm6 0h4v14h-4zm6 1 3-1 3 13-3 1z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9L12 3Z"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v6H5V6h6"/></symbol>
+</svg>
+<div id="app">
+  <header class="chrome">
+    <button id="home" class="icon-button" title="Закрити проєкт" aria-label="Закрити проєкт" hidden><span data-icon="back"></span></button>
+    <div class="title drag"><span class="title-indicator"></span><span id="caption">Pinway IDE</span></div>
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="menu-anchor"><button id="board-button" class="button" aria-haspopup="true" aria-expanded="false"><span data-icon="chip"></span><span id="board-label">Вибрати плату</span><span data-icon="down"></span></button><div id="board-menu" class="popover" hidden>
+        <label class="board-search"><input id="board-query" type="search" placeholder="Пошук плати" aria-label="Пошук плати" autocomplete="off"></label>
+        <div id="board-port"></div>
+        <div id="board-catalog" aria-live="polite"></div>
+        <div id="board-results"></div>
+      </div></div>
+      <button id="verify" class="button bare"><span data-icon="check"></span>Перевірити</button>
+      <button id="upload" class="button primary"><span data-icon="upload"></span>Завантажити</button>
+      <div class="menu-anchor"><button id="tools-button" class="button bare" aria-haspopup="true" aria-expanded="false"><span data-icon="settings"></span>Tools</button><div id="tools-menu" class="popover" hidden></div></div>
+    </div>
+    <span id="version" class="chrome-version">v0.2</span>
+  </header>
+  <main id="welcome">
+    <div class="welcome-content">
+      <section class="hero">
+        <div class="brand-mark" data-icon="logo"></div>
+        <div class="eyebrow">ARDUINO / ESP32 WORKBENCH</div>
+        <h1>Pinway IDE<span>.</span></h1>
+        <p>Пишіть, збирайте та завантажуйте прошивки для Arduino й ESP.</p>
+        <div class="welcome-actions">
+          <button id="new" class="button primary"><span data-icon="plus"></span>Новий проєкт <kbd>⌘N</kbd></button>
+          <button id="open" class="button"><span data-icon="folder"></span>Відкрити проєкт <kbd>⌘O</kbd></button>
+        </div>
+      </section>
+      <section class="recents" aria-label="Останні проєкти">
+        <div class="section-heading"><span>Останні проєкти</span><span id="recent-count" class="counter">00</span></div>
+        <div id="recent-list"></div>
+      </section>
+      <div class="welcome-footer"><span>01 / РОБОЧИЙ ПРОСТІР</span><span>ARDUINO C++ <i></i> MACOS</span></div>
+    </div>
+  </main>
+  <main id="workbench" hidden>
+    <aside id="sidebar" class="sidebar" aria-label="Бічна панель">
+      <nav class="side-views" aria-label="Панелі проєкту">
+        <button id="files-view" class="side-view" title="Файли" aria-label="Файли" aria-controls="files-panel" aria-expanded="true"><span data-icon="folder"></span></button>
+        <button id="libraries-view" class="side-view" title="Бібліотеки" aria-label="Бібліотеки" aria-controls="libraries" aria-expanded="false"><span data-icon="book"></span></button>
+      </nav>
+      <section id="files-panel" aria-label="Файли проєкту">
+        <div class="side-heading">
+          <button class="root-heading" id="root-select" aria-label="Вибрати корінь проєкту"><span data-icon="folder"></span><span id="root-label"></span></button>
+          <button id="new-file" class="icon-button" title="Новий файл" aria-label="Новий файл"><span data-icon="file-add"></span></button>
+          <button id="new-folder" class="icon-button" title="Нова папка" aria-label="Нова папка"><span data-icon="folder-add"></span></button>
+          <button id="reveal" class="icon-button" title="Показати у Finder" aria-label="Показати у Finder"><span data-icon="open"></span></button>
+        </div>
+        <div id="tree"></div>
+      </section>
+      <section id="libraries" aria-label="Бібліотеки" hidden>
+        <div class="library-toolbar">
+          <form id="library-search" role="search"><input id="query" type="search" placeholder="Назва бібліотеки" aria-label="Назва бібліотеки"><button class="button compact" type="submit">Пошук</button></form>
+          <button id="refresh-index" class="icon-button" title="Оновити індекс" aria-label="Оновити індекс"><span data-icon="refresh"></span></button>
+        </div>
+        <p id="library-status" aria-live="polite"></p>
+        <div id="library-results"></div>
+      </section>
+      <div id="sidebar-split" role="separator" aria-label="Ширина бічної панелі" aria-orientation="vertical" aria-controls="sidebar" tabindex="0" title="Перетягніть, щоб змінити ширину"></div>
+    </aside>
+    <section class="workspace">
+      <div id="alerts" hidden></div>
+      <div id="tabs" class="tabs" aria-label="Відкриті файли"></div>
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div id="editor" aria-label="Редактор Arduino C++"></div>
+      <div id="split" role="separator" aria-label="Висота консолі" aria-orientation="horizontal" tabindex="0"></div>
+      <div id="panel" class="panel">
+        <div class="panel-bar">
+          <button id="console-tab" title="Консоль" class="panel-tab active"><span data-icon="terminal"></span>Консоль</button>
+          <button id="serial-tab" title="Serial Monitor" class="panel-tab"><span data-icon="activity"></span>Serial Monitor</button>
+          <button id="plot-tab" title="Plotter" class="panel-tab"><span data-icon="activity"></span>Plotter</button>
+          <button id="problems-tab" title="Проблеми" class="panel-tab"><span data-icon="problems"></span>Проблеми<span id="problem-count" hidden></span></button>
+          <span class="spacer"></span>
+          <button id="clear" class="button bare compact">Очистити</button>
+          <button id="panel-toggle" class="icon-button" aria-label="Згорнути нижню панель" title="Згорнути нижню панель" aria-controls="panel-content" aria-expanded="true"><span data-icon="down"></span></button>
+        </div>
+        <div id="panel-content">
+          <pre id="console-log" class="log" tabindex="0"></pre>
+          <div id="serial-view" hidden>
+            <div class="serial-filter">
+              <input id="serial-filter" type="search" placeholder="Фільтр виводу" aria-label="Фільтр Serial Monitor">
+              <label><input id="serial-timestamps" type="checkbox" checked> Час</label>
+              <div id="serial-controls">
+                <label>Бод <select id="baud"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option selected>115200</option><option>230400</option><option>460800</option><option>921600</option></select></label>
+                <button id="serial-toggle" class="button compact">Відкрити порт</button>
+              </div>
+            </div>
+            <pre id="serial-log" class="log" tabindex="0"></pre>
+            <form id="serial-send">
+              <input id="serial-command" type="text" placeholder="Команда для плати" aria-label="Команда для плати" maxlength="1024" disabled>
+              <select id="serial-ending" aria-label="Кінець рядка"><option value="lf">LF</option><option value="crlf">CRLF</option><option value="none">Без кінця рядка</option></select>
+              <button id="serial-send-button" class="button compact" type="submit" disabled>Надіслати</button>
+            </form>
+          </div>
+          <div id="plot-view" hidden>
+            <div class="plot-toolbar">
+              <span id="plot-legend"></span>
+              <span class="spacer"></span>
+              <button id="plot-monitor" class="button compact">Відкрити порт</button>
+            </div>
+            <div id="plot-area">
+              <canvas id="plot-canvas" aria-label="Графік даних із послідовного порту"></canvas>
+              <p id="plot-empty">Немає числових даних. Надішліть із плати рядок на кшталт <code>temp:24.5 humidity:60</code>.</p>
+            </div>
+          </div>
+          <div id="problems-log" aria-label="Проблеми збірки" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="statusbar">
+    <span id="status" role="status">Готово</span><span class="spacer"></span>
+    <span id="device-status" hidden><span class="status-dot"></span><span id="port-label">Порт не вибрано</span></span>
+    <span id="cursor" hidden>Ряд 1, стовп. 1</span><span id="encoding" hidden>UTF-8</span>
+    <div class="zoom-controls" role="group" aria-label="Масштаб програми">
+      <button id="zoom-out" aria-label="Зменшити масштаб" title="Зменшити масштаб">−</button>
+      <button id="zoom-reset" aria-label="Скинути масштаб до 100%" title="Скинути масштаб до 100%">100%</button>
+      <button id="zoom-in" aria-label="Збільшити масштаб" title="Збільшити масштаб">+</button>
+    </div>
+  </footer>
+</div>
+<dialog id="new-dialog">
+  <form id="new-form">
+    <div class="dialog-head"><div><div class="eyebrow">РОБОЧИЙ ПРОСТІР</div><h2>Новий проєкт</h2></div><button type="button" class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
+    <label class="field">Назва скетчу<input id="name" placeholder="MySketch" required maxlength="63" autocomplete="off"></label>
+    <label class="field">Шаблон<select id="sketch-template"><option value="empty">Порожній скетч</option></select></label>
+    <label class="field">Розташування</label>
+    <div class="folder-picker"><span id="parent-label">Папку не вибрано</span><button id="pick-folder" type="button" class="button compact">Вибрати…</button></div>
+    <p id="new-error" class="error" hidden></p>
+    <div class="dialog-actions"><button type="button" class="button dismiss">Скасувати</button><button id="create" type="submit" class="button primary">Створити</button></div>
+  </form>
+</dialog>
+<dialog id="entry-dialog">
+  <form id="entry-form">
+    <div class="dialog-head"><h2 id="entry-title"></h2><button type="button" class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
+    <p id="entry-location"></p>
+    <label class="field">Назва<input id="entry-name" required maxlength="255" autocomplete="off"></label>
+    <p id="entry-error" class="error" role="alert" hidden></p>
+    <div class="dialog-actions"><button type="button" class="button dismiss">Скасувати</button><button id="entry-create" type="submit" class="button primary">Створити</button></div>
+  </form>
+</dialog>
+<dialog id="quick-dialog" aria-label="Швидке відкриття файла">
+  <input id="quick-query" type="search" placeholder="Назва або шлях до файла" aria-label="Швидкий пошук файла" autocomplete="off">
+  <div id="quick-results" aria-label="Знайдені файли"></div>
+</dialog>
+<dialog id="pin-dialog" aria-labelledby="pin-title">
+  <div class="dialog-head"><h2 id="pin-title">Карта пінів</h2><button type="button" aria-label="Закрити" class="icon-button dismiss" data-icon="x"></button></div>
+  <p id="pin-note"></p>
+  <input id="pin-query" type="search" placeholder="GPIO, SDA, SCL…" aria-label="Знайти пін" autocomplete="off">
+  <div id="pin-map"></div>
+  <button id="pin-source" type="button" class="button compact">Документація виробника</button>
+</dialog>
+</body>
+</html>
