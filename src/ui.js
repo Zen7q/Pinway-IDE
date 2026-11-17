@@ -11,6 +11,7 @@ import plotData from './plot-data.cjs';
 const { parsePlotLine } = plotData;
 
 const $ = id => document.getElementById(id);
+const desktopInspector = document.documentElement.dataset.host === 'tauri';
 const call = (action, data) => window.pinway.call(action, data);
 const icon = name => {
   const el = document.createElement('span');
@@ -506,6 +507,7 @@ async function acceptProject(value, session) {
     $('root-label').textContent = basename(value.root);
     $('root-label').title = value.root;
     showPanel('console');
+    if (desktopInspector && innerWidth >= 1050) toggleMenu('tools');
     append('console', 'Готово до збірки. Виберіть профіль плати у шапці.\n');
     renderPorts();
     let conflicts = 0;
@@ -575,8 +577,9 @@ function newDialog() {
   $('new-dialog').showModal();
 }
 
-function closeMenus() {
+function closeMenus(keepInspector = false) {
   for (const name of ['board', 'tools']) {
+    if (keepInspector && name === 'tools') continue;
     $(name + '-menu').hidden = true;
     $(name + '-button').setAttribute('aria-expanded', 'false');
   }
@@ -584,7 +587,7 @@ function closeMenus() {
 function toggleMenu(name) {
   const menu = $(name + '-menu');
   const opened = menu.hidden;
-  closeMenus();
+  closeMenus(desktopInspector && name === 'board');
   if (!opened) return;
   if (name === 'tools') renderTools();
   else {
@@ -610,6 +613,7 @@ function setBoard(next, persist = true) {
     optionRows = [];
   }
   if (persist) saveProfile();
+  if (!$('tools-menu').hidden) renderTools();
   void fetchOptions();
 }
 let optsFor = '', optionRows = [], optionError = '';
@@ -644,7 +648,7 @@ function renderBoards() {
   for (const p of matches) {
     const row = button('menu-row board-choice', '', () => {
       setBoard(p);
-      closeMenus();
+      closeMenus(desktopInspector);
       $('board-button').focus();
       status('Профіль: ' + p.name);
     });
@@ -663,7 +667,7 @@ function renderBoardDevices() {
   groupLabel(menu, 'Автовизначення');
   if (!devices.length) menu.append(node('p', '', 'Підключіть пристрій через USB.'));
   for (const d of devices) {
-    const row = button('menu-row', '', () => { closeMenus(); void detect(d); });
+    const row = button('menu-row', '', () => { closeMenus(desktopInspector); void detect(d); });
     row.append(node('span', '', 'Автовизначення · ' + basename(d.address)));
     row.title = deviceName(d);
     row.disabled = !!task;
@@ -680,6 +684,17 @@ function setPort(port) {
 function renderTools() {
   const menu = $('tools-menu');
   menu.replaceChildren();
+  if (desktopInspector) {
+    const heading = node('div', 'inspector-heading');
+    const summary = node('div', 'inspector-summary');
+    summary.append(node('strong', '', 'Плата'), node('small', '', board?.name || 'Виберіть профіль'));
+    const close = button('icon-button', '', () => closeMenus());
+    close.setAttribute('aria-label', 'Закрити інспектор');
+    close.title = 'Закрити інспектор';
+    close.append(icon('x'));
+    heading.append(icon('chip'), summary, close);
+    menu.append(heading);
+  }
   const pins = button('menu-row pin-menu-action', '', openPins);
   pins.append(icon('pins'), node('span', '', 'Карта пінів'));
   menu.append(pins, node('hr'));
@@ -794,7 +809,7 @@ async function build(upload) {
   if (!board) { if ($('board-menu').hidden) toggleMenu('board'); return error(Error('Виберіть профіль плати у шапці.'), true); }
   if (upload && !devicePort) { if ($('tools-menu').hidden) toggleMenu('tools'); return error(Error('Виберіть підключений порт у Tools.'), true); }
   const selection = { upload, board: board.id, options: { ...options }, port: devicePort };
-  closeMenus();
+  closeMenus(desktopInspector);
   setTask('build');
   status(upload ? 'Підготовка до завантаження…' : 'Компіляція…');
   clearLog('console');
@@ -1113,7 +1128,9 @@ $('board-query').onkeydown = event => {
   }
 };
 $('tools-button').onclick = () => toggleMenu('tools');
-document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu-anchor')) closeMenus(); });
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('.menu-anchor, #tools-menu, #tools-button')) closeMenus(desktopInspector);
+});
 $('zoom-in').onclick = zoomActions.zoomIn;
 $('zoom-out').onclick = zoomActions.zoomOut;
 $('zoom-reset').onclick = zoomActions.zoomReset;
@@ -1126,9 +1143,9 @@ document.addEventListener('keydown', e => {
       return;
     }
   }
-  if (e.key === 'Escape' && $('tools-menu').querySelector('.tools-select:open')) return;
+  if (e.key === 'Escape' && CSS.supports('selector(select:open)') && $('tools-menu').querySelector('.tools-select:open')) return;
   if (e.key === 'Escape' && !$('board-menu').hidden) {
-    closeMenus();
+    closeMenus(desktopInspector);
     $('board-button').focus();
   } else if (e.key === 'Escape') closeMenus();
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && project) {
@@ -1161,7 +1178,7 @@ $('clear').onclick = () => clearLog(tab);
 $('serial-toggle').onclick = toggleSerial;
 $('plot-monitor').onclick = toggleSerial;
 function openPins() {
-  closeMenus();
+  closeMenus(desktopInspector);
   $('pin-query').value = '';
   renderPins();
   $('pin-dialog').showModal();

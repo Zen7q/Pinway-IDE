@@ -451,3 +451,108 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
   .panel-bar { gap:2px; padding-inline:4px; }
   .panel-tab { padding-inline:6px; font-size:0; gap:3px; }
 }
+
+/* Desktop workspace */
+[data-host="tauri"] {
+  --bg:#101315;
+  --surface:#1b1f23;
+  --border:#30363e;
+  --accent:#91baff;
+  background:var(--bg);
+}
+[data-host="tauri"] #app { background:var(--bg); }
+[data-host="tauri"] .chrome {
+  height:58px;
+  padding-inline:86px 13px;
+  border-color:transparent;
+  background:transparent;
+}
+[data-host="tauri"] .title {
+  height:100%;
+  flex:1;
+}
+[data-host="tauri"] .title-indicator { background:var(--accent); }
+[data-host="tauri"] .chrome .zoom-controls,
+[data-host="tauri"] .toolbar {
+  padding:4px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:#1d2126;
+}
+[data-host="tauri"] .chrome .zoom-controls { margin-inline-end:auto; }
+[data-host="tauri"] .toolbar .button { background:#242a31; border-color:#333c47; }
+[data-host="tauri"] .toolbar .button:hover { background:#2d3744; }
+[data-host="tauri"] .button.primary {
+  background:#28466d;
+  color:#d6e6ff;
+  border-color:#46668f;
+}
+[data-host="tauri"] .button.primary:hover { background:#365983; }
+[data-host="tauri"] #workbench {
+  position:relative;
+  gap:8px;
+  padding:0 10px 8px;
+}
+[data-host="tauri"] .sidebar,
+[data-host="tauri"] .workspace,
+[data-host="tauri"] .board-inspector {
+  background:#1b1f23;
+  border:1px solid var(--border);
+  border-radius:10px;
+}
+[data-host="tauri"] .sidebar { overflow:hidden; }
+[data-host="tauri"] .side-views { background:#1e2328; }
+[data-host="tauri"] .side-view[aria-expanded="true"],
+[data-host="tauri"] .tree-node.active,
+[data-host="tauri"] .root-heading.active {
+  background:#24354d;
+  color:#d6e6ff;
+}
+[data-host="tauri"] #tree { padding-inline:7px; }
+[data-host="tauri"] .tree-node { border-radius:6px; }
+[data-host="tauri"] .workspace { overflow:hidden; }
+[data-host="tauri"] .tabs { background:#1d2126; }
+[data-host="tauri"] .file-tab.active { background:#222c39; }
+[data-host="tauri"] #editor, [data-host="tauri"] .cm-editor { background:#111518; }
+[data-host="tauri"] .cm-editor .cm-gutters { background:#14191d; }
+[data-host="tauri"] .breadcrumb { color:#b1bac6; }
+[data-host="tauri"] .panel, [data-host="tauri"] .statusbar { background:#161a1e; }
+[data-host="tauri"] .statusbar { border-color:#272d33; }
+[data-host="tauri"] #tools-menu.board-inspector {
+  flex:0 0 264px;
+  min-width:0;
+  width:264px;
+  padding:9px;
+  max-width:none;
+  max-height:none;
+  height:100%;
+  overflow:auto;
+}
+.inspector-heading { display:flex; gap:9px; align-items:center; padding:5px 3px 10px; }
+.inspector-heading > span { color:var(--accent); }
+.inspector-summary { min-width:0; flex:1; }
+.inspector-summary strong, .inspector-summary small { display:block; }
+.inspector-summary small { margin-top:4px; color:var(--soft); overflow-wrap:anywhere; }
+[data-host="tauri"] #tools-menu .tools-field {
+  grid-template-columns:minmax(0,1fr);
+  gap:4px;
+  padding:5px 4px;
+}
+[data-host="tauri"] #tools-menu .tools-field > span { font-size:11px; }
+@media (max-width:1010px) {
+  [data-host="tauri"] #tools-menu.board-inspector {
+    position:absolute;
+    z-index:6;
+    inset:0 10px 8px auto;
+    height:auto;
+    box-shadow:0 12px 30px #0009;
+  }
+}
+@media (max-width:690px) {
+  [data-host="tauri"] .chrome { padding-inline:63px 8px; }
+  [data-host="tauri"] .chrome .zoom-controls { display:none; }
+  [data-host="tauri"] #workbench { padding:0 5px 5px; gap:4px; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  [data-host="tauri"] .button:active:not(:disabled) { transform:scale(.98); }
+}

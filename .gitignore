@@ -3,3 +3,6 @@ src/ui.bundle.js
 .toolchain/
 dist/
 .DS_Store
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/Pinway.icns
