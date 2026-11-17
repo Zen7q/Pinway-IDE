@@ -94,6 +94,9 @@ impl Pinway {
         let mut style = (*cc.egui_ctx.style()).clone();
         style.spacing.item_spacing = egui::vec2(8., 7.);
         style.spacing.button_padding = egui::vec2(10., 6.);
+        style.visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(7);
+        style.visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(7);
+        style.visuals.widgets.active.corner_radius = egui::CornerRadius::same(7);
         style.visuals = egui::Visuals::dark();
         style.visuals.panel_fill = egui::Color32::from_rgb(27, 31, 35);
         style.visuals.window_fill = egui::Color32::from_rgb(34, 42, 51);
@@ -114,7 +117,7 @@ impl Pinway {
             .ok()
             .and_then(|x| serde_json::from_slice(&x).ok())
             .unwrap_or_default();
-        if !storage.join("workspace.json").exists() {
+        if prefs.active.is_none() && prefs.recent.is_empty() {
             if let Some(base) = directories::BaseDirs::new() {
                 let legacy = base.data_dir().join("dev.binio.pinway.tauri");
                 if let Ok(bytes) = fs::read(legacy.join("recent.json")) {
@@ -509,6 +512,11 @@ impl eframe::App for Pinway {
             .exact_height(48.)
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
+                    if cfg!(target_os = "macos")
+                        && !ctx.input(|i| i.viewport().fullscreen.unwrap_or(false))
+                    {
+                        ui.add_space(74.);
+                    }
                     ui.label(
                         RichText::new(
                             self.project
@@ -1097,7 +1105,10 @@ fn main() -> eframe::Result {
         renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1320., 820.])
-            .with_min_inner_size([850., 560.]),
+            .with_min_inner_size([850., 560.])
+            .with_fullsize_content_view(cfg!(target_os = "macos"))
+            .with_title_shown(false)
+            .with_titlebar_shown(!cfg!(target_os = "macos")),
         ..Default::default()
     };
     eframe::run_native(
