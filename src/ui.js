@@ -641,13 +641,8 @@ async function fetchOptions() {
   }
   if (!$('tools-menu').hidden) renderTools();
 }
-const bridgeVendors = new Set(['10c4', '1a86', '0403', '067b', '303a']);
-const usbVendor = device => (device.vid || '').toLowerCase().replace(/^0x/, '');
-function usbProfile(device) {
-  return device.matches.length === 1 && !bridgeVendors.has(usbVendor(device)) ? device.matches[0] : null;
-}
 function deviceName(device) {
-  return usbProfile(device)?.name || 'Послідовний USB-пристрій';
+  return device.board?.name || 'Послідовний USB-пристрій';
 }
 function renderBoards() {
   const tokens = $('board-query').value.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -866,7 +861,7 @@ async function detect(device) {
   if (!manualBoard && device.address !== devicePort) setBoard(null, false);
   setPort(device.address);
   if (manualBoard) return;
-  const attachedBoard = usbProfile(device);
+  const attachedBoard = device.board;
   if (attachedBoard) {
     if (!profiles.some(p => p.id === attachedBoard.id)) profiles.unshift(attachedBoard);
     setBoard(profiles.find(p => p.id === attachedBoard.id), false);
@@ -912,7 +907,7 @@ async function poll() {
       if (project) renderPorts();
     }
     if (project && !changing && !task && !devicePort && autoPort && catalogLoaded) {
-      const candidates = devices.filter(d => usbVendor(d) || usbProfile(d));
+      const candidates = devices.filter(d => d.usb);
       if (candidates.length === 1 && !seen.has(candidates[0].address)) void detect(candidates[0]);
     }
   } catch (e) {

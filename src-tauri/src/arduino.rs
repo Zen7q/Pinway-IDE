@@ -75,6 +75,18 @@ pub fn supported(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_'))
 }
 
+fn usb_profile<'a>(vid: &str, matches: &'a [Value]) -> Option<&'a Value> {
+    let vid = vid.to_ascii_lowercase();
+    // These USB interfaces identify the bridge or chip family, regardless of the catalog match.
+    if ["10c4", "1a86", "0403", "067b", "303a"].contains(&vid.trim_start_matches("0x")) {
+        return None;
+    }
+    match matches {
+        [board] => Some(board),
+        _ => None,
+    }
+}
+
 pub fn board_arguments(board: &str, options: &Value) -> Result<Vec<String>> {
     if !supported(board) {
         return Err("Виберіть профіль плати.".into());
@@ -259,26 +271,22 @@ impl Arduino {
                 .filter(|v| supported(text(&v["fqbn"])))
                 .map(|v| json!({"id":v["fqbn"],"name":v["name"]}))
                 .collect();
-            ports.push(json!({"address":addr,"label":port["label"],"vid":vid,"pid":pid,
-                "key": format!("{addr}|{vid}|{pid}|{}", text(&props["serialNumber"])), "matches":matches}));
+            let board = usb_profile(vid, &matches);
+            ports.push(json!({"address":addr,"label":port["label"],"usb":!vid.is_empty() || board.is_some(),
+                "key": format!("{addr}|{vid}|{pid}|{}", text(&props["serialNumber"])), "board":board}));
         }
         ports.sort_by(|a, b| text(&a["address"]).cmp(text(&b["address"])));
         Ok(ports)
     }
 
     pub fn probe(&self, port: &Value, app: &AppHandle) -> Result<Value> {
-        let vid = text(&port["vid"]).to_ascii_lowercase();
-        let generic =
-            ["10c4", "1a86", "0403", "067b", "303a"].contains(&vid.trim_start_matches("0x"));
-        if let [board] = array(&port["matches"]) {
-            if !generic {
-                let chip = array(&profiles())
-                    .iter()
-                    .find(|p| p["id"] == board["id"])
-                    .map(|p| p["chip"].clone())
-                    .unwrap_or(json!(""));
-                return Ok(json!({"board":board,"chip":chip}));
-            }
+        if let Some(board) = port.get("board").filter(|board| board.is_object()) {
+            let chip = array(&profiles())
+                .iter()
+                .find(|p| p["id"] == board["id"])
+                .map(|p| p["chip"].clone())
+                .unwrap_or(json!(""));
+            return Ok(json!({"board":board,"chip":chip}));
         }
         let name = if cfg!(windows) {
             "esptool.exe"
@@ -422,4 +430,23 @@ pub fn watch_monitor(app: AppHandle, monitor: Arc<Monitor>) {
             emit(&app, "monitor", Value::Null);
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn usb_catalog_match_requires_an_unambiguous_board_specific_interface() {
+        let uno = json!({"id": "arduino:avr:uno", "name": "Arduino Uno R3"});
+        let bridge_match = json!({"id": "esp32:esp32:ozobot_drvkit", "name": "Ozobot DRVKit"});
+        assert_eq!(
+            usb_profile("0x2341", std::slice::from_ref(&uno)),
+            Some(&uno)
+        );
+        for vid in ["0X303A", "10c4", "1a86", "0403", "067b"] {
+            assert_eq!(usb_profile(vid, std::slice::from_ref(&bridge_match)), None);
+        }
+        assert_eq!(usb_profile("2341", &[uno, bridge_match]), None);
+    }
 }

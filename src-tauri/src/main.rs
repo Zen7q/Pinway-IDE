@@ -646,6 +646,24 @@ fn main() {
             app.set_menu(menu(app.handle())?)?;
             Ok(())
         })
+        .on_page_load(|webview, page| {
+            if webview.label() != "main" || page.event() != tauri::webview::PageLoadEvent::Finished
+            {
+                return;
+            }
+            let window = webview.window();
+            if matches!(window.is_visible(), Ok(false)) {
+                if let Err(error) = window.show() {
+                    eprintln!("Не вдалося показати вікно: {error}");
+                }
+            }
+            // On macOS, showing the window can restore AppKit's default button positions.
+            // Applying the existing title asks Tao to reapply the configured traffic-light inset.
+            #[cfg(target_os = "macos")]
+            if let Err(error) = window.title().and_then(|title| window.set_title(&title)) {
+                eprintln!("Не вдалося оновити заголовок вікна: {error}");
+            }
+        })
         .on_menu_event(|app, event| emit(app, "shortcut", json!(event.id().as_ref())))
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
