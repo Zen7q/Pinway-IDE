@@ -597,6 +597,7 @@ function toggleMenu(name) {
   if (name === 'tools') renderTools();
   else {
     $('board-query').value = '';
+    renderBoardPort();
     renderBoards();
   }
   menu.hidden = false;
@@ -661,14 +662,13 @@ function renderBoards() {
     if (title) groupLabel(fragment, title);
     for (const p of boards) {
       const item = node('div', 'board-item');
-      const choice = button('menu-row board-choice', '', () => {
+      const choice = button('menu-row board-choice', p.name, () => {
         manualBoard = p;
         setBoard(p);
         closeMenus();
         $('board-button').focus();
         status('Профіль: ' + p.name);
       });
-      choice.append(node('span', '', p.name), node('small', '', p.id));
       choice.setAttribute('aria-pressed', String(board?.id === p.id));
       const favorite = button('icon-button board-favorite', '', () => {
         if (!favoriteBoards.delete(p.id)) favoriteBoards.add(p.id);
@@ -785,6 +785,27 @@ toolsPicker.addEventListener('keydown', e => {
   rows[Math.max(0, Math.min(rows.length - 1, targets[e.key]))]?.focus();
 });
 
+function portField(label) {
+  const ports = [{ label: 'Не вибрано', value: '' }, ...devices.map(d => ({
+    label: basename(d.address) + ' · ' + deviceName(d), value: d.address
+  }))];
+  return toolsField(label, 'Послідовний порт', ports, devicePort, port => {
+    const device = devices.find(d => d.address === port);
+    autoPort = !!device;
+    if (device) void detect(device);
+    else {
+      setPort('');
+      if (!manualBoard) setBoard(null, false);
+    }
+  });
+}
+function renderBoardPort() {
+  const container = $('board-port');
+  const focused = container.contains(document.activeElement);
+  if (pickerTrigger && container.contains(pickerTrigger)) closeToolsPicker();
+  container.replaceChildren(portField('Порт USB'));
+  if (focused) (container.querySelector('button:not(:disabled)') || $('board-query')).focus();
+}
 function renderTools() {
   closeToolsPicker();
   const menu = $('tools-menu');
@@ -793,18 +814,7 @@ function renderTools() {
   pins.append(icon('pins'), node('span', '', 'Карта пінів'));
   menu.append(pins, node('hr'));
   groupLabel(menu, 'Порт');
-  const ports = [{ label: 'Не вибрано', value: '' }, ...devices.map(d => ({
-    label: basename(d.address) + ' · ' + deviceName(d), value: d.address
-  }))];
-  menu.append(toolsField('USB', 'Послідовний порт', ports, devicePort, port => {
-    const device = devices.find(d => d.address === port);
-    autoPort = !!device;
-    if (device) void detect(device);
-    else {
-      setPort('');
-      if (!manualBoard) setBoard(null, false);
-    }
-  }), node('hr'));
+  menu.append(portField('USB'), node('hr'));
   groupLabel(menu, 'Параметри плати');
   if (!board) menu.append(node('p', '', 'Виберіть профіль плати.'));
   else if (optionError) menu.append(node('p', '', optionError));
@@ -843,6 +853,7 @@ function renderPorts() {
   $('plot-monitor').textContent = $('serial-toggle').textContent;
   $('baud').disabled = !!monitorPort;
   $('serial-command').disabled = $('serial-send-button').disabled = !monitorPort || !!task;
+  if (!$('board-menu').hidden) renderBoardPort();
   if (!$('tools-menu').hidden) renderTools();
 }
 function setTask(value) {

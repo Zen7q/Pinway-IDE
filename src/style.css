@@ -39,14 +39,15 @@ svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.65;strok
   overflow:hidden;
 }
 #board-menu .board-search { flex:none; padding:4px; }
+#board-port { flex:none; margin:3px 0; border-bottom:1px solid var(--border); padding-bottom:6px; }
+#board-port .tools-field { grid-template-columns:auto minmax(0, 1fr); }
 #board-catalog { flex:none; color:var(--soft); padding:8px 8px 5px; font-size:11px; }
 #board-results { min-height:0; overflow:auto; }
 .board-item { display:flex; gap:3px; align-items:center; }
-.board-choice { min-width:0; align-items:flex-start; flex-direction:column; gap:3px; }
+.board-item .board-choice { min-width:0; min-height:32px; overflow-wrap:anywhere; }
 .board-favorite { display:grid; place-items:center; width:32px; height:32px; }
 .board-favorite[aria-pressed="true"] { color:#ffcc73; }
 .board-favorite[aria-pressed="true"] svg { fill:currentColor; }
-.board-choice small { margin:0; font:10px var(--mono); overflow-wrap:anywhere; }
 .popover hr{border:0;border-top:1px solid #3b4450;margin:7px 0}
 .popover p{color:var(--soft);margin:8px}
 .menu-row{display:flex;gap:8px;align-items:center;justify-content:space-between;text-align:left;width:100%;border-radius:5px;padding:8px;color:#e1e7ef}
@@ -71,7 +72,7 @@ select{background:#171d25;border:1px solid #414b58;border-radius:5px;padding:4px
   margin:9px 5px;
   border-color:var(--border);
 }
-#tools-menu .tools-field {
+.tools-field {
   display:grid;
   align-items:center;
   grid-template-columns:minmax(0, 4fr) minmax(0, 5fr);
@@ -83,7 +84,7 @@ select{background:#171d25;border:1px solid #414b58;border-radius:5px;padding:4px
   line-height:1.35;
   overflow-wrap:anywhere;
 }
-#tools-menu .tools-select {
+.tools-select {
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -101,8 +102,8 @@ select{background:#171d25;border:1px solid #414b58;border-radius:5px;padding:4px
 }
 .tools-value { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tools-select > span:last-child { flex:none; color:#a8b9cb; }
-#tools-menu .tools-select:hover:not(:disabled),
-#tools-menu .tools-select[aria-expanded="true"] { background:#253141; border-color:#526986; }
+.tools-select:hover:not(:disabled),
+.tools-select[aria-expanded="true"] { background:#253141; border-color:#526986; }
 .tools-picker {
   position:fixed;
   z-index:20;
@@ -428,21 +429,22 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
 
 /* Desktop workspace */
 [data-host="tauri"] {
+  --chrome-height:54px;
   --bg:#101315;
   --surface:#1b1f23;
   --border:#30363e;
   --accent:#91baff;
   background:var(--bg);
 }
+[data-host="tauri"][data-macos] { --chrome-height:calc(56 * var(--window-point, 1px)); }
 [data-host="tauri"] #app { background:var(--bg); }
 [data-host="tauri"] .chrome {
-  height:58px;
+  height:var(--chrome-height);
   padding-inline:13px;
   border-color:transparent;
   background:transparent;
 }
 [data-host="tauri"][data-macos] .chrome {
-  height:calc(64 * var(--window-point, 1px));
   padding-inline-start:calc(82 * var(--window-point, 1px));
 }
 [data-host="tauri"][data-macos][data-fullscreen] .chrome {
@@ -455,13 +457,17 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
 [data-host="tauri"] .title-indicator { background:var(--accent); }
 [data-host="tauri"] .chrome .zoom-controls,
 [data-host="tauri"] .toolbar {
-  padding:4px;
+  padding:calc(3 * var(--window-point, 1px));
   border:1px solid var(--border);
   border-radius:9px;
   background:#1d2126;
 }
 [data-host="tauri"] .chrome .zoom-controls { margin-inline-end:auto; }
-[data-host="tauri"] .toolbar .button { background:#242a31; border-color:#333c47; }
+[data-host="tauri"] .toolbar .button {
+  min-height:min(32px, calc(36 * var(--window-point, 1px)));
+  background:#242a31;
+  border-color:#333c47;
+}
 [data-host="tauri"] .toolbar .button:hover { background:#2d3744; }
 [data-host="tauri"] .button.primary {
   background:#28466d;
@@ -501,6 +507,7 @@ input{min-height:34px;width:100%;border:1px solid #445162;border-radius:6px;back
 @media (max-width:690px) {
   [data-host="tauri"] .chrome { padding-inline-end:8px; }
   [data-host="tauri"] .chrome .zoom-controls { display:none; }
+  [data-host="tauri"] #board-menu { top:calc(var(--chrome-height) + 3px); }
   [data-host="tauri"] #workbench { padding:0 5px 5px; gap:4px; }
 }
 @media (prefers-reduced-motion:no-preference) {
