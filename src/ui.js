@@ -103,6 +103,7 @@ let zoomPercent = Number(localStorage.getItem('pinway.zoom')) || zoomDefault;
 
 function setZoom(value) {
   zoomPercent = Math.max(zoomMin, Math.min(zoomMax, Math.round(value)));
+  document.documentElement.style.setProperty('--window-point', 100 / zoomPercent + 'px');
   $('zoom-reset').textContent = zoomPercent + '%';
   $('zoom-out').disabled = zoomPercent === zoomMin;
   $('zoom-in').disabled = zoomPercent === zoomMax;
@@ -582,6 +583,7 @@ function newDialog() {
 }
 
 function closeMenus() {
+  closeToolsPicker();
   for (const name of ['board', 'tools']) {
     $(name + '-menu').hidden = true;
     $(name + '-button').setAttribute('aria-expanded', 'false');
@@ -698,45 +700,122 @@ function setPort(port) {
   if (port) seen.add(port);
   renderPorts();
 }
+const toolsPicker = node('div', 'tools-picker');
+toolsPicker.id = 'tools-picker';
+toolsPicker.hidden = true;
+toolsPicker.setAttribute('role', 'listbox');
+document.body.append(toolsPicker);
+let pickerTrigger;
+
+function closeToolsPicker(restoreFocus = false) {
+  if (!pickerTrigger) return;
+  pickerTrigger.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) pickerTrigger.focus();
+  toolsPicker.hidden = true;
+  pickerTrigger = null;
+}
+
+function toolsField(label, name, choices, selected, onChange) {
+  const field = node('div', 'tools-field');
+  const value = node('span', 'tools-value');
+  const trigger = button('tools-select', '', () => {
+    const alreadyOpen = pickerTrigger === trigger;
+    closeToolsPicker();
+    if (alreadyOpen) return;
+    pickerTrigger = trigger;
+    trigger.setAttribute('aria-expanded', 'true');
+    toolsPicker.setAttribute('aria-label', name);
+    const rows = choices.map(choice => {
+      const row = button('tools-option', '', () => {
+        closeToolsPicker(true);
+        if (choice.value === selected) return;
+        choose(choice);
+        onChange(choice.value);
+      });
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', String(choice.value === selected));
+      row.append(node('span', '', choice.label), icon('check'));
+      return row;
+    });
+    toolsPicker.replaceChildren(...rows);
+    toolsPicker.hidden = false;
+    const rect = trigger.getBoundingClientRect();
+    const below = innerHeight - rect.bottom - 10;
+    const above = rect.top - 10;
+    const width = Math.min(innerWidth - 16, Math.max(220, rect.width));
+    toolsPicker.style.width = width + 'px';
+    const openAbove = below < Math.min(toolsPicker.scrollHeight, 260) && above > below;
+    toolsPicker.style.left = Math.max(8, rect.right - width) + 'px';
+    toolsPicker.style.maxHeight = Math.min(openAbove ? above : below, 310) + 'px';
+    toolsPicker.style.top = openAbove ? 'auto' : rect.bottom + 4 + 'px';
+    toolsPicker.style.bottom = openAbove ? innerHeight - rect.top + 4 + 'px' : 'auto';
+    (rows.find(row => row.getAttribute('aria-selected') === 'true') || rows[0])?.focus();
+  });
+  function choose(choice) {
+    selected = choice?.value;
+    value.textContent = choice?.label || 'Не вибрано';
+    trigger.title = value.textContent;
+  }
+  choose(choices.find(choice => choice.value === selected) || choices[0]);
+  trigger.disabled = !!task || !choices.length;
+  trigger.setAttribute('aria-label', name);
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.setAttribute('aria-controls', toolsPicker.id);
+  trigger.append(value, icon('down'));
+  trigger.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    trigger.click();
+  });
+  field.append(node('span', '', label), trigger);
+  return field;
+}
+
+toolsPicker.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    closeToolsPicker(true);
+    return;
+  }
+  const rows = [...toolsPicker.children];
+  const index = rows.indexOf(document.activeElement);
+  const targets = { ArrowUp: index - 1, ArrowDown: index + 1, Home: 0, End: rows.length - 1 };
+  if (!Object.hasOwn(targets, e.key)) return;
+  e.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, targets[e.key]))]?.focus();
+});
+
 function renderTools() {
+  closeToolsPicker();
   const menu = $('tools-menu');
   menu.replaceChildren();
   const pins = button('menu-row pin-menu-action', '', openPins);
   pins.append(icon('pins'), node('span', '', 'Карта пінів'));
   menu.append(pins, node('hr'));
   groupLabel(menu, 'Порт');
-  const select = node('select', 'tools-select');
-  select.setAttribute('aria-label', 'Послідовний порт');
-  select.append(new Option('Не вибрано', ''));
-  for (const d of devices) select.append(new Option(basename(d.address) + ' · ' + deviceName(d), d.address));
-  select.value = devicePort;
-  select.disabled = !!task;
-  select.addEventListener('change', () => {
-    const device = devices.find(d => d.address === select.value);
+  const ports = [{ label: 'Не вибрано', value: '' }, ...devices.map(d => ({
+    label: basename(d.address) + ' · ' + deviceName(d), value: d.address
+  }))];
+  menu.append(toolsField('USB', 'Послідовний порт', ports, devicePort, port => {
+    const device = devices.find(d => d.address === port);
     autoPort = !!device;
     if (device) void detect(device);
     else {
       setPort('');
       if (!manualBoard) setBoard(null, false);
     }
-  });
-  const field = node('label', 'tools-field');
-  field.append(node('span', '', 'USB'), select);
-  menu.append(field, node('hr'));
+  }), node('hr'));
   groupLabel(menu, 'Параметри плати');
   if (!board) menu.append(node('p', '', 'Виберіть профіль плати.'));
   else if (optionError) menu.append(node('p', '', optionError));
   else if (!optionRows.length) menu.append(node('p', '', 'Цей профіль не має додаткових параметрів.'));
   for (const option of optionRows) {
-    const s = node('select', 'tools-select');
-    s.setAttribute('aria-label', option.option_label);
-    for (const v of option.values) s.append(new Option(v.value_label, v.value));
-    s.value = options[option.option] || option.values.find(v => v.selected)?.value || s.options[0]?.value;
-    s.disabled = !!task;
-    s.addEventListener('change', () => { options[option.option] = s.value; saveProfile(); });
-    const label = node('label', 'tools-field');
-    label.append(node('span', '', option.option_label), s);
-    menu.append(label);
+    const choices = option.values.map(v => ({ label: v.value_label, value: v.value }));
+    const selected = options[option.option] || option.values.find(v => v.selected)?.value;
+    menu.append(toolsField(option.option_label, option.option_label, choices, selected, value => {
+      options[option.option] = value;
+      saveProfile();
+    }));
   }
 }
 function renderPorts() {
@@ -1156,8 +1235,12 @@ $('board-query').onkeydown = event => {
 };
 $('tools-button').onclick = () => toggleMenu('tools');
 document.addEventListener('pointerdown', e => {
-  if (!e.target.closest('.menu-anchor, #tools-menu, #tools-button')) closeMenus();
+  if (e.target.closest('#tools-picker')) return;
+  if (!e.target.closest('.menu-anchor')) closeMenus();
+  else if (!e.target.closest('.tools-select')) closeToolsPicker();
 });
+$('tools-menu').addEventListener('scroll', () => closeToolsPicker());
+window.addEventListener('resize', () => closeToolsPicker());
 $('zoom-in').onclick = zoomActions.zoomIn;
 $('zoom-out').onclick = zoomActions.zoomOut;
 $('zoom-reset').onclick = zoomActions.zoomReset;
@@ -1170,11 +1253,16 @@ document.addEventListener('keydown', e => {
       return;
     }
   }
-  if (e.key === 'Escape' && CSS.supports('selector(select:open)') && $('tools-menu').querySelector('.tools-select:open')) return;
-  if (e.key === 'Escape' && !$('board-menu').hidden) {
+  if (e.key === 'Escape' && pickerTrigger) {
+    e.preventDefault();
+    closeToolsPicker(true);
+    return;
+  }
+  if (e.key === 'Escape') {
+    const anchor = ['board', 'tools'].find(name => !$(name + '-menu').hidden);
     closeMenus();
-    $('board-button').focus();
-  } else if (e.key === 'Escape') closeMenus();
+    if (anchor) $(anchor + '-button').focus();
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && project) {
     e.preventDefault();
     void openQuick();

@@ -3,10 +3,10 @@
   "productName": "Pinway IDE",
   "version": "0.2.0",
   "identifier": "dev.binio.pinway.tauri",
-  "build": { "frontendDist": "../dist/tauri-ui", "beforeBuildCommand": "npm run ui:tauri" },
+  "build": { "frontendDist": "../dist/tauri-ui", "beforeBuildCommand": "npm run ui:tauri", "beforeDevCommand": "npm run ui:tauri" },
   "app": {
     "withGlobalTauri": true,
-    "windows": [{ "label": "main", "title": "Pinway IDE", "width": 1320, "height": 820, "minWidth": 830, "minHeight": 560, "titleBarStyle": "Overlay", "hiddenTitle": true }],
+    "windows": [{ "label": "main", "title": "Pinway IDE", "width": 1320, "height": 820, "minWidth": 830, "minHeight": 560, "titleBarStyle": "Overlay", "hiddenTitle": true, "trafficLightPosition": { "x": 14, "y": 26 } }],
     "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost" }
   },
   "bundle": { "active": true, "targets": "app", "icon": ["icons/Pinway.icns"], "macOS": { "minimumSystemVersion": "13.0" } }

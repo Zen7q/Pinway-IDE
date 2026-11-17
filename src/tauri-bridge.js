@@ -1,9 +1,18 @@
 if (window.__TAURI__) {
   const toolbar = document.getElementById('toolbar');
   toolbar.before(document.querySelector('.zoom-controls'));
-  document.getElementById('version').textContent = 'v0.2';
   const { core, event, window: controls } = window.__TAURI__;
   document.documentElement.dataset.host = 'tauri';
+  const appWindow = controls.getCurrentWindow();
+  if (navigator.platform.startsWith('Mac')) {
+    const root = document.documentElement;
+    root.dataset.macos = '';
+    const updateFullscreen = async () => {
+      root.toggleAttribute('data-fullscreen', await appWindow.isFullscreen());
+    };
+    const sync = () => { void updateFullscreen().catch(console.error); };
+    void appWindow.onResized(sync).then(sync).catch(console.error);
+  }
   window.pinway = {
     call: (action, payload = null) => core.invoke('pinway', { action, payload }).then(result =>
       action === 'select' && result === null ? undefined : result).catch(error => {
@@ -13,7 +22,7 @@ if (window.__TAURI__) {
   };
   document.addEventListener('mousedown', event => {
     if (event.button === 0 && event.target.closest('.title.drag') && !event.target.closest('button')) {
-      void controls.getCurrentWindow().startDragging().catch(() => {});
+      void appWindow.startDragging().catch(() => {});
     }
   });
 }

@@ -1,7 +1,6 @@
 # Pinway IDE: third-party notices
 
 - [Tauri](https://github.com/tauri-apps/tauri) (MIT or Apache-2.0) hosts the desktop UI in the operating system’s WebView. `src-tauri/Cargo.lock` records the Rust dependencies and versions.
-- [Electron 45.3.3](https://github.com/electron/electron/releases/tag/v45.3.3) (MIT) and Chromium: the upstream license and Chromium notices ship with the legacy Electron build.
 - [CodeMirror 6 and Lezer](https://codemirror.net/) and their browser dependencies: MIT notices are collected in `Contents/Resources/npm-notices.txt`. The lockfile records the exact editor versions.
 - [Arduino CLI 1.5.1](https://github.com/arduino/arduino-cli/tree/v1.5.1) (GPL-3.0): official macOS ARM64 executable and accompanying license in `Contents/Resources/arduino`. It runs as a separate process.
 - [Arduino AVR Boards 1.8.8](https://github.com/arduino/ArduinoCore-avr/tree/1.8.8) (core LGPL-2.1 or later; see individual source and bootloader headers), [Arduino AVR GCC 7.3.0-atmel3.6.1-arduino7](https://github.com/arduino/toolchain-avr), [AVRDUDE 8.0.0-arduino1](https://github.com/arduino/avrdude/tree/8.0.0-arduino1), [ArduinoOTA](https://github.com/arduino/arduinoOTA), [dfu-util](https://dfu-util.sourceforge.net/).

@@ -1,6 +1,6 @@
 # Pinway IDE
 
-Версія 0.2 використовує Tauri та Rust для системної частини і CodeMirror для редактора. Arduino CLI виконує збірку й завантаження прошивки.
+Версія 0.2 використовує Tauri та Rust для системної частини. Інтерфейс працює на JavaScript, HTML і CSS у системному WebView, а редактор використовує CodeMirror. Arduino CLI виконує збірку й завантаження прошивки.
 
 Десктопна IDE для Arduino C++ на Apple Silicon. Створюйте й відкривайте `.ino` у звичайних папках, редагуйте файли, збирайте без підключеної плати та завантажуйте прошивку через USB.
 
@@ -76,4 +76,4 @@ open "dist/tauri/Pinway IDE.app"
 
 Tauri пакує інтерфейс у Rust-застосунок, а скрипт додає Arduino CLI і SDK до `Contents/Resources/arduino`. Для збирання з коду потрібні Rust і Xcode Command Line Tools. Якщо збірка у стандартному каталозі вже є, задайте новий каталог через `PINWAY_TAURI_OUT="$PWD/dist/tauri-next" npm run package:tauri`. На macOS під час першого запуску застосунок імпортує список проєктів, дані відновлення та каталог Sketchbook з Electron-версії, якщо вони є. Масштаб, ширина панелей і профілі плат у WebView створюються заново.
 
-`npm test` перевіряє попередні сценарії проєктів. Команди `npm run package` і `npm run test:app` залишаються для порівняння з Electron-збіркою 0.1. Джерела та ліцензії комплекту наведено в [THIRD_PARTY.md](THIRD_PARTY.md).
+`npm test` перевіряє роботу зі скетчами на Rust. `npm run package` запускає пакування Tauri. Джерела та ліцензії комплекту наведено в [THIRD_PARTY.md](THIRD_PARTY.md).

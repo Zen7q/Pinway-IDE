@@ -352,3 +352,78 @@ pub fn diagnostics(log: &str, project: &Project, input: &BuildInput) -> Vec<Valu
         seen.insert(key).then(|| json!({"file":file,"line":row,"column":column,"severity":severity,"message": &m[5]}))
     }).collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SKETCH_SOURCE: &str = "void setup() {}\nvoid loop() {}\n";
+
+    #[test]
+    fn create_keeps_existing_sketches_and_rejects_invalid_names() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        let sketch = create(&root, "Blink", SKETCH_SOURCE).unwrap();
+        assert_eq!(sketch.primary, root.join("Blink/Blink.ino"));
+        assert_eq!(fs::read_to_string(&sketch.primary).unwrap(), SKETCH_SOURCE);
+        assert!(create(&root, "Blink", "replacement").is_err());
+        assert_eq!(fs::read_to_string(&sketch.primary).unwrap(), SKETCH_SOURCE);
+        assert!(create(&root, "../outside", SKETCH_SOURCE).is_err());
+    }
+
+    #[test]
+    fn stages_noncanonical_sketch_and_maps_diagnostics() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+        let folder = root.join("Моя папка");
+        let primary = folder.join("different name.ino");
+        fs::create_dir_all(folder.join("src")).unwrap();
+        fs::write(folder.join("src/pin.h"), "#pragma once").unwrap();
+        fs::write(&primary, SKETCH_SOURCE).unwrap();
+        let sketch = open(&primary).unwrap();
+        let staged = stage(&sketch, &root).unwrap();
+        let normalized = staged.directory.join("different_name.ino");
+        assert_eq!(fs::read_to_string(&normalized).unwrap(), SKETCH_SOURCE);
+        assert_eq!(
+            fs::read_to_string(staged.directory.join("src/pin.h")).unwrap(),
+            "#pragma once"
+        );
+        let log = format!(
+            "{}:7:3: error: wrong\nnot a diagnostic",
+            normalized.display()
+        );
+        assert_eq!(
+            diagnostics(&log, &sketch, &staged),
+            [json!({
+                "file": primary, "line": 7, "column": 3, "severity": "error", "message": "wrong"
+            })]
+        );
+    }
+
+    #[test]
+    fn opening_secondary_file_keeps_primary_sketch() {
+        let temp = tempfile::tempdir().unwrap();
+        let sketch = create(temp.path(), "Test", SKETCH_SOURCE).unwrap();
+        let extra = sketch.root.join("Extra.ino");
+        fs::write(&extra, "").unwrap();
+        let opened = open(&extra).unwrap();
+        assert_eq!(opened.primary, sketch.primary);
+        assert_eq!(opened.selected, extra);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn project_tree_and_editor_exclude_links_outside_the_project() {
+        let temp = tempfile::tempdir().unwrap();
+        let sketch = create(temp.path(), "Test", SKETCH_SOURCE).unwrap();
+        let outside = temp.path().join("outside.h");
+        let link = sketch.root.join("link.h");
+        fs::write(&outside, "").unwrap();
+        std::os::unix::fs::symlink(&outside, &link).unwrap();
+        assert!(!entries(&sketch.root)
+            .unwrap()
+            .iter()
+            .any(|entry| entry.path == link));
+        assert!(checked(&sketch, &link, false).is_err());
+    }
+}
