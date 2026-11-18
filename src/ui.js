@@ -8,7 +8,6 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import completions from './arduino-completions.json';
 import { pinouts } from './pinouts';
 import plotData from './plot-data.cjs';
-import { createBuild } from './build';
 const { parsePlotLine } = plotData;
 
 const $ = id => document.getElementById(id);
@@ -558,7 +557,7 @@ async function acceptProject(value, session) {
   $('welcome').hidden = !!value;
   for (const x of ['workbench', 'toolbar', 'home', 'device-status', 'cursor', 'encoding']) $(x).hidden = !value;
   $('version').hidden = !!value;
-  $('caption').textContent = value ? value.name : '';
+  $('caption').textContent = value ? value.name + ' — Pinway IDE' : 'Pinway IDE';
   if (value) {
     layoutSidebar();
     $('root-label').textContent = basename(value.root);
@@ -1156,25 +1155,7 @@ $('quick-query').onkeydown = event => {
     renderQuick();
   }
 };
-const buildWorkspace = createBuild({ call, activateCode(visible) {
-  $('welcome').hidden = !visible || !!project;
-  document.querySelector('.statusbar').hidden = !visible;
-  for (const id of ['workbench', 'toolbar', 'home', 'device-status', 'cursor', 'encoding']) $(id).hidden = !visible || !project;
-  closeMenus();
-} });
-const workspacePicker = document.createElement('select');
-workspacePicker.id = 'workspace-picker';
-workspacePicker.setAttribute('aria-label', 'Pinway workspace');
-workspacePicker.add(new Option('Pinway Code', 'code'));
-workspacePicker.add(new Option('Pinway Build', 'build'));
-document.querySelector('.title').before(workspacePicker);
-workspacePicker.onchange = () => {
-  const build = workspacePicker.value === 'build';
-  buildWorkspace.setActive(build);
-  $('caption').textContent = build ? '' : project?.name || '';
-};
 async function shortcut(action) {
-  if ((buildWorkspace.active || ['quit', 'window'].includes(action)) && await buildWorkspace.shortcut(action)) return;
   if (Object.hasOwn(zoomActions, action)) return zoomActions[action]();
   if (action === 'new') return newDialog();
   if (action === 'quickOpen') return openQuick();
@@ -1566,7 +1547,6 @@ async function init() {
     catalogState = 'Не вдалося завантажити каталог плат.';
     append('console', '\n' + e.message + '\n');
   }
-  if (buildWorkspace.active) buildWorkspace.setActive(true);
   catalogLoaded = true;
   if (!$('board-menu').hidden) renderBoards();
 }
