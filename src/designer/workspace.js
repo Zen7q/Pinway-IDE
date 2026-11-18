@@ -4,26 +4,26 @@ const clone=value=>structuredClone(value);
 const key=ref=>ref.part+'/'+ref.pin;
 const snap=n=>Math.round(n/10)*10;
 const bounded=n=>Math.max(-20000,Math.min(20000,snap(n)));
-const fresh=()=>({format:'pinway.design/1',title:'Untitled circuit',board:{x:600,y:400},parts:[],links:[],routing:{}});
+const fresh=()=>({format:'pinway.design/1',board:{x:600,y:400},parts:[],links:[],routing:{}});
 const paths={layers:'M2 5 8 2l6 3-6 3ZM2 8l6 3 6-3M2 11l6 3 6-3',cursor:'m3 2 10 7-5 1-2 4Z',rotate:'M3 5A6 6 0 1 1 2 10M3 1v4h4',copy:'M6 5h8v9H6ZM3 11H2V2h8v1',trash:'M2 4h12M6 4V2h4v2M4 4l1 10h6l1-10M7 7v4M9 7v4',undo:'M5 3 1 7l4 4M2 7h7a4 4 0 0 1 4 4',redo:'m11 3 4 4-4 4M14 7H7a4 4 0 0 0-4 4',minus:'M3 8h10',left:'m10 3-5 5 5 5',right:'m6 3 5 5-5 5',search:'M10 10l4 4M11 6a5 5 0 1 1-10 0 5 5 0 0 1 10 0',save:'M2 2h10l2 2v10H2ZM5 2v4h6V2M5 14V9h6v5',external:'M9 2h5v5M14 2 7 9M6 3H2v11h11v-4','new-file':'M9 1H3v14h5M9 1v4h4L9 1M12 9v6M9 12h6'};
 const icon=name=>paths[name]?`<svg aria-hidden="true" viewBox="0 0 16 16"><path d="${paths[name]}"/></svg>`:`<svg aria-hidden="true" viewBox="0 0 16 16"><use href="#i-${name}"></use></svg>`;
 const btn=(action,label,glyph='',extra='')=>`<button type="button" data-action="${action}" title="${label}" aria-label="${label}" ${extra}>${glyph?icon(glyph):xml(label)}</button>`;
-export function mountDesigner({call,onVisibility,settings}) {
+export function mountDesigner({call,onVisibility,settings,projectActions}) {
   const root=document.createElement('main');root.id='designer';root.hidden=true;
   root.innerHTML=`<aside class="design-activity" aria-label="Build views">${btn('breadboard','Breadboard','chip','aria-pressed="true"')}${btn('schematic','Schematic','activity','aria-pressed="false"')}${btn('pcb','PCB','layers','aria-pressed="false"')}<span class="design-flex"></span>${btn('settings','Settings','settings')}</aside>
     <aside class="design-parts" aria-label="Component library"><div class="design-heading"><strong>Components</strong>${btn('collapse','Collapse library','left')}</div><label class="design-search">${icon('search')}<input type="search" placeholder="Find a component…" aria-label="Find a component"></label><div class="design-catalog"></div><div class="design-library-note">Drag onto the canvas<br>or click to place a component.</div></aside>
-    <section class="design-editor"><header class="design-document"><div>${btn('expand','Show component library','folder')}<input id="design-title" aria-label="Circuit title" maxlength="160" value="Untitled circuit"><span id="design-dirty">Local circuit</span></div><nav aria-label="Circuit files">${btn('new','New circuit','new-file')}${btn('open','Open circuit','folder')}${btn('save','Save circuit','save')}${btn('export','Export SVG','external')}</nav></header>
-    <div class="design-tools"><div class="design-view-title"><span id="design-view">Breadboard</span><small id="design-subtitle">PROTOTYPING</small></div><div class="design-toolgroup">${btn('select','Select','cursor','aria-pressed="true"')}${btn('wire','Draw wire','activity','aria-pressed="false"')}<input id="design-wire" type="color" value="#e27c67" aria-label="Wire color"></div><i></i><div class="design-toolgroup">${btn('rotate','Rotate · R','rotate')}${btn('duplicate','Duplicate · ⌘D','copy')}${btn('delete','Delete','trash')}</div><span class="design-flex"></span>${btn('undo','Undo · ⌘Z','undo')}${btn('redo','Redo · ⇧⌘Z','redo')}<i></i>${btn('out','Zoom out','minus')}<button data-action="fit" id="design-zoom" title="Fit circuit">100%</button>${btn('in','Zoom in','plus')}</div>
+    <nav aria-label="Project files">${btn('new','New project','new-file')}${btn('open','Open project','folder')}${btn('save','Save project','save')}${btn('export','Export SVG','external')}</nav>
+    <section class="design-editor">
+    <div class="design-tools">${btn('expand','Show component library','folder')}<div class="design-toolgroup">${btn('select','Select','cursor','aria-pressed="true"')}${btn('wire','Draw wire','activity','aria-pressed="false"')}<input id="design-wire" type="color" value="#e27c67" aria-label="Wire color"></div><i></i><div class="design-toolgroup">${btn('rotate','Rotate · R','rotate')}${btn('duplicate','Duplicate · ⌘D','copy')}${btn('delete','Delete','trash')}</div><span class="design-flex"></span>${btn('undo','Undo · ⌘Z','undo')}${btn('redo','Redo · ⇧⌘Z','redo')}<i></i>${btn('out','Zoom out','minus')}<button data-action="fit" id="design-zoom" title="Fit circuit">100%</button>${btn('in','Zoom in','plus')}</div>
     <div class="design-viewport" tabindex="0" aria-label="Circuit workspace"><svg id="design-scene" xmlns="http://www.w3.org/2000/svg" aria-label="Circuit drawing"></svg><div class="design-welcome"><div class="design-welcome-symbol">${icon('chip')}</div><span class="design-eyebrow">PINWAY BUILD</span><h1>Make your next connection.</h1><p>Bring components together.<br>Turn an idea into a circuit.</p><button data-action="starter" class="design-primary">Create an LED circuit ${icon('right')}</button><span class="design-hint">Or drag your first component from the library.</span></div><div class="design-canvas-label">2.54 mm grid</div></div>
     <footer class="design-status"><span id="design-message" role="status">Preparing component library…</span><span id="design-count"></span></footer></section>
     <aside class="design-properties" aria-label="Circuit inspector"><div class="design-heading"><strong>Inspector</strong></div><div id="design-properties"></div><section id="design-board" hidden><h3>Board size</h3><label>Width <span><input type="number" id="design-width" aria-label="PCB width" min="25.4" max="508" step="2.54"> mm</span></label><label>Height <span><input type="number" id="design-height" aria-label="PCB height" min="25.4" max="508" step="2.54"> mm</span></label><p>Single copper layer. Dashed connections still need a route.</p></section><section class="design-outline"><h3>In this circuit <span id="design-part-count">0</span></h3><div id="design-outline"></div></section></aside>
-    <dialog class="design-confirm"><form method="dialog"><h2>Save this circuit?</h2><p>You have changes that haven’t been saved to a circuit file.</p><div><button value="cancel">Cancel</button><button value="discard">Discard changes</button><button value="save" class="design-primary">Save</button></div></form></dialog>`;
+    `;
   const sidebar=document.createElement('div');sidebar.className='design-sidebar';
   root.prepend(sidebar);sidebar.append(root.querySelector('.design-activity'),root.querySelector('.design-parts'));
   const controls=document.createElement('div');controls.id='design-topbar';controls.hidden=true;
-  const tools=root.querySelector('.design-tools'),files=root.querySelector('.design-document nav');
+  const tools=root.querySelector('.design-tools'),files=root.querySelector('nav');
   tools.setAttribute('role','toolbar');tools.setAttribute('aria-label','Build tools');
-  root.querySelector('.design-document>div').append(tools.querySelector('.design-view-title'));
   files.classList.add('design-files');controls.append(files);
   root.querySelector('.design-editor').append(tools);
   document.querySelector('.chrome .zoom-controls').after(controls);
@@ -32,10 +32,8 @@ export function mountDesigner({call,onVisibility,settings}) {
   sash.onpointerdown=e=>{sash.setPointerCapture(e.pointerId);const start=e.clientX,width=root.querySelector('.design-parts').getBoundingClientRect().width;sash.onpointermove=e=>{const next=Math.max(155,Math.min(380,width+e.clientX-start));root.style.setProperty('--library-width',next+'px');localStorage.setItem('pinway-designer-width',next);};sash.onpointerup=()=>{sash.onpointermove=null;};};
   sash.onkeydown=e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const width=root.querySelector('.design-parts').getBoundingClientRect().width;const next=Math.max(155,Math.min(380,width+(e.key==='ArrowLeft'?-10:10)));root.style.setProperty('--library-width',next+'px');localStorage.setItem('pinway-designer-width',next);};
   document.querySelector('.statusbar').before(root);
-  const confirmDialog=root.querySelector('.design-confirm');
-  document.body.append(confirmDialog);
   const $=id=>root.querySelector('#'+id)||controls.querySelector('#'+id), viewport=root.querySelector('.design-viewport'), scene=$('design-scene');
-  let circuit=fresh(), defs=[], nets=[], file='', saved='', selection='', mode='breadboard', tool='select', enabled=false, ready=false,busy=false;
+  let circuit=fresh(), defs=[], nets=[], owner=null, selection='', mode='breadboard', tool='select', enabled=false, ready=false,busy=false;
   let history=[],future=[],clipboard=null,pending=null,drag=null,space=false,hover=new Set(),revision=0,draftTimer,analysisTimer;
   let draftQueue=Promise.resolve();
   const cameras=Object.fromEntries(MODES.map(m=>[m,{x:-40,y:-40,scale:1}]));
@@ -61,8 +59,7 @@ export function mountDesigner({call,onVisibility,settings}) {
     });notice('Component placed. Drag to move, R to rotate.');viewport.focus();
   }
   function stateBar() {
-    $('design-title').value=circuit.title;
-    $('design-dirty').textContent=file?(saved===snapshot()?'Saved':'Edited'):'Local draft';
+    for(const action of ['save','export'])controls.querySelector(`[data-action=${action}]`).disabled=!owner||!ready;
     $('design-count').textContent=`${circuit.parts.length} components · ${circuit.links.length} wires`;
     $('design-part-count').textContent=circuit.parts.length;
     tools.querySelector('[data-action=undo]').disabled=!history.length;tools.querySelector('[data-action=redo]').disabled=!future.length;
@@ -75,7 +72,12 @@ export function mountDesigner({call,onVisibility,settings}) {
   }
   function edit(fn){if(!ready||busy)return;const before=snapshot();fn();commit(before);}
   function schedule(){clearTimeout(draftTimer);clearTimeout(analysisTimer);draftTimer=setTimeout(()=>attempt(flush()),600);analysisTimer=setTimeout(()=>attempt(analyze()),30);}
-  async function flush(){clearTimeout(draftTimer);if(!ready)return;const value=clone(circuit);draftQueue=draftQueue.catch(()=>{}).then(()=>run('draft',{circuit:value}));return draftQueue;}
+  async function flush(){
+    clearTimeout(draftTimer);if(!ready||!owner)return draftQueue;
+    const value=clone(circuit),root=owner.root;
+    draftQueue=draftQueue.catch(()=>{}).then(()=>run('projectSave',{root,circuit:value}));
+    return draftQueue;
+  }
   async function analyze(){const stamp=revision,result=await run('inspect',{circuit:clone(circuit)});if(stamp!==revision)return;nets=result.nets;if(selection&&!partById(selection))inspector();draw();}
   function edges() {
     if(mode==='breadboard')return circuit.links;
@@ -163,7 +165,7 @@ export function mountDesigner({call,onVisibility,settings}) {
   function fit(){const b=bounds(),c=camera();c.scale=Math.max(.15,Math.min(1.6,viewport.clientWidth/b.w,viewport.clientHeight/b.h));c.x=b.x-(viewport.clientWidth/c.scale-b.w)/2;c.y=b.y-(viewport.clientHeight/c.scale-b.h)/2;draw();}
   function zoom(factor,anchor={x:viewport.clientWidth/2,y:viewport.clientHeight/2}){const c=camera(),scale=Math.max(.15,Math.min(4,c.scale*factor));c.x+=anchor.x/c.scale-anchor.x/scale;c.y+=anchor.y/c.scale-anchor.y/scale;c.scale=scale;draw();}
   function world(e){const b=viewport.getBoundingClientRect(),c=camera();return{x:c.x+(e.clientX-b.left)/c.scale,y:c.y+(e.clientY-b.top)/c.scale};}
-  function setMode(next){mode=next;pending=null;selection='';hover.clear();for(const m of MODES)root.querySelector(`[data-action=${m}]`).setAttribute('aria-pressed',m===mode);$('design-view').textContent={breadboard:'Breadboard',schematic:'Schematic',pcb:'PCB'}[mode];$('design-subtitle').textContent={breadboard:'PROTOTYPING',schematic:'CIRCUIT DIAGRAM',pcb:'BOARD LAYOUT'}[mode];render();fit();}
+  function setMode(next){mode=next;pending=null;selection='';hover.clear();for(const m of MODES)root.querySelector(`[data-action=${m}]`).setAttribute('aria-pressed',m===mode);render();fit();}
   function changeTool(next){tool=next;pending=null;for(const t of ['select','wire'])tools.querySelector(`[data-action=${t}]`).setAttribute('aria-pressed',t===next);draw();viewport.focus();}
   function wireTerminal(ref){if(!contactPosition(ref))return;
     if(!pending){pending={a:ref,points:[],cursor:contactPosition(ref)};notice('Choose the next contact. Click the canvas to add bends. Escape cancels.');draw();return;}
@@ -172,24 +174,18 @@ export function mountDesigner({call,onVisibility,settings}) {
     if(circuit.links.some(l=>(key(l.a)===key(ref)&&key(l.b)===key(pending.a))||(key(l.b)===key(ref)&&key(l.a)===key(pending.a)))){pending=null;draw();return notice('These contacts already have a wire.');}
     edit(()=>{const uid=crypto.randomUUID();circuit.links.push({uid,a:pending.a,b:ref,tint:$('design-wire').value});circuit.routing[uid]={points:Object.fromEntries(MODES.map(m=>[m,m===mode?clone(pending.points):[]])),copper:mode==='pcb'};selection=uid;pending=null;});notice('Connection made.');
   }
-  async function save(){if(!ready||busy)return false;busy=true;const value=clone(circuit),stamp=JSON.stringify(value);
-    try{const path=await run('save',{circuit:value,path:file});if(!path)return false;file=path;saved=stamp;await flush();stateBar();notice('Circuit saved.');return true;}finally{busy=false;}}
-  async function confirmReplace(){if(saved===snapshot()||!circuit.parts.length&&!circuit.links.length)return true;const dialog=confirmDialog;dialog.showModal();const choice=await new Promise(resolve=>dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true}));return choice==='discard'||choice==='save'&&await save();}
+  async function save(){if(!ready||busy||!owner)return false;busy=true;
+    try{await flush();await projectActions.save();notice('Project saved.');return true;}finally{busy=false;}}
   async function command(action){
     if(action==='settings')return settings();
     if(action==='collapse'||action==='expand'){root.classList.toggle('design-collapsed',action==='collapse');draw();return;}
+    if(action==='new'||action==='open'){if(busy)return;await flush();return projectActions[action]();}
     if(!ready||busy)return;
     if(MODES.includes(action))return setMode(action);
     if(['select','wire'].includes(action))return changeTool(action);
     if(action==='fit')return fit();if(action==='in'||action==='out')return zoom(action==='in'?1.2:1/1.2);
     if(action==='save')return save();
     if(action==='export'){const b=bounds();const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${b.w}" height="${b.h}" viewBox="${b.x} ${b.y} ${b.w} ${b.h}" style="--accent:#6ba5e6">${tag('rect',{x:b.x,y:b.y,width:b.w,height:b.h,fill:'#111a20'})}${drawing(false)}</svg>`;busy=true;try{if(await run('export',{svg}))notice('SVG image exported.');}finally{busy=false;}return;}
-    if(action==='new'||action==='open'){
-      if(!await confirmReplace())return;
-      if(action==='open'){busy=true;try{const result=await run('open');if(!result)return;circuit=result.circuit;file=result.path;saved=snapshot();}finally{busy=false;}}
-      else{circuit=fresh();file='';saved='';}
-      selection='';pending=null;history=[];future=[];revision++;await analyze();render();fit();await flush();notice(action==='open'?'Circuit opened.':'New circuit.');return;
-    }
     if(action==='undo'||action==='redo'){
       const source=action==='undo'?history:future,dest=action==='undo'?future:history;if(!source.length)return;dest.push(snapshot());circuit=JSON.parse(source.pop());selection='';pending=null;revision++;render();schedule();return;
     }
@@ -209,7 +205,7 @@ export function mountDesigner({call,onVisibility,settings}) {
       const before=snapshot();
       for(const [kind,point] of [['uno',{x:20,y:80}],['resistor',{x:340,y:80}],['led',{x:500,y:110}]])addPart(kind,point);
       const [board,r,led]=circuit.parts;
-      circuit.title='LED circuit';for(const [a,pinA,b,pinB,tint] of [[board,'D13',r,'1','#e27c67'],[r,'2',led,'A','#e27c67'],[led,'K',board,'GND','#6c9fd5']])circuit.links.push({uid:crypto.randomUUID(),a:{part:a.uid,pin:pinA},b:{part:b.uid,pin:pinB},tint});
+      for(const [a,pinA,b,pinB,tint] of [[board,'D13',r,'1','#e27c67'],[r,'2',led,'A','#e27c67'],[led,'K',board,'GND','#6c9fd5']])circuit.links.push({uid:crypto.randomUUID(),a:{part:a.uid,pin:pinA},b:{part:b.uid,pin:pinB},tint});
       history=[];selection='';commit(before);await analyze();fit();return;
     }
   }
@@ -258,7 +254,6 @@ export function mountDesigner({call,onVisibility,settings}) {
   viewport.addEventListener('pointercancel',()=>{if(drag?.before)circuit=JSON.parse(drag.before);drag=null;pending=null;render();});
   viewport.addEventListener('dblclick',e=>{const wire=e.target.closest('[data-link]');if(!wire||busy)return;const at=world(e);edit(()=>{const r=ensureRoute(wire.dataset.link);r.points[mode]||=[];r.points[mode].push({x:bounded(at.x),y:bounded(at.y)});if(mode==='pcb')r.copper=true;selection=wire.dataset.link;});});
   viewport.addEventListener('wheel',e=>{e.preventDefault();if(e.ctrlKey||e.metaKey){const r=viewport.getBoundingClientRect();zoom(Math.exp(-e.deltaY*.008),{x:e.clientX-r.left,y:e.clientY-r.top});}else{camera().x+=e.deltaX/camera().scale;camera().y+=e.deltaY/camera().scale;draw();}},{passive:false});
-  $('design-title').onchange=e=>edit(()=>{circuit.title=e.target.value.trim().slice(0,160)||'Untitled circuit';});
   for(const [id,axis] of [['design-width','x'],['design-height','y']])$(id).onchange=e=>{const value=Number(e.target.value);if(value>=25.4&&value<=508)edit(()=>circuit.board[axis]=snap(value/2.54*10));else{notice('Board dimensions must be between 25.4 and 508 mm.');inspector();}};
   document.addEventListener('keydown',e=>{
     if(!enabled||document.querySelector('dialog[open]')||e.target.closest('input,textarea,[contenteditable=true]'))return;
@@ -269,10 +264,26 @@ export function mountDesigner({call,onVisibility,settings}) {
   },true);
   document.addEventListener('keyup',e=>{if(e.code==='Space')space=false;});window.addEventListener('blur',()=>{space=false;});
   new ResizeObserver(()=>draw()).observe(viewport);
-  const loading=(async()=>{defs=await run('library');const recovered=await run('recover');if(recovered)circuit=recovered;ready=true;catalog();await analyze();render();notice(recovered?'Local circuit recovered.':'Ready to build.');})();attempt(loading);
+  const loading=(async()=>{defs=await run('library');catalog();render();})();attempt(loading);
   return {
     get active(){return enabled;},
-    async activate(value){enabled=value;root.hidden=!value;controls.hidden=!value;document.documentElement.dataset.workspace=value?'build':'code';onVisibility(value);if(value){await loading;render();if(!circuit.parts.length)draw();else fit();viewport.focus();}},
-    async shortcut(action){if(action==='quit'||action==='window'){await loading;if(busy)return true;await flush();if(!await confirmReplace())return true;return false;}if(!enabled)return false;const translated={new:'new',open:'open',save:'save',close:'new',quickOpen:'open'}[action];if(translated){await command(translated);return true;}return false;}
+    async setProject(project){
+      await loading;clearTimeout(draftTimer);clearTimeout(analysisTimer);await draftQueue;
+      ready=false;busy=true;owner=project?{root:project.root}:null;
+      circuit=fresh();nets=[];history=[];future=[];selection='';pending=null;hover.clear();revision++;
+      root.hidden=!enabled||!owner;stateBar();
+      try{
+        if(owner){const loaded=await run('projectLoad',{root:owner.root});if(loaded)circuit=loaded;ready=true;await analyze();notice('Project ready.');}
+        render();if(enabled&&owner)fit();
+      }finally{busy=false;stateBar();}
+    },
+    flushProject:flush,
+    async activate(value){enabled=value;root.hidden=!value||!owner;controls.hidden=!value;document.documentElement.dataset.workspace=value?'build':'code';onVisibility(value);if(value){await loading;render();if(owner){if(!circuit.parts.length)draw();else fit();viewport.focus();}}},
+    async shortcut(action){
+      if(action==='quit'||action==='window'){await loading;if(busy)return true;await flush();return false;}
+      if(!enabled)return false;
+      const translated={new:'new',open:'open',save:'save',quickOpen:'open'}[action];
+      if(translated){await command(translated);return true;}return false;
+    }
   };
 }

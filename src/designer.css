@@ -36,14 +36,7 @@
 .design-sash {width:4px;margin-left:-2px;margin-right:-2px;position:relative;z-index:2;cursor:col-resize;flex:none;border-left:1px solid var(--border);}
 .design-sash:hover {background:var(--accent)}
 .design-editor {flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
-.design-document {height:45px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 12px;gap:10px;border-bottom:1px solid var(--border)}
-.design-document>div {display:flex;gap:10px;align-items:center;min-width:0;flex:1}
-#design-title {background:transparent;color:inherit;border:0;outline-offset:3px;min-width:70px;width:200px;max-width:100%;font-size:12px;font-weight:600;padding:4px 0}
-#design-dirty {font-size:10px;color:var(--sub);white-space:nowrap}
-.design-document nav {display:flex;gap:5px;flex:none}
 #designer .design-document nav button {height:28px;width:28px;color:var(--soft)}
-.design-document nav button:hover {background:var(--muted)}
-.design-document svg {width:15px;height:15px}
 #designer [data-action=expand] {display:none;padding:4px;color:var(--sub)}
 .design-tools {height:45px;display:flex;gap:3px;padding:0 9px;align-items:center;flex:none;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--surface) 95%,var(--bg))}
 .design-tools button {width:28px;height:27px;display:grid;place-items:center;color:var(--soft)!important}
@@ -52,8 +45,6 @@
 .design-toolgroup {display:flex;align-items:center;gap:3px}
 .design-tools button[aria-pressed=true] {color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .design-tools i {width:1px;height:15px;background:var(--border);margin:0 5px;flex:none}
-.design-view-title {display:flex;flex-direction:column;gap:3px;min-width:105px;margin-right:9px;font-size:11px;font-weight:600}
-.design-view-title small {font-size:7px;letter-spacing:.1em;font-weight:400;color:var(--sub)}
 #design-wire {width:23px;height:25px;padding:3px;background:var(--bg);border:1px solid var(--border);border-radius:5px;cursor:pointer}
 #designer #design-zoom {font-size:10px;min-width:42px}
 .design-viewport {position:relative;flex:1;min-height:100px;background:var(--editor-bg,#10171c);overflow:hidden;touch-action:none;user-select:none;outline-offset:-2px}
@@ -101,19 +92,10 @@
 .design-outline button span {min-width:24px;color:var(--accent);font:9px var(--mono)}
 .design-outline button small {font-size:10px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #designer .design-route {padding:8px 10px;color:var(--accent);border:1px solid var(--border);font-size:10px;margin:12px 0}
-.design-confirm {background:var(--surface);color:var(--editor-text,#e3e8ef);border:1px solid var(--border);border-radius:12px;padding:23px;max-width:420px;box-shadow:0 25px 80px #0008}
-.design-confirm::backdrop {background:#0007}
-.design-confirm h2 {font-size:17px;font-weight:550}
-.design-confirm p {font-size:12px;line-height:1.7;color:var(--sub)}
-.design-confirm form>div {display:flex;justify-content:flex-end;gap:8px;margin-top:25px}
-#designer .design-confirm button {padding:8px 10px;font-size:11px}
 .design-collapsed .design-parts,.design-collapsed .design-sash {display:none}
 #designer.design-collapsed [data-action=expand] {display:block}
-@media(max-width:1100px) {.design-properties{width:185px}.design-parts{width:185px}.design-view-title{min-width:80px;margin-right:0}.design-view-title small{display:none}.design-tools i{margin:0 2px}#design-dirty{display:none}}
-@media(max-width:850px) {.design-properties{width:160px}.design-parts{width:165px}.design-tools{gap:0;padding:0 3px}.design-tools button{width:24px}#design-count{display:none}.design-view-title{min-width:68px;font-size:10px}.design-toolgroup{gap:0}}
-.design-confirm button {padding:8px 10px;font-size:11px;color:inherit;border-radius:5px}
-.design-confirm button:hover {background:var(--muted)}
-.design-confirm .design-primary {border:1px solid var(--border);color:var(--accent);background:var(--muted)}
+@media(max-width:1100px) {.design-properties{width:185px}.design-parts{width:185px}.design-tools i{margin:0 2px}}
+@media(max-width:850px) {.design-properties{width:160px}.design-parts{width:165px}.design-tools{gap:0;padding:0 3px}.design-tools button{width:24px}#design-count{display:none}.design-toolgroup{gap:0}}
 .design-preview {display:flex;align-items:center;justify-content:center;overflow:hidden}
 .design-preview svg {width:64px;height:47px;max-width:64px;max-height:47px;display:block;overflow:hidden}
 .design-viewport:focus-visible {outline:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -127,11 +109,6 @@
 .design-sash::after {content:'';position:absolute;inset:8px 3px;border-radius:2px}
 .design-sash:hover {background:transparent}
 .design-sash:hover::after,.design-sash:focus-visible::after {background:var(--accent)}
-.design-document {height:40px}
-.design-document .design-view-title {margin-left:auto;margin-right:0;min-width:0;text-align:right;white-space:nowrap}
-.design-document .design-view-title small {display:none}
-.design-document .design-view-title span {font-size:10px;font-weight:400;color:var(--sub)}
-#design-title {width:180px}
 
 /* File actions follow app zoom; editing tools float over the canvas. */
 [data-workspace=build] .chrome .title {display:none}
@@ -149,10 +126,9 @@
 .design-editor>.design-tools .design-flex {width:5px;flex:none}
 #designer #design-zoom {font-size:10px;min-width:42px}
 #designer #design-wire {height:24px}
-@media(max-width:1100px) {.design-document .design-view-title{display:none}}
 .design-collapsed .design-sidebar {margin-right:8px}
 
 .design-editor {position:relative}
-.design-editor>.design-tools {position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:3;width:max-content;max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none;box-shadow:0 5px 18px #0003}
+.design-editor>.design-tools {position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;width:max-content;max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none;box-shadow:0 5px 18px #0003}
 .design-editor>.design-tools::-webkit-scrollbar {display:none}
 .design-editor>.design-tools button {flex:none}

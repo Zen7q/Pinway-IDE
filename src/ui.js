@@ -612,12 +612,15 @@ async function acceptProject(value, session) {
     renderRecent();
     status('Готово');
   }
+  await designer.setProject(value);
+  if (designer.active) await designer.activate(true);
 }
 async function changeProject(action) {
   if (changing || task) return false;
   changing = true;
   try {
     if (!await canClose()) return false;
+    await designer.flushProject();
     const value = await action();
     if (value !== undefined) await acceptProject(value);
     return value !== undefined;
@@ -1156,11 +1159,16 @@ $('quick-query').onkeydown = event => {
     renderQuick();
   }
 };
-const designer = mountDesigner({ call, settings: () => $('settings-view').click(), onVisibility(active) {
-  for (const id of ['welcome', 'workbench', 'home', 'toolbar', 'device-status', 'cursor', 'encoding']) {
-    $(id).hidden = active || (id === 'welcome' ? !!project : !project);
+const designer = mountDesigner({ call, settings: () => $('settings-view').click(), projectActions: {
+  new: () => newDialog(),
+  open: () => changeProject(() => call('select')),
+  save: () => save(true)
+}, onVisibility(active) {
+  $('welcome').hidden = !!project;
+  for (const id of ['workbench', 'home', 'toolbar', 'device-status', 'cursor', 'encoding']) {
+    $(id).hidden = active || !project;
   }
-  document.querySelector('.statusbar').hidden = active;
+  document.querySelector('.statusbar').hidden = active && !!project;
   $('caption').textContent = active ? '' : project?.name || '';
   closeMenus();
 } });
@@ -1187,6 +1195,7 @@ workspaceSwitch.onkeydown = e => {
 };
 async function shortcut(action) {
   if (await designer.shortcut(action)) return;
+  if (action === 'save') await designer.flushProject();
   if (Object.hasOwn(zoomActions, action)) return zoomActions[action]();
   if (action === 'new') return newDialog();
   if (action === 'quickOpen') return openQuick();
@@ -1247,6 +1256,7 @@ $('new-form').onsubmit = async e => {
   $('create').disabled = true;
   try {
     if (!await canClose()) return;
+    await designer.flushProject();
     const value = await call('create', { parent, name: $('name').value.trim(), template: $('sketch-template').value });
     $('new-dialog').close();
     await acceptProject(value);

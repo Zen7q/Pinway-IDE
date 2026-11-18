@@ -83,7 +83,7 @@ Tauri пакує інтерфейс у Rust-застосунок, а скрип�
 
 ## Pinway Build
 
-The workspace menu in the title bar opens **Pinway Code** or **Pinway Build**. Build has its own circuit document and recovery file, independent of code projects. Its electrical model, component definitions, connectivity checks, file validation and native file operations run in Rust (`src-tauri/src/designer.rs`). The interface inherits Code's theme and accent.
+The workspace menu in the title bar opens **Pinway Code** or **Pinway Build**. Code and Build are tools of the same project. Create or open a project once; switching tools keeps its code and circuit together. Build has no separate project name or creation dialog. Its electrical model, component definitions, connectivity checks, file validation and native file operations run in Rust (`src-tauri/src/designer.rs`). The interface inherits Code's theme and accent.
 
 Choose **Breadboard**, **Schematic** or **PCB** in the left rail. Drag components from the library, or click to place them. Move and rotate components on the grid. Hover over a contact to see its connected net. Click two contacts, or drag between them, to create a wire. Intermediate clicks add bends; double-click an existing wire to add another bend, then drag its handle. The inspector includes contact buttons for precise connection selection.
 
@@ -91,6 +91,6 @@ Circuit topology is shared across views. Each view keeps independent positions a
 
 Shortcuts: **R** rotate, **W** wire, **V** select, **⌘D** duplicate, **⌘C / ⌘V** copy and paste, **Delete** remove, **⌘Z / ⇧⌘Z** undo and redo, **⌘N / ⌘O / ⌘S** new/open/save. Pan with a trackpad or Space-drag; pinch to zoom. Resize the component library at its right edge or collapse it.
 
-**Save** writes a `.pinway` document. **Open** validates and restores it. **Export SVG** exports the active view. A separate local recovery document protects work between launches. File replacement and quitting offer Save, Discard and Cancel.
+**New project** and **Open project** use the same project workflow as Code. **Save project** saves the code and circuit together. Build changes are also saved automatically to `.pinway/circuit.json` inside the active project. Each project keeps its own components, wiring and layouts; switching projects flushes the current circuit first. The former unassigned circuit is adopted once by the first opened project, with its original recovery retained as a backup. **Export SVG** exports the active view.
 
 The initial nine-part library and manual, single-layer PCB layout support circuit planning and documentation. Footprints are illustrative; fabrication exports and design-rule checking are not implemented.

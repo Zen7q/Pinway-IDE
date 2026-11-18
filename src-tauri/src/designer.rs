@@ -3,10 +3,9 @@ use crate::{err, pick, projects, text, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fs,
     path::PathBuf,
-    sync::Mutex,
 };
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -73,7 +72,6 @@ pub struct Route {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Circuit {
     pub format: String,
-    pub title: String,
     pub board: Point,
     pub parts: Vec<Part>,
     pub links: Vec<Link>,
@@ -262,7 +260,6 @@ fn finite(n: f64) -> bool {
 pub fn validate(c: &Circuit) -> Result<()> {
     let fail = || Err("Invalid Pinway circuit document.".into());
     if c.format != "pinway.design/1"
-        || c.title.len() > 200
         || c.parts.len() > 300
         || c.links.len() > 1500
         || !(100. ..=2000.).contains(&c.board.x)
@@ -394,8 +391,6 @@ pub fn networks(c: &Circuit) -> Vec<Vec<Contact>> {
     groups.into_values().collect()
 }
 
-#[derive(Default)]
-pub struct Files(Mutex<BTreeSet<PathBuf>>);
 fn decode(value: Value) -> Result<Circuit> {
     let c: Circuit = serde_json::from_value(value).map_err(err)?;
     validate(&c)?;
@@ -415,80 +410,86 @@ fn write_circuit(path: &std::path::Path, c: &Circuit) -> Result<()> {
         path.exists(),
     )
 }
-pub fn dispatch(app: &AppHandle, p: Value) -> Result<Value> {
-    let op = text(&p["op"]);
-    let files = app.state::<Files>();
-    let recovery = app
-        .state::<crate::Host>()
-        .storage
-        .join("designer-v1.recovery.json");
-    match op {
-        "library" => Ok(json!(library())),
-        "recover" => {
-            if recovery.exists() {
-                Ok(json!(read_file(&recovery)?))
-            } else {
-                Ok(Value::Null)
+// The folder comes from the active, native-authorized code project, never an arbitrary UI path.
+fn project_path(root: &std::path::Path, create: bool) -> Result<PathBuf> {
+    let folder = root.join(".pinway");
+    match fs::symlink_metadata(&folder) {
+        Ok(meta) if meta.file_type().is_symlink() || !meta.is_dir() => {
+            return Err("The project's .pinway folder must be a real directory.".into())
+        }
+        Ok(_) => (),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            if create {
+                fs::create_dir(&folder).map_err(err)?;
             }
         }
+        Err(e) => return Err(err(e)),
+    }
+    let file = folder.join("circuit.json");
+    match fs::symlink_metadata(&file) {
+        Ok(meta) if meta.file_type().is_symlink() || !meta.is_file() => {
+            return Err("The project's circuit must be a regular file.".into())
+        }
+        Ok(_) => (),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+        Err(e) => return Err(err(e)),
+    }
+    Ok(file)
+}
+fn store_project(root: &std::path::Path, circuit: &Circuit) -> Result<()> {
+    validate(circuit)?;
+    write_circuit(&project_path(root, true)?, circuit)
+}
+fn load_project(root: &std::path::Path, storage: &std::path::Path) -> Result<Option<Circuit>> {
+    let file = project_path(root, false)?;
+    let legacy = storage.join("designer-v1.recovery.json");
+    // Bind the old, unassigned workspace to exactly one project. Writing the owner first
+    // lets an interrupted migration resume in that project without importing into another.
+    let migration = storage.join("designer-project-owner.json");
+    let legacy_owner: Option<PathBuf> = if legacy.is_file() {
+        if migration.exists() {
+            Some(serde_json::from_slice(&fs::read(&migration).map_err(err)?).map_err(err)?)
+        } else {
+            projects::atomic_write(&migration, &serde_json::to_vec(root).map_err(err)?, false)?;
+            Some(root.to_path_buf())
+        }
+    } else {
+        None
+    };
+    if file.exists() {
+        return read_file(&file).map(Some);
+    }
+    if legacy_owner.as_deref() == Some(root) {
+        let circuit = read_file(&legacy)?;
+        store_project(root, &circuit)?;
+        return Ok(Some(circuit));
+    }
+    Ok(None)
+}
+pub fn dispatch(app: &AppHandle, p: Value) -> Result<Value> {
+    let op = text(&p["op"]);
+    match op {
+        "library" => Ok(json!(library())),
         "inspect" => {
             let c = decode(p["circuit"].clone())?;
             Ok(json!({"nets":networks(&c)}))
         }
-        "draft" => {
-            let c = decode(p["circuit"].clone())?;
-            write_circuit(&recovery, &c)?;
-            Ok(Value::Null)
-        }
-        "open" => {
-            let Some(path) = pick(
-                app.dialog()
-                    .file()
-                    .add_filter("Pinway circuit", &["pinway"])
-                    .blocking_pick_file(),
-            )?
-            else {
-                return Ok(Value::Null);
-            };
-            let path = fs::canonicalize(path).map_err(err)?;
-            let c = read_file(&path)?;
-            files.0.lock().map_err(err)?.insert(path.clone());
-            Ok(json!({"circuit":c,"path":path}))
-        }
-        "save" => {
-            let c = decode(p["circuit"].clone())?;
-            let path = PathBuf::from(text(&p["path"]));
-            let path = if files.0.lock().map_err(err)?.contains(&path) {
-                path
+        "projectLoad" | "projectSave" => {
+            let host = app.state::<crate::Host>();
+            let project = host.project()?;
+            if PathBuf::from(text(&p["root"])) != project.root {
+                return Err(
+                    "The active project changed. The circuit was not written to another project."
+                        .into(),
+                );
+            }
+            if op == "projectLoad" {
+                Ok(json!(load_project(&project.root, &host.storage)?))
             } else {
-                let name: String = c
-                    .title
-                    .chars()
-                    .filter(|c| c.is_alphanumeric() || " -_".contains(*c))
-                    .take(70)
-                    .collect();
-                let Some(mut path) = pick(
-                    app.dialog()
-                        .file()
-                        .add_filter("Pinway circuit", &["pinway"])
-                        .set_file_name(format!(
-                            "{}.pinway",
-                            if name.is_empty() { "Circuit" } else { &name }
-                        ))
-                        .blocking_save_file(),
-                )?
-                else {
-                    return Ok(Value::Null);
-                };
-                if path.extension().is_none() {
-                    path.set_extension("pinway");
-                }
-                path
-            };
-            write_circuit(&path, &c)?;
-            let path = fs::canonicalize(path).map_err(err)?;
-            files.0.lock().map_err(err)?.insert(path.clone());
-            Ok(json!(path))
+                let circuit = decode(p["circuit"].clone())?;
+                store_project(&project.root, &circuit)?;
+                Ok(Value::Null)
+            }
         }
         "export" => {
             let svg = text(&p["svg"]);
@@ -515,6 +516,7 @@ pub fn dispatch(app: &AppHandle, p: Value) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
     fn part(kind: &str, uid: &str, x: f64, y: f64) -> Part {
         Part {
             uid: uid.into(),
@@ -531,7 +533,6 @@ mod tests {
     fn circuit(parts: Vec<Part>) -> Circuit {
         Circuit {
             format: "pinway.design/1".into(),
-            title: "Test".into(),
             board: Point { x: 600., y: 400. },
             parts,
             links: vec![],
@@ -609,5 +610,73 @@ mod tests {
         assert_eq!(read_file(&path).unwrap().parts[0].value, 220.);
         c.parts[0].tint = "javascript:alert(1)".into();
         assert!(validate(&c).is_err());
+    }
+    #[test]
+    fn shared_projects_keep_distinct_circuits_and_migrate_legacy_once() {
+        let a = tempfile::tempdir().unwrap();
+        let b = tempfile::tempdir().unwrap();
+        let storage = tempfile::tempdir().unwrap();
+        let original = circuit(vec![part("led", "old", 0., 0.)]);
+        let mut legacy = serde_json::to_value(&original).unwrap();
+        legacy["title"] = json!("Old independent name");
+        fs::write(
+            storage.path().join("designer-v1.recovery.json"),
+            serde_json::to_vec(&legacy).unwrap(),
+        )
+        .unwrap();
+        let migrated = load_project(a.path(), storage.path()).unwrap().unwrap();
+        assert_eq!(migrated.parts[0].uid, "old");
+        assert!(load_project(b.path(), storage.path()).unwrap().is_none());
+        let next = circuit(vec![part("resistor", "other", 100., 0.)]);
+        store_project(b.path(), &next).unwrap();
+        assert_eq!(
+            load_project(a.path(), storage.path())
+                .unwrap()
+                .unwrap()
+                .parts[0]
+                .uid,
+            "old"
+        );
+        assert_eq!(
+            load_project(b.path(), storage.path())
+                .unwrap()
+                .unwrap()
+                .parts[0]
+                .uid,
+            "other"
+        );
+        assert!(serde_json::to_value(migrated)
+            .unwrap()
+            .get("title")
+            .is_none());
+    }
+    #[test]
+    fn existing_project_circuit_wins_over_legacy_workspace() {
+        let root = tempfile::tempdir().unwrap();
+        let storage = tempfile::tempdir().unwrap();
+        let current = circuit(vec![part("led", "project", 0., 0.)]);
+        store_project(root.path(), &current).unwrap();
+        write_circuit(
+            &storage.path().join("designer-v1.recovery.json"),
+            &circuit(vec![]),
+        )
+        .unwrap();
+        assert_eq!(
+            load_project(root.path(), storage.path())
+                .unwrap()
+                .unwrap()
+                .parts[0]
+                .uid,
+            "project"
+        );
+    }
+    #[test]
+    #[cfg(unix)]
+    fn project_storage_rejects_symlink_escapes() {
+        let root = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(other.path(), root.path().join(".pinway")).unwrap();
+        assert!(store_project(root.path(), &circuit(vec![])).is_err());
+        assert!(!other.path().join("circuit.json").exists());
     }
 }
