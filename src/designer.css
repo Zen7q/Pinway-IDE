@@ -132,3 +132,9 @@
 .design-editor>.design-tools {position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;width:max-content;max-width:calc(100% - 24px);overflow-x:auto;scrollbar-width:none;box-shadow:0 5px 18px #0003}
 .design-editor>.design-tools::-webkit-scrollbar {display:none}
 .design-editor>.design-tools button {flex:none}
+/* Keep the home slot and workspace menu anchored across Code, Build and welcome. */
+#home {display:inline-flex;width:28px;height:30px;align-items:center;justify-content:center;flex:none}
+#home[hidden] {display:inline-flex!important;visibility:hidden}
+.workspace-switch {width:164px}
+#workspace-toggle {width:100%;justify-content:space-between;white-space:nowrap}
+#workspace-options {width:240px;min-width:240px}

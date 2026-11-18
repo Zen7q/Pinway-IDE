@@ -50,6 +50,49 @@ fn pick(path: Option<tauri_plugin_dialog::FilePath>) -> Result<Option<PathBuf>> 
     path.map(|p| p.into_path().map_err(err)).transpose()
 }
 
+// WebKit covers Tao's content view, so AppKit may never redraw that view after
+// restoring its standard title bar. An explicit main-thread redraw applies the
+// configured native traffic-light inset, including on the very first frame.
+fn sync_window_chrome(app: &AppHandle) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    if let Some(window) = app.get_webview_window("main") {
+        let target = window.clone();
+        window
+            .run_on_main_thread(move || {
+                if target.is_fullscreen().unwrap_or(true) {
+                    return;
+                }
+                if let Ok(pointer) = target.ns_view() {
+                    if !pointer.is_null() {
+                        // Tauri owns this NSView for the lifetime of the window. AppKit
+                        // operations and this borrowed reference stay on the main thread.
+                        let view = unsafe { &*pointer.cast::<objc2_app_kit::NSView>() };
+                        view.setNeedsDisplay(true);
+                        view.display();
+                    #[cfg(debug_assertions)]
+                    if let Ok(pointer) = target.ns_window() {
+                        use objc2_app_kit::{NSWindow, NSWindowButton};
+                        let native = unsafe { &*pointer.cast::<NSWindow>() };
+                        if let Some(button) = native.standardWindowButton(NSWindowButton::CloseButton) {
+                            let rect = button.convertRect_toView(button.bounds(), None);
+                            let center_y = native.frame().size.height - rect.origin.y - rect.size.height / 2.;
+                            let report = json!({"close_button_center_from_top":center_y,"header_center_from_top":28.0});
+                            if let Some(host) = target.try_state::<Host>() {
+                                let path = host.storage.join("window-chrome-diagnostics.json");
+                                if fs::read(&path).ok().as_deref() != serde_json::to_vec(&report).ok().as_deref() {
+                                    if let Ok(data) = serde_json::to_vec(&report) { let _ = fs::write(path, data); }
+                                }
+                            }
+                        }
+                    }
+                    }
+                }
+            })
+            .map_err(err)?;
+    }
+    Ok(())
+}
+
 impl Host {
     fn project(&self) -> Result<Project> {
         self.session
@@ -243,6 +286,10 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
         None
     };
     match action {
+        "syncChrome" => {
+            sync_window_chrome(app)?;
+            Ok(Value::Null)
+        }
         "designer" => designer::dispatch(app, p),
         "state" => {
             let session = host.session.lock().unwrap();
@@ -659,15 +706,22 @@ fn main() {
                     eprintln!("Не вдалося показати вікно: {error}");
                 }
             }
-            // On macOS, showing the window can restore AppKit's default button positions.
-            // Applying the existing title asks Tao to reapply the configured traffic-light inset.
-            #[cfg(target_os = "macos")]
-            if let Err(error) = window.title().and_then(|title| window.set_title(&title)) {
-                eprintln!("Не вдалося оновити заголовок вікна: {error}");
+            if let Err(error) = sync_window_chrome(window.app_handle()) {
+                eprintln!("Window chrome: {error}");
             }
         })
         .on_menu_event(|app, event| emit(app, "shortcut", json!(event.id().as_ref())))
         .on_window_event(|window, event| {
+            if matches!(
+                event,
+                tauri::WindowEvent::Resized(_)
+                    | tauri::WindowEvent::Focused(true)
+                    | tauri::WindowEvent::ScaleFactorChanged { .. }
+            ) {
+                if let Err(error) = sync_window_chrome(window.app_handle()) {
+                    eprintln!("Window chrome: {error}");
+                }
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 emit(window.app_handle(), "shortcut", json!("window"));

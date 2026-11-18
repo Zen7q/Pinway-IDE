@@ -9,9 +9,11 @@ if (window.__TAURI__) {
     root.dataset.macos = '';
     const updateFullscreen = async () => {
       root.toggleAttribute('data-fullscreen', await appWindow.isFullscreen());
+      await core.invoke('pinway', { action: 'syncChrome', payload: null });
     };
     const sync = () => { void updateFullscreen().catch(console.error); };
     void appWindow.onResized(sync).then(sync).catch(console.error);
+    requestAnimationFrame(() => requestAnimationFrame(sync));
   }
   window.pinway = {
     call: (action, payload = null) => core.invoke('pinway', { action, payload }).then(result =>

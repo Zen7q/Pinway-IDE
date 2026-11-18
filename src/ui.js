@@ -1165,7 +1165,8 @@ const designer = mountDesigner({ call, settings: () => $('settings-view').click(
   save: () => save(true)
 }, onVisibility(active) {
   $('welcome').hidden = !!project;
-  for (const id of ['workbench', 'home', 'toolbar', 'device-status', 'cursor', 'encoding']) {
+  $('home').hidden = !project;
+  for (const id of ['workbench', 'toolbar', 'device-status', 'cursor', 'encoding']) {
     $(id).hidden = active || !project;
   }
   document.querySelector('.statusbar').hidden = active && !!project;
