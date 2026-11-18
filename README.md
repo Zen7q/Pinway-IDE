@@ -80,3 +80,17 @@ open "dist/tauri/Pinway IDE.app"
 Tauri пакує інтерфейс у Rust-застосунок, а скрипт додає Arduino CLI і SDK до `Contents/Resources/arduino`. Для збирання з коду потрібні Rust і Xcode Command Line Tools. Якщо збірка у стандартному каталозі вже є, задайте новий каталог через `PINWAY_TAURI_OUT="$PWD/dist/tauri-next" npm run package:tauri`. На macOS під час першого запуску застосунок імпортує список проєктів, дані відновлення та каталог Sketchbook з Electron-версії, якщо вони є. Масштаб, ширина панелей і профілі плат у WebView створюються заново.
 
 `npm test` перевіряє роботу зі скетчами на Rust. `npm run package` запускає пакування Tauri. Джерела та ліцензії комплекту наведено в [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Pinway Build
+
+The workspace menu in the top bar switches between **Pinway Code** and **Pinway Build**. Code keeps the existing Arduino editor.
+
+Build provides **Breadboard**, **Schematic**, and **PCB** in the left activity rail. Drag components from the library onto the 2.54 mm grid. Click a terminal and then another terminal to connect them, or drag between terminals. Click the canvas while drawing to add bends. Double-click a wire to add a bend later. Hover over a breadboard hole to highlight its electrical net.
+
+The same components and connections are shared across all three views. Each view keeps its own component positions and wire routes. In PCB, dashed lines are unrouted connections. Select one and use **Route this trace**, then drag its bend handles. **Board dimensions** sets the PCB size.
+
+The inspector edits labels, LED colors, resistor values, and wire colors. Resistor bands update from the selected resistance. Use **R** to rotate, **⌘D** to duplicate, **⌘C / ⌘V** to copy and paste, **Delete** to remove, **⌘Z / ⇧⌘Z** for undo and redo. Pinch to zoom and use the trackpad to pan, or hold Space while dragging.
+
+**Save** writes a `.pinwaybuild` document through a native file dialog. **Open** restores it. **Export image** writes an SVG image of the current view. A local draft is kept independently of Arduino sketches.
+
+The initial component library contains a breadboard, Arduino Uno R3, ESP32 DevKit, resistor, LED, 9V battery, push button, and temperature sensor. The PCB editor supports manual single-layer routing.

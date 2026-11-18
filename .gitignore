@@ -10,3 +10,5 @@ src-tauri/icons/Pinway.icns
 native/target/
 
 /target/
+
+src/ui.bundle.css

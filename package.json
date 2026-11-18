@@ -8,9 +8,10 @@
     "ui": "esbuild src/ui.js --bundle --outfile=src/ui.bundle.js",
     "seed": "bash scripts/toolchain.sh",
     "package": "npm run package:tauri",
-    "test": "bash scripts/package-tauri.sh --test",
+    "test": "npm run test:build && bash scripts/package-tauri.sh --test",
     "ui:tauri": "npm run ui && node scripts/tauri-ui.cjs",
-    "package:tauri": "bash scripts/package-tauri.sh"
+    "package:tauri": "bash scripts/package-tauri.sh",
+    "test:build": "esbuild src/build/model.js --bundle --platform=node --format=cjs --outfile=.toolchain/build-model.cjs && node --test src/build/model.test.cjs"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "6.20.4",
