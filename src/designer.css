@@ -149,5 +149,4 @@
 #design-topbar #design-zoom {font-size:10px;min-width:42px}
 #design-topbar #design-wire {height:24px}
 @media(max-width:1100px) {[data-workspace=build] .chrome .zoom-controls{display:none}.design-document .design-view-title{display:none}}
-.workspace-logo {display:block;width:23px;height:23px;border-radius:5px;flex:none}
 .design-collapsed .design-sidebar {margin-right:8px}
