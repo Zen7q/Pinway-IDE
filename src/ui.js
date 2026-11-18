@@ -7,6 +7,7 @@ import { setDiagnostics, lintGutter } from '@codemirror/lint';
 import { oneDark } from '@codemirror/theme-one-dark';
 import completions from './arduino-completions.json';
 import { pinouts } from './pinouts';
+import { mountDesigner } from './designer/workspace';
 import plotData from './plot-data.cjs';
 const { parsePlotLine } = plotData;
 
@@ -557,7 +558,7 @@ async function acceptProject(value, session) {
   $('welcome').hidden = !!value;
   for (const x of ['workbench', 'toolbar', 'home', 'device-status', 'cursor', 'encoding']) $(x).hidden = !value;
   $('version').hidden = !!value;
-  $('caption').textContent = value ? value.name + ' — Pinway IDE' : 'Pinway IDE';
+  $('caption').textContent = value ? value.name : '';
   if (value) {
     layoutSidebar();
     $('root-label').textContent = basename(value.root);
@@ -1155,7 +1156,37 @@ $('quick-query').onkeydown = event => {
     renderQuick();
   }
 };
+const designer = mountDesigner({ call, settings: () => $('settings-view').click(), onVisibility(active) {
+  for (const id of ['welcome', 'workbench', 'home', 'toolbar', 'device-status', 'cursor', 'encoding']) {
+    $(id).hidden = active || (id === 'welcome' ? !!project : !project);
+  }
+  document.querySelector('.statusbar').hidden = active;
+  $('caption').textContent = active ? '' : project?.name || '';
+  closeMenus();
+} });
+const workspaceSwitch = document.createElement('div');
+workspaceSwitch.className = 'workspace-switch';
+workspaceSwitch.innerHTML = '<button id="workspace-toggle" aria-haspopup="menu" aria-expanded="false"><span>Pinway Code</span><svg><use href="#i-down"></use></svg></button><div id="workspace-options" class="popover" role="menu" hidden><button data-workspace="code" role="menuitem"><span>Pinway Code<small>Write and upload firmware</small></span><span class="workspace-check">✓</span></button><button data-workspace="build" role="menuitem"><span>Pinway Build<small>Design an electronic circuit</small></span><span class="workspace-check"></span></button></div>';
+document.querySelector('.title').before(workspaceSwitch);
+$('caption').textContent = '';
+const workspaceClose = () => { $('workspace-options').hidden = true; $('workspace-toggle').setAttribute('aria-expanded', 'false'); };
+$('workspace-toggle').onclick = () => { const opening = $('workspace-options').hidden; closeMenus(); $('workspace-options').hidden = !opening; $('workspace-toggle').setAttribute('aria-expanded', String(opening)); };
+workspaceSwitch.addEventListener('click', e => {
+  const button = e.target.closest('[data-workspace]'); if (!button) return;
+  const build = button.dataset.workspace === 'build';
+  workspaceClose();
+  $('workspace-toggle').querySelector('span').textContent = build ? 'Pinway Build' : 'Pinway Code';
+  for (const b of workspaceSwitch.querySelectorAll('[data-workspace]')) b.querySelector('.workspace-check').textContent = (b.dataset.workspace === button.dataset.workspace) ? '✓' : '';
+  void designer.activate(build).catch(error);
+});
+document.addEventListener('pointerdown', e => { if (!workspaceSwitch.contains(e.target)) workspaceClose(); });
+workspaceSwitch.onkeydown = e => {
+  if (e.key === 'Escape') { workspaceClose(); $('workspace-toggle').focus(); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); $('workspace-options').hidden = false; $('workspace-toggle').setAttribute('aria-expanded', 'true'); workspaceSwitch.querySelector('[data-workspace=build]').focus(); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); workspaceSwitch.querySelector('[data-workspace=code]').focus(); }
+};
 async function shortcut(action) {
+  if (await designer.shortcut(action)) return;
   if (Object.hasOwn(zoomActions, action)) return zoomActions[action]();
   if (action === 'new') return newDialog();
   if (action === 'quickOpen') return openQuick();
@@ -1548,6 +1579,7 @@ async function init() {
     append('console', '\n' + e.message + '\n');
   }
   catalogLoaded = true;
+  if (designer.active) void designer.activate(true);
   if (!$('board-menu').hidden) renderBoards();
 }
 void init().catch(error);

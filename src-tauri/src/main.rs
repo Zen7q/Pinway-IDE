@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod arduino;
+mod designer;
 mod projects;
 
 use arduino::{Arduino, Monitor};
@@ -242,6 +243,7 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
         None
     };
     match action {
+        "designer" => designer::dispatch(app, p),
         "state" => {
             let session = host.session.lock().unwrap();
             let templates: Vec<_> = TEMPLATES
@@ -585,6 +587,7 @@ fn menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
 
 fn main() {
     let app = tauri::Builder::default()
+        .manage(designer::Files::default())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();

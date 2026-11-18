@@ -80,3 +80,17 @@ open "dist/tauri/Pinway IDE.app"
 Tauri пакує інтерфейс у Rust-застосунок, а скрипт додає Arduino CLI і SDK до `Contents/Resources/arduino`. Для збирання з коду потрібні Rust і Xcode Command Line Tools. Якщо збірка у стандартному каталозі вже є, задайте новий каталог через `PINWAY_TAURI_OUT="$PWD/dist/tauri-next" npm run package:tauri`. На macOS під час першого запуску застосунок імпортує список проєктів, дані відновлення та каталог Sketchbook з Electron-версії, якщо вони є. Масштаб, ширина панелей і профілі плат у WebView створюються заново.
 
 `npm test` перевіряє роботу зі скетчами на Rust. `npm run package` запускає пакування Tauri. Джерела та ліцензії комплекту наведено в [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Pinway Build
+
+The workspace menu in the title bar opens **Pinway Code** or **Pinway Build**. Build has its own circuit document and recovery file, independent of code projects. Its electrical model, component definitions, connectivity checks, file validation and native file operations run in Rust (`src-tauri/src/designer.rs`). The interface inherits Code's theme and accent.
+
+Choose **Breadboard**, **Schematic** or **PCB** in the left rail. Drag components from the library, or click to place them. Move and rotate components on the grid. Hover over a contact to see its connected net. Click two contacts, or drag between them, to create a wire. Intermediate clicks add bends; double-click an existing wire to add another bend, then drag its handle. The inspector includes contact buttons for precise connection selection.
+
+Circuit topology is shared across views. Each view keeps independent positions and routes. Breadboard conductors are projected into connections between components in Schematic and PCB. PCB starts with dashed, unrouted connections; select one and choose **Route on copper layer** to route it manually. Board size is editable in millimetres.
+
+Shortcuts: **R** rotate, **W** wire, **V** select, **⌘D** duplicate, **⌘C / ⌘V** copy and paste, **Delete** remove, **⌘Z / ⇧⌘Z** undo and redo, **⌘N / ⌘O / ⌘S** new/open/save. Pan with a trackpad or Space-drag; pinch to zoom. Resize the component library at its right edge or collapse it.
+
+**Save** writes a `.pinway` document. **Open** validates and restores it. **Export SVG** exports the active view. A separate local recovery document protects work between launches. File replacement and quitting offer Save, Discard and Cancel.
+
+The initial nine-part library and manual, single-layer PCB layout support circuit planning and documentation. Footprints are illustrative; fabrication exports and design-rule checking are not implemented.
