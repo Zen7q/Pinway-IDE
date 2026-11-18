@@ -1168,11 +1168,14 @@ const workspaceSwitch = document.createElement('div');
 workspaceSwitch.className = 'workspace-switch';
 workspaceSwitch.innerHTML = '<button id="workspace-toggle" aria-haspopup="menu" aria-expanded="false"><span>Pinway Code</span><svg><use href="#i-down"></use></svg></button><div id="workspace-options" class="popover" role="menu" hidden><button data-workspace="code" role="menuitem"><span>Pinway Code<small>Write and upload firmware</small></span><span class="workspace-check">✓</span></button><button data-workspace="build" role="menuitem"><span>Pinway Build<small>Design an electronic circuit</small></span><span class="workspace-check"></span></button></div>';
 document.querySelector('.title').before(workspaceSwitch);
+const appMark = document.createElement('img');
+appMark.src = 'Pinway.svg'; appMark.alt = ''; appMark.className = 'workspace-logo';
+$('workspace-toggle').prepend(appMark);
 $('caption').textContent = '';
 const workspaceClose = () => { $('workspace-options').hidden = true; $('workspace-toggle').setAttribute('aria-expanded', 'false'); };
 $('workspace-toggle').onclick = () => { const opening = $('workspace-options').hidden; closeMenus(); $('workspace-options').hidden = !opening; $('workspace-toggle').setAttribute('aria-expanded', String(opening)); };
 workspaceSwitch.addEventListener('click', e => {
-  const button = e.target.closest('[data-workspace]'); if (!button) return;
+  const button = e.target.closest('button[data-workspace]'); if (!button || !workspaceSwitch.contains(button)) return;
   const build = button.dataset.workspace === 'build';
   workspaceClose();
   $('workspace-toggle').querySelector('span').textContent = build ? 'Pinway Build' : 'Pinway Code';

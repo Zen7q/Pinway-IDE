@@ -117,3 +117,37 @@
 .design-preview {display:flex;align-items:center;justify-content:center;overflow:hidden}
 .design-preview svg {width:64px;height:47px;max-width:64px;max-height:47px;display:block;overflow:hidden}
 .design-viewport:focus-visible {outline:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+
+/* Independent workspace panels, matching Pinway Code. */
+#designer {border:0;border-radius:0;background:transparent;overflow:visible;margin-bottom:8px}
+.design-sidebar {display:flex;flex:none;min-height:0;overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.design-editor {border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.design-properties {margin-left:8px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.design-sash {width:8px;margin:0;border:0;background:transparent}
+.design-sash::after {content:'';position:absolute;inset:8px 3px;border-radius:2px}
+.design-sash:hover {background:transparent}
+.design-sash:hover::after,.design-sash:focus-visible::after {background:var(--accent)}
+.design-document {height:40px}
+.design-document .design-view-title {margin-left:auto;margin-right:0;min-width:0;text-align:right;white-space:nowrap}
+.design-document .design-view-title small {display:none}
+.design-document .design-view-title span {font-size:10px;font-weight:400;color:var(--sub)}
+#design-title {width:180px}
+
+/* The Build controls live in the application title bar. */
+[data-workspace=build] .chrome .title {display:none}
+[data-workspace=build] .chrome .zoom-controls {margin-inline-end:0;flex:none}
+#design-topbar {display:flex;align-items:center;gap:7px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:none;-webkit-app-region:no-drag}
+#design-topbar::-webkit-scrollbar {display:none}
+#design-topbar button {color:var(--soft);font:inherit;border-radius:5px;flex:none}
+#design-topbar button:active:not(:disabled) {transform:scale(.97)}
+#design-topbar button:disabled {opacity:.32}
+#design-topbar .design-files,#design-topbar .design-tools {display:flex;flex:none;align-items:center;gap:3px;padding:3px;border:1px solid var(--border);border-radius:8px;background:var(--surface);height:34px}
+#design-topbar .design-files button {display:grid;place-items:center;height:26px;width:27px}
+#design-topbar .design-files button:hover {background:var(--muted)}
+#design-topbar .design-files svg {width:14px;height:14px}
+#design-topbar .design-tools .design-flex {width:5px;flex:none}
+#design-topbar #design-zoom {font-size:10px;min-width:42px}
+#design-topbar #design-wire {height:24px}
+@media(max-width:1100px) {[data-workspace=build] .chrome .zoom-controls{display:none}.design-document .design-view-title{display:none}}
+.workspace-logo {display:block;width:23px;height:23px;border-radius:5px;flex:none}
+.design-collapsed .design-sidebar {margin-right:8px}
