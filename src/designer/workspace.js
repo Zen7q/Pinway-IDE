@@ -24,8 +24,9 @@ export function mountDesigner({call,onVisibility,settings}) {
   const tools=root.querySelector('.design-tools'),files=root.querySelector('.design-document nav');
   tools.setAttribute('role','toolbar');tools.setAttribute('aria-label','Build tools');
   root.querySelector('.design-document>div').append(tools.querySelector('.design-view-title'));
-  files.classList.add('design-files');controls.append(files,tools);
-  document.querySelector('.chrome .zoom-controls').before(controls);
+  files.classList.add('design-files');controls.append(files);
+  root.querySelector('.design-editor').append(tools);
+  document.querySelector('.chrome .zoom-controls').after(controls);
   const sash=document.createElement('div');sash.className='design-sash';sash.role='separator';sash.tabIndex=0;sash.setAttribute('aria-label','Component library width');sash.setAttribute('aria-orientation','vertical');root.querySelector('.design-editor').before(sash);
   root.style.setProperty('--library-width',(Number(localStorage.getItem('pinway-designer-width'))||218)+'px');
   sash.onpointerdown=e=>{sash.setPointerCapture(e.pointerId);const start=e.clientX,width=root.querySelector('.design-parts').getBoundingClientRect().width;sash.onpointermove=e=>{const next=Math.max(155,Math.min(380,width+e.clientX-start));root.style.setProperty('--library-width',next+'px');localStorage.setItem('pinway-designer-width',next);};sash.onpointerup=()=>{sash.onpointermove=null;};};
@@ -64,9 +65,9 @@ export function mountDesigner({call,onVisibility,settings}) {
     $('design-dirty').textContent=file?(saved===snapshot()?'Saved':'Edited'):'Local draft';
     $('design-count').textContent=`${circuit.parts.length} components · ${circuit.links.length} wires`;
     $('design-part-count').textContent=circuit.parts.length;
-    controls.querySelector('[data-action=undo]').disabled=!history.length;controls.querySelector('[data-action=redo]').disabled=!future.length;
-    for(const action of ['rotate','duplicate'])controls.querySelector(`[data-action=${action}]`).disabled=!partById(selection);
-    controls.querySelector('[data-action=delete]').disabled=!selection;
+    tools.querySelector('[data-action=undo]').disabled=!history.length;tools.querySelector('[data-action=redo]').disabled=!future.length;
+    for(const action of ['rotate','duplicate'])tools.querySelector(`[data-action=${action}]`).disabled=!partById(selection);
+    tools.querySelector('[data-action=delete]').disabled=!selection;
   }
   function commit(previous) {
     if(previous===snapshot())return;
@@ -163,7 +164,7 @@ export function mountDesigner({call,onVisibility,settings}) {
   function zoom(factor,anchor={x:viewport.clientWidth/2,y:viewport.clientHeight/2}){const c=camera(),scale=Math.max(.15,Math.min(4,c.scale*factor));c.x+=anchor.x/c.scale-anchor.x/scale;c.y+=anchor.y/c.scale-anchor.y/scale;c.scale=scale;draw();}
   function world(e){const b=viewport.getBoundingClientRect(),c=camera();return{x:c.x+(e.clientX-b.left)/c.scale,y:c.y+(e.clientY-b.top)/c.scale};}
   function setMode(next){mode=next;pending=null;selection='';hover.clear();for(const m of MODES)root.querySelector(`[data-action=${m}]`).setAttribute('aria-pressed',m===mode);$('design-view').textContent={breadboard:'Breadboard',schematic:'Schematic',pcb:'PCB'}[mode];$('design-subtitle').textContent={breadboard:'PROTOTYPING',schematic:'CIRCUIT DIAGRAM',pcb:'BOARD LAYOUT'}[mode];render();fit();}
-  function changeTool(next){tool=next;pending=null;for(const t of ['select','wire'])controls.querySelector(`[data-action=${t}]`).setAttribute('aria-pressed',t===next);draw();viewport.focus();}
+  function changeTool(next){tool=next;pending=null;for(const t of ['select','wire'])tools.querySelector(`[data-action=${t}]`).setAttribute('aria-pressed',t===next);draw();viewport.focus();}
   function wireTerminal(ref){if(!contactPosition(ref))return;
     if(!pending){pending={a:ref,points:[],cursor:contactPosition(ref)};notice('Choose the next contact. Click the canvas to add bends. Escape cancels.');draw();return;}
     if(key(pending.a)===key(ref)){pending=null;draw();return;}
