@@ -1,0 +1,19 @@
+#include "hardware.h"
+#include "display_ui.h"
+#include "touch.h"
+
+const int ledPin = 14;      // Пін світлодіода (часто вбудований LED на GPIO 2, або підключи свій через резистор ~220-330 Ом)
+int brightness = 190;      // Змінна яскравості: від 0 (вимкнений) до 255 (максимум)
+
+void setup() {
+  // Налаштовуємо пін на ШІМ: пін, частота (5000 Гц), роздільна здатність (8 біт = 0..255)
+  ledcAttach(ledPin, 5000, 8);
+}
+
+void loop() {
+  // Змінюй значення змінної brightness — і яскравість зміниться
+  brightness = 20;         // Наприклад, тьмяне світло (0..255)
+  ledcWrite(ledPin, brightness);
+
+  delay(1000);
+}

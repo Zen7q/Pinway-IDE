@@ -8,6 +8,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import completions from './arduino-completions.json';
 import { pinouts } from './pinouts';
 import { mountDesigner } from './designer/workspace';
+import { mountDisplay } from './display/workspace';
 import plotData from './plot-data.cjs';
 const { parsePlotLine } = plotData;
 
@@ -55,6 +56,7 @@ const editorAppearance = new Compartment();
 const editorWrapping = new Compartment();
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
 let autosaveTimer;
+let discardDisplayOnClose = false;
 let saveQueue = Promise.resolve();
 function lightTheme() {
   return preferences.theme === 'light' || (preferences.theme === 'system' && !systemTheme.matches);
@@ -450,7 +452,7 @@ function createState(file, content) {
         if (activeFile === file) {
           if (update.docChanged && wasDirty !== isDirty(doc)) renderTabs();
           if (update.docChanged || update.selectionSet) cursor(update.state);
-          if (update.docChanged) { scheduleRecovery(); scheduleAutosave(); }
+          if (update.docChanged) { scheduleRecovery(); scheduleAutosave(); void display.refreshCode(); }
         }
       })
     ]
@@ -514,17 +516,21 @@ async function persistFiles(all) {
     await call('write', { file, content: next });
     doc.saved = next;
   }
+  await display.save();
   renderTabs();
   await rememberSession();
 }
 async function canClose() {
-  if (![...files.values()].some(isDirty)) return true;
+  discardDisplayOnClose = false;
+  if (![...files.values()].some(isDirty) && !display.dirty) return true;
   const choice = await call('dirtyPrompt');
   if (choice === 2) return false;
   if (choice === 0) await save(true);
+  else discardDisplayOnClose = true;
   return true;
 }
 async function acceptProject(value, session) {
+  if (discardDisplayOnClose) { display.discardChanges(); discardDisplayOnClose = false; }
   clearTimeout(recoveryTimer);
   recoveryTimer = undefined;
   restoringSession = !!session;
@@ -613,7 +619,9 @@ async function acceptProject(value, session) {
     status('Готово');
   }
   await designer.setProject(value);
+  await display.setProject(value);
   if (designer.active) await designer.activate(true);
+  if (display.active) display.activate(true);
 }
 async function changeProject(action) {
   if (changing || task) return false;
@@ -983,9 +991,12 @@ async function build(upload) {
   renderProblems();
   showDiagnostics();
   try {
+    selection.display = await display.prepareBuild();
     await save(true);
     buildSnapshots = new Map([...files].map(([k, v]) => [k, v.saved]));
     const result = await call('build', selection);
+    await loadFolder(project.root);renderTree();
+    if(result.generatedConflicts)display.showGenerationConflicts(result.generatedConflicts);
     report = result.diagnostics;
     renderProblems();
     // Apply diagnostics to files that haven't been opened yet as well.
@@ -1173,9 +1184,26 @@ const designer = mountDesigner({ call, settings: () => $('settings-view').click(
   $('caption').textContent = active ? '' : project?.name || '';
   closeMenus();
 } });
+const display = mountDisplay({ call, preferences: () => preferences,
+  async codeSource() {
+    if(!project)return '';
+    return files.get(project.primary)?.state.sliceDoc() ?? await call('read',project.primary);
+  },
+  onNew: () => newDialog(), onOpen: () => changeProject(() => call('select')),
+  onChange: () => scheduleAutosave(), onSave: () => save(true),
+  onVisibility(active) {
+    for (const id of ['workbench', 'toolbar', 'device-status', 'cursor', 'encoding']) $(id).hidden = active || !project;
+    $('welcome').hidden = active || !!project;
+    $('home').hidden = !project;
+    document.querySelector('.statusbar').hidden = active;
+    $('caption').textContent = active ? '' : project?.name || '';
+    if (active) document.documentElement.dataset.workspace = 'display';
+    closeMenus();
+  }
+});
 const workspaceSwitch = document.createElement('div');
 workspaceSwitch.className = 'workspace-switch';
-workspaceSwitch.innerHTML = '<button id="workspace-toggle" aria-haspopup="menu" aria-expanded="false"><span>Pinway Code</span><svg><use href="#i-down"></use></svg></button><div id="workspace-options" class="popover" role="menu" hidden><button data-workspace="code" role="menuitem"><span>Pinway Code<small>Write and upload firmware</small></span><span class="workspace-check">✓</span></button><button data-workspace="build" role="menuitem"><span>Pinway Build<small>Design an electronic circuit</small></span><span class="workspace-check"></span></button></div>';
+workspaceSwitch.innerHTML = '<button id="workspace-toggle" aria-haspopup="menu" aria-expanded="false"><span>Pinway Code</span><svg><use href="#i-down"></use></svg></button><div id="workspace-options" class="popover" role="menu" hidden><button data-workspace="code" role="menuitem"><span>Pinway Code<small>Write and upload firmware</small></span><span class="workspace-check">✓</span></button><button data-workspace="build" role="menuitem"><span>Pinway Build<small>Design an electronic circuit</small></span><span class="workspace-check"></span></button><button data-workspace="display" role="menuitem"><span>Pinway Display<small>Інтерфейси фізичних дисплеїв</small></span><span class="workspace-check"></span></button></div>';
 document.querySelector('.title').before(workspaceSwitch);
 $('caption').textContent = '';
 const workspaceClose = () => { $('workspace-options').hidden = true; $('workspace-toggle').setAttribute('aria-expanded', 'false'); };
@@ -1183,18 +1211,28 @@ $('workspace-toggle').onclick = () => { const opening = $('workspace-options').h
 workspaceSwitch.addEventListener('click', e => {
   const button = e.target.closest('button[data-workspace]'); if (!button || !workspaceSwitch.contains(button)) return;
   const build = button.dataset.workspace === 'build';
+  const isDisplay = button.dataset.workspace === 'display';
   workspaceClose();
-  $('workspace-toggle').querySelector('span').textContent = build ? 'Pinway Build' : 'Pinway Code';
+  $('workspace-toggle').querySelector('span').textContent = isDisplay ? 'Pinway Display' : build ? 'Pinway Build' : 'Pinway Code';
   for (const b of workspaceSwitch.querySelectorAll('[data-workspace]')) b.querySelector('.workspace-check').textContent = (b.dataset.workspace === button.dataset.workspace) ? '✓' : '';
-  void designer.activate(build).catch(error);
+  void designer.activate(build).then(() => { display.activate(isDisplay); if (build) return designer.activate(true); }).catch(error);
 });
 document.addEventListener('pointerdown', e => { if (!workspaceSwitch.contains(e.target)) workspaceClose(); });
 workspaceSwitch.onkeydown = e => {
-  if (e.key === 'Escape') { workspaceClose(); $('workspace-toggle').focus(); }
-  if (e.key === 'ArrowDown') { e.preventDefault(); $('workspace-options').hidden = false; $('workspace-toggle').setAttribute('aria-expanded', 'true'); workspaceSwitch.querySelector('[data-workspace=build]').focus(); }
-  if (e.key === 'ArrowUp') { e.preventDefault(); workspaceSwitch.querySelector('[data-workspace=code]').focus(); }
+  if (e.key === 'Escape') { workspaceClose(); $('workspace-toggle').focus(); return; }
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+  e.preventDefault();
+  $('workspace-options').hidden = false;
+  $('workspace-toggle').setAttribute('aria-expanded', 'true');
+  const items = [...workspaceSwitch.querySelectorAll('button[data-workspace]')];
+  const current = items.indexOf(document.activeElement);
+  const index = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 :
+    current < 0 ? (e.key === 'ArrowUp' ? items.length - 1 : 0) :
+    (current + (e.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
+  items[index].focus();
 };
 async function shortcut(action) {
+  if (display.shortcut(action)) return;
   if (await designer.shortcut(action)) return;
   if (action === 'save') await designer.flushProject();
   if (Object.hasOwn(zoomActions, action)) return zoomActions[action]();
@@ -1211,6 +1249,7 @@ async function shortcut(action) {
     changing = true;
     try {
       if (await canClose()) {
+        if (discardDisplayOnClose) { display.discardChanges(); discardDisplayOnClose = false; }
         quittingSession = true;
         await rememberSession(false);
         await call('quit', action === 'quit');

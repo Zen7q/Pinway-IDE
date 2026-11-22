@@ -1,0 +1,57 @@
+// Generated in the build copy. Binds directly to the variable defined in Code.
+#include <Arduino.h>
+#include <math.h>
+#include "display_ui.h"
+#include "display_frames.h"
+#include "touch.h"
+#include "pinway_dynamic.h"
+extern @TYPE@ @NAME@;
+extern void pinwayUser_setup();
+extern void pinwayUser_loop();
+namespace {
+uint16_t pixels[240*8];
+int previous=INT_MIN,activeSlider=-1;
+bool wasDown=false;
+void redraw(int value) {
+  const auto& frame=PinwayDynamic::frames[value-(@MIN@)];
+  for(int row=0;row<280;row+=8) {
+    const uint32_t first=uint32_t(row)*240,last=first+240*8;
+    uint32_t at=0;
+    for(const auto& run:DisplayFrames::off) {
+      const uint32_t end=at+run.count;
+      const uint32_t begin=max(at,first),finish=min(end,last);
+      for(uint32_t k=begin;k<finish;k++)pixels[k-first]=run.color;
+      at=end;if(at>=last)break;
+    }
+    for(uint32_t i=frame.first;i<frame.first+frame.count;i++) {
+      const auto& patch=PinwayDynamic::patches[i];
+      const uint32_t begin=max(patch.index,first),finish=min(patch.index+patch.count,last);
+      for(uint32_t k=begin;k<finish;k++)pixels[k-first]=patch.color;
+    }
+    displayPixelRows(pixels,row,8);
+  }
+}
+void tick() {
+  int x,y;bool down;
+  if(touchPosition(x,y,down)) {
+    if(down&&!wasDown) {
+      activeSlider=-1;
+      for(unsigned i=0;i<sizeof(PinwayDynamic::sliders)/sizeof(PinwayDynamic::sliders[0]);i++){
+        const auto& s=PinwayDynamic::sliders[i];
+        if(x>=s.x&&x<s.x+s.w&&y>=s.y&&y<s.y+s.h)activeSlider=i;
+      }
+    }
+    if(down&&activeSlider>=0) {
+      const auto& s=PinwayDynamic::sliders[activeSlider];
+      const double ratio=constrain(double(x-s.x)/double(max(1,s.w-1)),0.0,1.0);
+      @NAME@=(@TYPE@)lround((@MIN@)+ratio*((@MAX@)-(@MIN@)));
+    }
+    if(!down)activeSlider=-1;
+    wasDown=down;
+  }
+  const int value=constrain(int(lround(double(@NAME@))),@MIN@,@MAX@);
+  if(value!=previous){previous=value;redraw(value);Serial.printf("Pinway: @NAME@=%d\n",value);}
+}
+}
+void setup(){pinwayUser_setup();displayBegin();touchBegin();tick();}
+void loop(){tick();pinwayUser_loop();}

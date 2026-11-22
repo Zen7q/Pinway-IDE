@@ -260,12 +260,18 @@ pub struct BuildInput {
 }
 
 pub fn stage(project: &Project, workspace: &Path) -> Result<BuildInput> {
+    stage_inner(project, workspace, false)
+}
+pub fn stage_generated(project: &Project, workspace: &Path) -> Result<BuildInput> {
+    stage_inner(project, workspace, true)
+}
+fn stage_inner(project: &Project, workspace: &Path, force_copy: bool) -> Result<BuildInput> {
     let folder = project
         .root
         .file_name()
         .unwrap_or_default()
         .to_string_lossy();
-    if SKETCH.is_match(&folder) && project.primary == project.root.join(format!("{folder}.ino")) {
+    if !force_copy && SKETCH.is_match(&folder) && project.primary == project.root.join(format!("{folder}.ino")) {
         return Ok(BuildInput {
             directory: project.root.clone(),
             staged_primary: None,

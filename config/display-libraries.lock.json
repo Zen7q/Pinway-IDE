@@ -1,0 +1,145 @@
+{
+  "format": "pinway.display-libraries-lock/1",
+  "libraries": [
+    {
+      "id": "LovyanGFX",
+      "repository": "lovyan03/LovyanGFX",
+      "tag": "1.3.0",
+      "url": "https://codeload.github.com/lovyan03/LovyanGFX/zip/refs/tags/1.3.0",
+      "headers": [
+        "src/LovyanGFX.hpp"
+      ],
+      "role": "color-touch",
+      "sha256": "33429adfed764f91205a3b6b1149a6c12f07f53f0d9d3d025511c7a62003dd6e",
+      "tree_sha256": "be8d3001f9d08d459fdfe87cdaf776503801b4b029a234b80d077f2deb0109b6",
+      "name": "LovyanGFX",
+      "version": "1.3.0"
+    },
+    {
+      "id": "TFT_eSPI",
+      "repository": "Bodmer/TFT_eSPI",
+      "tag": "V2.5.43",
+      "url": "https://codeload.github.com/Bodmer/TFT_eSPI/zip/refs/tags/V2.5.43",
+      "headers": [
+        "TFT_eSPI.h"
+      ],
+      "role": "color",
+      "sha256": "c2c7aaeb3e9ceae84d0295c5641a4946ced8cd55fbe6f59c4c3e71f1bb88d461",
+      "tree_sha256": "40816af9c5fca71ed538110c1a457958bad75d3aeddb9b506602cb46e14df3ad",
+      "name": "TFT_eSPI",
+      "version": "2.5.43"
+    },
+    {
+      "id": "U8g2",
+      "repository": "olikraus/U8g2_Arduino",
+      "tag": "2.36.19",
+      "url": "https://codeload.github.com/olikraus/U8g2_Arduino/zip/refs/tags/2.36.19",
+      "headers": [
+        "src/U8g2lib.h"
+      ],
+      "role": "monochrome",
+      "sha256": "0d66b0adbcdc72b6cccad7f0f85c1a403bb36ec3846045908af3e0c7a58ca7c3",
+      "tree_sha256": "5dea2faa06d430af5942b9b250fabba2781130f44a65dd670a44331d95e3e256",
+      "name": "U8g2",
+      "version": "2.36.18"
+    },
+    {
+      "id": "hd44780",
+      "repository": "duinoWitchery/hd44780",
+      "tag": "1.3.2",
+      "url": "https://codeload.github.com/duinoWitchery/hd44780/zip/refs/tags/1.3.2",
+      "headers": [
+        "hd44780.h"
+      ],
+      "role": "character",
+      "sha256": "a014545e8da0432a7f101147aaabc347fee1a449ee141981791608a79fa7ffaa",
+      "tree_sha256": "62a3fc5a4c7fb51194b1cbf85b0cb8c92b0c236f56814d82ac25ab573c830956",
+      "name": "hd44780",
+      "version": "1.3.2"
+    },
+    {
+      "id": "GxEPD2",
+      "repository": "ZinggJM/GxEPD2",
+      "tag": "1.6.9",
+      "url": "https://codeload.github.com/ZinggJM/GxEPD2/zip/refs/tags/1.6.9",
+      "headers": [
+        "src/GxEPD2_BW.h"
+      ],
+      "role": "epaper",
+      "sha256": "e09351ecfa5cb60315a4dfc5045aadd48b92eb187d5842bbe0f9454e694939b8",
+      "tree_sha256": "ba77a19f97e63b952eae88c6079c1ee92f1c3f940863c2cfbd1704406b2b6f9e",
+      "name": "GxEPD2",
+      "version": "1.6.9"
+    },
+    {
+      "id": "XPT2046_Touchscreen",
+      "repository": "PaulStoffregen/XPT2046_Touchscreen",
+      "tag": "v1.4",
+      "url": "https://codeload.github.com/PaulStoffregen/XPT2046_Touchscreen/zip/refs/tags/v1.4",
+      "headers": [
+        "XPT2046_Touchscreen.h"
+      ],
+      "role": "touch",
+      "sha256": "3825051a416968cd61342efb1c7eec2ebf2fc8540e34af09c76a2416a40a5fca",
+      "tree_sha256": "d35b570f2571648ebe466d647a52ba461d9df1493ab75afb997b176ccb58d4ce",
+      "name": "XPT2046_Touchscreen",
+      "version": "1.4"
+    },
+    {
+      "id": "Adafruit_FT6206",
+      "repository": "adafruit/Adafruit_FT6206_Library",
+      "tag": "1.1.1",
+      "url": "https://codeload.github.com/adafruit/Adafruit_FT6206_Library/zip/refs/tags/1.1.1",
+      "headers": [
+        "Adafruit_FT6206.h"
+      ],
+      "role": "touch",
+      "sha256": "77638b75839bb81c042cc7aefe4dc52cb854688a802f76a9bac4a7a9dd9424ea",
+      "tree_sha256": "bd6019c27953a84f2a95d335e836f06498f01dd7c9f5a03184475f58045fb880",
+      "name": "Adafruit FT6206 Library",
+      "version": "1.1.1"
+    },
+    {
+      "id": "Adafruit_GFX",
+      "repository": "adafruit/Adafruit-GFX-Library",
+      "tag": "1.13.0",
+      "url": "https://codeload.github.com/adafruit/Adafruit-GFX-Library/zip/refs/tags/1.13.0",
+      "headers": [
+        "Adafruit_GFX.h"
+      ],
+      "role": "dependency",
+      "sha256": "048c10262af0629e2f03b7aa5338b44944039f90b04e19ed6b1c662c767177da",
+      "tree_sha256": "b519ba9087a7d1c0bcdd17d39d19f254f665091384d6edccad5a31dec795aa11",
+      "name": "Adafruit GFX Library",
+      "version": "1.13.0"
+    },
+    {
+      "id": "Adafruit_BusIO",
+      "repository": "adafruit/Adafruit_BusIO",
+      "tag": "1.17.4",
+      "url": "https://codeload.github.com/adafruit/Adafruit_BusIO/zip/refs/tags/1.17.4",
+      "headers": [
+        "Adafruit_I2CDevice.h"
+      ],
+      "role": "dependency",
+      "sha256": "e29b45a03874be4c054b04421073675efef5a950b2577b363cff8f17e90db26c",
+      "tree_sha256": "f598c56d36c1db12e824230cadcee86c612ef8cba6dd53c9ab4808be7c30282d",
+      "name": "Adafruit BusIO",
+      "version": "1.17.4"
+    },
+    {
+      "id": "Adafruit_ILI9341",
+      "repository": "adafruit/Adafruit_ILI9341",
+      "tag": "1.7.0",
+      "url": "https://codeload.github.com/adafruit/Adafruit_ILI9341/zip/refs/tags/1.7.0",
+      "headers": [
+        "Adafruit_ILI9341.h"
+      ],
+      "role": "dependency",
+      "sha256": "f26bf5d802473edca40a8657b008770231b4141219c67edf19507703c95e2859",
+      "tree_sha256": "d602e8e1ae6fb797b20b2d97adec199619ff5b099fcec597866db3fd10050bb8",
+      "name": "Adafruit ILI9341",
+      "version": "1.7.0"
+    }
+  ]
+}

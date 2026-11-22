@@ -158,6 +158,16 @@ impl Arduino {
         }
     }
 
+    pub fn display_libraries(&self) -> Option<PathBuf> {
+        let path=self.runtime.parent()?.join("display-libraries");
+        path.join("manifest.json").is_file().then_some(path)
+    }
+    pub fn bundled_versions(&self) -> Result<serde_json::Map<String,Value>> {
+        let Some(path)=self.display_libraries() else {return Ok(serde_json::Map::new());};
+        let data:Value=serde_json::from_slice(&fs::read(path.join("manifest.json")).map_err(err)?).map_err(err)?;
+        Ok(array(&data["libraries"]).iter().map(|v|(text(&v["name"]).to_string(),v["version"].clone())).collect())
+    }
+
     pub fn prepare(&self) -> Result<()> {
         let mut ready = self.ready.lock().unwrap();
         if *ready {

@@ -10,3 +10,6 @@ src-tauri/icons/Pinway.icns
 native/target/
 
 /target/
+
+# Generated Arduino example builds
+/examples/**/build/

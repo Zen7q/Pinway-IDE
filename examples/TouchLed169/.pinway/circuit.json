@@ -1,0 +1,10 @@
+{
+  "format": "pinway.design/1",
+  "board": {
+    "x": 600.0,
+    "y": 400.0
+  },
+  "parts": [],
+  "links": [],
+  "routing": {}
+}

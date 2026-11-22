@@ -94,3 +94,30 @@ Shortcuts: **R** rotate, **W** wire, **V** select, **⌘D** duplicate, **⌘C / 
 **New project** and **Open project** use the same project workflow as Code. **Save project** saves the code and circuit together. Build changes are also saved automatically to `.pinway/circuit.json` inside the active project. Each project keeps its own components, wiring and layouts; switching projects flushes the current circuit first. The former unassigned circuit is adopted once by the first opened project, with its original recovery retained as a backup. **Export SVG** exports the active view.
 
 The initial nine-part library and manual, single-layer PCB layout support circuit planning and documentation. Footprints are illustrative; fabrication exports and design-rule checking are not implemented.
+
+
+## Display — редактор і локальне превʼю
+
+У меню Code / Build додано Pinway Display. Макет належить тому самому проєкту й зберігається в `.pinway/display.json` через спільне збереження та глобальне налаштування автозбереження. Можна почати без плати й фізичного дисплея.
+
+Перший етап містить сторінки, шари, графічні елементи, символьне полотно, drag/resize, grid/guides, undo/redo, копіювання, імпорт raster images, локальні змінні та інтерактивне превʼю з мапою переходів. Для Waveshare 1.69″ / classic ESP32 доступні автоматична генерація прошивки, драйвери, прив’язка числової змінної Code та переходи між сторінками. Подробиці й результати QA — у [DISPLAY-PLAN.md](DISPLAY-PLAN.md).
+
+Перевірка моделі: `npm run test:display`. Тести Rust storage: `npm test`. Browser harness без плати й доступу до користувацьких файлів: `node tests/display-harness.cjs`.
+
+
+Мінімальний апаратний приклад: [TouchLed169](examples/TouchLed169/README.md) — Waveshare 1.69″ Touch LCD 240×280 + classic ESP32 + LED. Самодостатній Arduino C++, компілюється на ESP32 core 3.3.12; дотик і керування яскравістю LED фізично перевірені. Нові проєкти можуть використовувати автоматичний профіль Waveshare без копіювання прикладу.
+
+
+## Сторінки Display та пакет драйверів
+
+У списку сторінок є меню ⋯ для перейменування, дублювання, вибору стартової сторінки, зміни порядку й видалення. Видалення підтверджується, повернення через ⌘Z.
+
+Початковий список сімейств дисплеїв та точні межі інтеграції: [DISPLAY-CATALOG.md](DISPLAY-CATALOG.md). Десктопна збірка постачає10version-pinned Arduino libraries для LCD/OLED/TFT/e-paper/touch та залежностей. Бібліотеки видно серед установлених, компілятор отримує app-owned library path автоматично. Користувацький Sketchbook не змінюється.
+
+Перед пакуванням один раз підготуй джерела `python3 scripts/display-libraries.py`; наступне пакування перевіряє SHA256 і копіює готовий offline pack. `python3 scripts/check-display-libraries.py` перевіряє API компіляцією без доступу до USB-портів. Встановлений драйвер і налаштований апаратний adapter для нового Display — окремі етапи: автоматичний module setup ще не реалізований для всього каталогу.
+
+## Автоматичний Waveshare у новому проєкті
+
+Display → Параметри полотна → Модель дисплея → Waveshare 1.69″ Touch LCD → Налаштувати контакти. Далі Code → Перевірити / Завантажити. Драйвери LCD/тачу, графіка, переходи між сторінками та запуск створюються автоматично; основний .ino не переписується. Інструкція й межі підтримки: [DISPLAY-WAVESHARE.md](DISPLAY-WAVESHARE.md).
+
+Перевірено через підписану native app на новому Yo, який спочатку мав тільки .ino: успішна ESP32 збірка481251bytesFlash/28160bytesRAM, дві сторінки й brightness0–255. 15JS/23Rust tests пройшли; усі257PNGстанів двох сторінок збігаються з generatedRGB565, streaming8rows також перевірено. Нова автоматична прошивка фізично не перевірялася: користувач попросив завершити без плати.

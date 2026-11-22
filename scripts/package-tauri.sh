@@ -10,6 +10,7 @@ if [[ "${1:-}" == --test ]]; then
   npm run ui:tauri
   exec cargo test --locked --manifest-path src-tauri/Cargo.toml
 fi
+python3 scripts/display-libraries.py --verify
 bash scripts/assets.sh
 mkdir -p src-tauri/icons
 cp dist/Pinway.icns src-tauri/icons/Pinway.icns
@@ -40,6 +41,8 @@ res="$app/Contents/Resources"
 mkdir -p "$res"
 cp -cR .toolchain/runtime "$res/arduino"
 chmod 755 "$res/arduino"
+cp -cR .toolchain/display-libraries "$res/display-libraries"
+cp config/display-catalog.json "$res/display-catalog.json"
 cp THIRD_PARTY.md "$res/THIRD_PARTY.md"
 cp dist/npm-notices.txt "$res/npm-notices.txt"
 cp -R licenses "$res/Arduino-Licenses"

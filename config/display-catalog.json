@@ -1,0 +1,165 @@
+{
+  "format": "pinway.display-catalog/1",
+  "scope": "Initial common controller families, not a sales popularity ranking. Modules with matching size may have different controllers and wiring.",
+  "entries": [
+    {
+      "id": "ssd1306",
+      "name": "OLED 0.96″ SSD1306",
+      "class": "mono",
+      "width": 128,
+      "height": 64,
+      "controller": "SSD1306",
+      "bus": [
+        "I2C",
+        "SPI"
+      ],
+      "touchVariants": [],
+      "libraries": [
+        "U8g2"
+      ],
+      "source": "https://learn.adafruit.com/monochrome-oled-breakouts",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "sh1106",
+      "name": "OLED 1.3″ SH1106",
+      "class": "mono",
+      "width": 128,
+      "height": 64,
+      "controller": "SH1106",
+      "bus": [
+        "I2C",
+        "SPI"
+      ],
+      "touchVariants": [],
+      "libraries": [
+        "U8g2"
+      ],
+      "source": "https://www.waveshare.com/product/displays/oled/1.3inch-oled-a.htm",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "st7735s",
+      "name": "TFT 1.8″ ST7735S",
+      "class": "color",
+      "width": 128,
+      "height": 160,
+      "controller": "ST7735S",
+      "bus": [
+        "SPI"
+      ],
+      "touchVariants": [],
+      "libraries": [
+        "LovyanGFX",
+        "TFT_eSPI"
+      ],
+      "source": "https://www.waveshare.com/product/displays/lcd-oled/1.8inch-lcd-module.htm",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "waveshare169",
+      "name": "Waveshare 1.69″ Touch LCD",
+      "class": "color",
+      "width": 240,
+      "height": 280,
+      "controller": "ST7789V2",
+      "bus": [
+        "SPI"
+      ],
+      "touchVariants": [
+        "CST816 family / I2C"
+      ],
+      "libraries": [
+        "LovyanGFX"
+      ],
+      "source": "https://www.waveshare.com/wiki/1.69inch_Touch_LCD_Module",
+      "pinwayAdapter": "verified-example-only",
+      "hardwareTested": true
+    },
+    {
+      "id": "gc9a01",
+      "name": "Waveshare 1.28″ Round Touch LCD",
+      "class": "color",
+      "width": 240,
+      "height": 240,
+      "controller": "GC9A01",
+      "bus": [
+        "SPI"
+      ],
+      "touchVariants": [
+        "CST816S/T / I2C"
+      ],
+      "libraries": [
+        "LovyanGFX"
+      ],
+      "source": "https://www.waveshare.com/wiki/1.28inch_Touch_LCD",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "ili9341",
+      "name": "TFT 2.8″ ILI9341",
+      "class": "color",
+      "width": 240,
+      "height": 320,
+      "controller": "ILI9341",
+      "bus": [
+        "SPI"
+      ],
+      "touchVariants": [
+        "FT6206/FT6236U for capacitive modules",
+        "XPT2046 for appropriate resistive modules"
+      ],
+      "libraries": [
+        "LovyanGFX",
+        "TFT_eSPI",
+        "Adafruit_ILI9341",
+        "XPT2046_Touchscreen",
+        "Adafruit_FT6206"
+      ],
+      "source": "https://www.adafruit.com/product/2770",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "hd44780",
+      "name": "LCD 1602 / 2004",
+      "class": "character",
+      "width": 16,
+      "height": 2,
+      "controller": "HD44780",
+      "bus": [
+        "parallel",
+        "I2C expander PCF8574"
+      ],
+      "touchVariants": [],
+      "libraries": [
+        "hd44780"
+      ],
+      "source": "https://github.com/duinoWitchery/hd44780",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    },
+    {
+      "id": "ssd1680",
+      "name": "E-paper 2.9″ GDEM029T94",
+      "class": "mono",
+      "width": 128,
+      "height": 296,
+      "controller": "SSD1680",
+      "bus": [
+        "SPI"
+      ],
+      "touchVariants": [],
+      "libraries": [
+        "GxEPD2"
+      ],
+      "source": "https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_290_T94.h",
+      "pinwayAdapter": "not-integrated",
+      "hardwareTested": false
+    }
+  ]
+}

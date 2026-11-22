@@ -2,6 +2,11 @@
 
 mod arduino;
 mod designer;
+mod display;
+mod display_firmware;
+mod display_dynamic;
+mod display_scene;
+mod display_managed;
 mod projects;
 
 use arduino::{Arduino, Monitor};
@@ -178,11 +183,32 @@ fn build(host: &Host, app: &AppHandle, payload: &Value) -> Result<Value> {
     }
     let dir = tempfile::tempdir().map_err(err)?;
     let workspace = fs::canonicalize(dir.path()).map_err(err)?;
-    let staged = projects::stage(&project, &workspace)?;
+    let mut layout=display::load(&project.root)?;
+    let managed=layout["hardware"]["profile"]=="waveshare169";
+    if managed {
+        if board!="esp32:esp32:esp32" {return Err("Для Waveshare 1.69″ вибери ESP32 Dev Module.".into());}
+        let input=&payload["display"];
+        layout.as_object_mut().ok_or("Некоректний Display")?.remove("hardwarePreview");
+        if input["source"]!=layout {return Err("Макет змінився. Повтори збірку.".into());}
+        let scene=&input["scene"];
+        let original=fs::read_to_string(&project.primary).map_err(err)?;
+        display_scene::entry(&original,scene)?;
+        let files=display_scene::generate(&layout,scene)?;
+        let conflicts=display_managed::sync(&project.root,&files)?;
+        if !conflicts.is_empty(){return Ok(json!({"ok":false,"diagnostics":[],"message":"Файли Display змінено вручну. Збірку зупинено без перезапису.","generatedConflicts":conflicts}));}
+    }
+    let generated = !payload["display"].is_null();
+    let staged = if generated { projects::stage_generated(&project, &workspace)? } else { projects::stage(&project, &workspace)? };
+    if managed {display_scene::stage_entry(&staged.directory,&payload["display"]["scene"])?;}
+    else {display_firmware::prepare(&project.root, &staged.directory, &payload["display"], board)?;}
+    if generated { emit(app, "console", json!("› Display: графіку та область дотику оновлено автоматично.\n")); }
     let output = workspace.join("output");
     let sketch = staged.directory.to_string_lossy().into_owned();
     emit(app, "console", json!(format!("› Компіляція: {board}\n")));
     let mut compile = vec!["compile".into()];
+    if let Some(libraries)=host.arduino.display_libraries() {
+        compile.extend(["--libraries".into(),libraries.to_string_lossy().into_owned()]);
+    }
     compile.extend(args.iter().cloned());
     compile.extend([
         "--build-path".into(),
@@ -291,6 +317,20 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
             Ok(Value::Null)
         }
         "designer" => designer::dispatch(app, p),
+        "display" => {
+            let project = host.project()?;
+            if p["root"].as_str() != project.root.to_str() {
+                return Err("Активний проєкт змінився. Display не записано в інший проєкт.".into());
+            }
+            match p["op"].as_str() {
+                Some("load") => display::load(&project.root),
+                Some("save") => {
+                    display::save(&project.root, &p["document"], &p["base"])?;
+                    Ok(Value::Null)
+                }
+                _ => Err("Невідома дія Display.".into()),
+            }
+        }
         "state" => {
             let session = host.session.lock().unwrap();
             let templates: Vec<_> = TEMPLATES
@@ -482,7 +522,7 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
         "build" => build(&host, app, &p),
         "installed" => {
             let result = cli.json(&["lib", "list"])?;
-            let entries: serde_json::Map<_, _> = arduino::array(&result["installed_libraries"])
+            let mut entries: serde_json::Map<_, _> = arduino::array(&result["installed_libraries"])
                 .iter()
                 .map(|x| {
                     (
@@ -491,6 +531,7 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
                     )
                 })
                 .collect();
+            entries.extend(cli.bundled_versions()?);
             Ok(Value::Object(entries))
         }
         "search" => {
