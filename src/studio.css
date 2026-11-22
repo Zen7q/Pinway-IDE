@@ -1,0 +1,162 @@
+/* Application primitives. Keep layout and canvas geometry in their workspace
+   stylesheets; shared panels, fields, selection and feedback live here. */
+:where(button,input,select) {font-family:var(--font-ui)}
+:where(button,input,select):focus-visible {outline:2px solid var(--focus);outline-offset:2px}
+:where(button):disabled {opacity:.32;cursor:default}
+:where(input,select) {background:var(--raised);border-color:var(--control-border);border-radius:var(--control-radius);color:var(--text);color-scheme:inherit}
+:where(input[type=checkbox]) {accent-color:var(--focus)}
+:where(dialog,.popover,.tools-picker,.dp-confirm,.dp-page-menu) {
+  background:var(--surface);border:1px solid var(--control-border);color:var(--text);
+  border-radius:var(--panel-radius);box-shadow:var(--popover-shadow);
+}
+dialog {padding:24px;box-shadow:var(--dialog-shadow);max-height:90vh;overflow:auto}
+dialog::backdrop {background:var(--backdrop)}
+.dialog-head h2 {font-size:19px;font-weight:600;letter-spacing:-.35px;line-height:1.5;margin:0}
+.dialog-head .eyebrow {margin-bottom:4px}
+.dialog-actions {gap:var(--space-2);margin-top:var(--space-5)}
+.field {gap:var(--space-2);margin-top:var(--space-4);color:var(--soft);font-size:12px}
+input:not([type=checkbox]):not([type=color]),select {min-height:30px}
+.button {border-radius:var(--control-radius);border-color:var(--control-border);background:var(--raised);color:var(--text);font-weight:500}
+.button:hover:not(:disabled),.icon-button:hover {background:var(--hover);color:var(--text)}
+.button.primary,[data-host=tauri] .button.primary {background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.button.primary:hover:not(:disabled),[data-host=tauri] .button.primary:hover:not(:disabled) {background:color-mix(in srgb,var(--selected) 80%,var(--focus))}
+.button.bare {background:transparent;border-color:transparent;color:var(--soft)}
+.icon-button {border-radius:var(--control-radius);color:var(--sub)}
+.menu-row,.tools-option {color:var(--text);border-radius:var(--control-radius)}
+.menu-row:hover,.tools-option:is(:hover,:focus-visible),.quick-result[aria-current=true] {background:var(--hover)}
+.menu-row small,.popover h3,.tools-field>span,.tools-select>span:last-child,.popover label {color:var(--sub)}
+.tools-select {background:var(--raised);border-color:var(--control-border);border-radius:var(--control-radius);color:var(--text)}
+.tools-select:hover:not(:disabled),.tools-select[aria-expanded=true] {background:var(--hover);border-color:var(--strong-border)}
+.tools-option[aria-selected=true] {background:var(--selected);color:var(--selected-text)}
+.tools-picker {padding:5px}
+#tools-menu {background:var(--surface);border-color:var(--control-border)}
+#tools-menu h3 {color:var(--sub)}
+.popover h3 {font:600 10px var(--font-ui);letter-spacing:1.1px}
+.popover hr {border-color:var(--border)}
+.folder-picker {background:var(--raised);border-color:var(--control-border)}
+
+/* Keep the native 56-point header and its zoom-independent window controls. */
+[data-host=tauri] .chrome .zoom-controls,[data-host=tauri] .toolbar,#design-topbar .design-files {
+  background:var(--surface);border-color:var(--border);border-radius:var(--toolbar-radius);
+}
+[data-host=tauri] .toolbar .button {background:var(--raised);border-color:var(--control-border)}
+[data-host=tauri] .toolbar .button:hover:not(:disabled) {background:var(--hover)}
+[data-host=tauri] .toolbar .button.primary {background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+[data-host=tauri] .sidebar,[data-host=tauri] .workspace {background:var(--surface);border-radius:var(--panel-radius);box-shadow:var(--panel-shadow)}
+[data-host=tauri] #workbench {padding-top:8px}
+[data-host=tauri] .side-views {background:var(--surface);padding:8px 4px;gap:4px;width:45px}
+.side-view {height:36px;border-radius:var(--control-radius)}
+.side-view:hover {background:var(--hover);color:var(--text)}
+[data-host=tauri] .side-view[aria-expanded=true] {background:var(--selected);color:var(--selected-text);box-shadow:none}
+.side-heading {padding:12px 8px 10px;gap:2px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.root-heading {font-weight:600}
+.tree-node {min-height:30px}
+[data-host=tauri] .tree-node.active,[data-host=tauri] .root-heading.active {background:var(--selected);color:var(--text);box-shadow:inset 0 0 0 1px var(--selected-border)}
+.tabs {padding:5px 5px 0;gap:2px;min-height:40px;align-items:stretch}
+.file-tab {border:1px solid transparent;border-radius:7px 7px 0 0;min-height:33px;padding:0 11px;font-size:12px}
+.file-tab:hover {background:var(--raised);color:var(--text)}
+[data-host=tauri] .file-tab.active {background:var(--raised);border-color:var(--control-border);border-bottom-color:transparent;box-shadow:none;color:var(--text)}
+.breadcrumb {background:var(--editor-bg);font-size:11px;color:var(--sub);padding:8px 14px}
+#split {background:var(--border)}
+#split:hover,#split:focus-visible {background:var(--focus)}
+.panel-bar {background:var(--surface);border-color:var(--border);padding:4px 8px;gap:3px;height:38px}
+.panel-tab {height:28px;padding:4px 8px;border:0;border-radius:var(--control-radius);color:var(--sub);font-size:11px}
+.panel-tab.active {background:var(--hover);color:var(--text);border:0}
+.panel-tab:hover {background:var(--raised);color:var(--text)}
+[data-host=tauri] .panel {background:var(--editor-bg)}
+.serial-filter,#serial-send,.plot-toolbar {background:var(--surface);gap:8px;border-bottom:1px solid var(--border)}
+#serial-send {border-top:1px solid var(--border);border-bottom:0}
+.statusbar,[data-host=tauri] .statusbar {background:var(--bg);border-color:var(--border);color:var(--sub)}
+#status[data-kind=success] {color:var(--success)}
+#status[data-kind=error],.error,.problem-kind {color:var(--danger)}
+.problem-kind[data-severity=warning] {color:var(--warning)}
+.connected .status-dot {background:var(--success)}
+#problem-count {background:var(--raised);color:var(--soft)}
+.log {color:var(--soft)}
+.library-toolbar {padding:12px 10px 0;gap:6px}
+#library-status {margin:10px;font-size:11px;color:var(--sub)}
+#library-results {padding:0 10px 10px}
+.library-row {padding:12px 4px;border-color:var(--border)}
+.library-row p {color:var(--sub);line-height:1.6;font-size:11px}
+.library-row small {color:var(--selected-text);font-size:10px}
+.pin-row {background:var(--raised);border-color:var(--border);border-radius:var(--control-radius)}
+.pin-row strong {color:var(--selected-text)}
+.pin-row span {color:var(--soft)}
+.settings-section {padding:16px 0}
+.settings-section h3 {font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:var(--sub)}
+.settings-row {gap:16px;min-height:44px;font-size:12px;color:var(--text)}
+.settings-row select {background:var(--raised)}
+
+/* The project hub uses Display's quiet dotted stage and bounded panels. */
+#welcome {background:radial-gradient(var(--canvas-dot) .6px,transparent .7px) 0 0/20px 20px,var(--bg)}
+.welcome-content {max-width:1120px;gap:7%;padding:64px 48px 36px}
+.hero h1 {font-weight:600;font-size:clamp(44px,6vw,68px);letter-spacing:-2.8px;line-height:1.1}
+.hero h1 span {color:var(--selected-text)}
+.hero p {color:var(--sub);font-size:14px;line-height:1.8;max-width:350px}
+.eyebrow {color:var(--sub);font-family:var(--font-ui);font-size:10px;font-weight:600;letter-spacing:1.6px}
+.recents {background:var(--surface);border:1px solid var(--border);border-radius:var(--panel-radius);box-shadow:var(--panel-shadow)}
+.section-heading {height:58px;border-color:var(--border);font-size:14px;font-weight:600;padding:0 16px}
+.counter {color:var(--sub)}
+.recent-row {padding:13px 16px;gap:12px;border-color:var(--border);color:var(--text)}
+.recent-row:hover {background:var(--raised)}
+.recent-row>span:first-child {color:var(--sub)}
+.recent-row small {color:var(--sub);max-width:100%;font-size:11px}
+.recent-row>div {min-width:0;flex:1}
+.welcome-footer {border-color:var(--border);color:var(--faint);letter-spacing:1px}
+.welcome-footer i {background:var(--success)}
+
+/* Circuit panels stay docked; the viewport itself and its coordinates do not move. */
+.design-sidebar,.design-editor,.design-properties {border-radius:var(--panel-radius);box-shadow:var(--panel-shadow);background:var(--surface)}
+.design-activity {background:var(--surface);padding:8px 4px;gap:4px;width:44px}
+#designer .design-activity button {width:35px;height:36px;border-radius:var(--control-radius)}
+#designer .design-activity button[aria-pressed=true] {background:var(--selected);color:var(--selected-text);box-shadow:none}
+.design-heading {height:58px;border-bottom:1px solid var(--border);padding:0 14px;margin-bottom:12px}
+.design-heading strong {font-size:14px;font-weight:600;letter-spacing:-.25px}
+.design-search {background:var(--raised);border-color:var(--control-border);margin:0 12px 10px;min-height:32px}
+.design-search:focus-within {outline:2px solid var(--focus);outline-offset:2px}
+.design-search input {min-height:0}
+.design-catalog h3,.design-outline h3,#design-board h3 {font:600 10px var(--font-ui);letter-spacing:1.1px;color:var(--sub)}
+#designer .design-card {border:1px solid transparent;margin-bottom:4px;background:var(--raised);border-radius:var(--control-radius);padding:8px}
+#designer .design-card:hover {background:var(--hover);border-color:var(--control-border)}
+.design-card>span:nth-child(2) {font-size:11px}
+.design-viewport {background:var(--bg)}
+.design-editor>.design-tools {background:var(--surface);border-color:var(--border);border-radius:var(--toolbar-radius);box-shadow:var(--panel-shadow)}
+.design-tools button[aria-pressed=true] {background:var(--selected);color:var(--selected-text)!important}
+.design-status {background:var(--surface);border-color:var(--border);color:var(--sub)}
+.design-properties h2 {font-size:16px;font-weight:600;letter-spacing:-.35px}
+.design-properties label {font-size:11px;color:var(--sub)}
+.design-properties input {background:var(--raised);border-color:var(--control-border);color:var(--text)}
+.design-outline button.selected {background:var(--selected);box-shadow:inset 0 0 0 1px var(--selected-border)}
+#designer .design-primary {background:var(--selected);border-color:var(--selected-border);color:var(--selected-text)}
+.design-welcome-symbol {background:var(--raised);color:var(--sub);border-color:var(--control-border);border-radius:var(--panel-radius)}
+.design-welcome h1 {font-weight:600}
+.design-eyebrow {font-family:var(--font-ui);font-weight:600}
+.dp-confirm input,.dp-hardware select {background:var(--raised);border-color:var(--control-border);color:var(--text)}
+.dp-confirm button {background:var(--raised);border-color:var(--control-border);color:var(--text)}
+.dp-confirm button:hover {background:var(--hover)}
+.dp-page-menu {font-family:var(--font-ui)}
+.dp-page-menu button:hover,.dp-page-menu button:focus-visible {background:var(--hover)}
+
+/* Editor overlays share the same fields, menus and focus states. Syntax colors
+   remain CodeMirror's; neither this nor the UI font changes source contents. */
+.cm-editor .cm-tooltip,.cm-editor .cm-panels {background:var(--surface);color:var(--text);border-color:var(--control-border);font-family:var(--font-ui)}
+.cm-editor .cm-tooltip {border-radius:var(--control-radius);box-shadow:var(--popover-shadow);overflow:hidden}
+.cm-editor .cm-tooltip-autocomplete ul li[aria-selected] {background:var(--selected);color:var(--text)}
+.cm-editor .cm-search input {background:var(--raised);color:var(--text);border:1px solid var(--control-border);min-height:26px}
+.cm-editor .cm-search button {background:var(--raised);color:var(--text);border:1px solid var(--control-border);border-radius:var(--control-radius);padding:4px 8px}
+.cm-editor .cm-selectionBackground {background:var(--selected)!important}
+.cm-editor .cm-cursor {border-left-color:var(--text)}
+@media (prefers-reduced-motion:no-preference) {
+  .button:active:not(:disabled),.icon-button:active:not(:disabled) {transform:scale(.97)}
+}
+@media(max-width:900px) {
+  .chrome .title {font-size:12px}
+  #board-label {max-width:135px}
+  .welcome-content {padding-inline:32px;gap:5%}
+}
+@media(max-width:690px) {
+  .welcome-content {display:block;padding:32px 24px}
+  .recents {margin-top:32px}
+  .welcome-footer {display:flex;gap:12px;flex-wrap:wrap}
+  .side-heading {padding-inline:4px}
+}

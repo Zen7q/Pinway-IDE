@@ -252,12 +252,12 @@ function renderPlot() {
   ctx.font = '10px monospace';
   for (let i = 0; i <= 3; i++) {
     const y = top + (bottom - top) * i / 3;
-    ctx.strokeStyle = '#303947';
+    ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue('--border').trim();
     ctx.beginPath();
     ctx.moveTo(left, y);
     ctx.lineTo(right, y);
     ctx.stroke();
-    ctx.fillStyle = '#9baabe';
+    ctx.fillStyle = getComputedStyle(canvas).getPropertyValue('--sub').trim();
     ctx.fillText(formatter.format((max - (max - min) * i / 3) * magnitude), 4, y + 3, left - 9);
   }
   for (const [series, label] of labels.entries()) {

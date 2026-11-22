@@ -1,0 +1,75 @@
+/* Shared studio palette, extracted from Pinway Display. Canvas artwork and
+   circuit data keep their own colors; these tokens style the application UI. */
+:root {
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+  --bg:#131416;
+  --surface:#1e1f22;
+  --raised:#26272b;
+  --hover:#303136;
+  --inset:#17181a;
+  --border:#303136;
+  --control-border:#37393e;
+  --strong-border:#42454c;
+  --text:#ececee;
+  --sub:#9c9da4;
+  --soft:#b0b2ba;
+  --faint:#787d88;
+  --accent:#91baff;
+  --focus:#4c8dff;
+  --selected:#253145;
+  --selected-border:#4874b8;
+  --selected-text:#d6e6ff;
+  --success:#5cd08a;
+  --warning:#ffb030;
+  --danger:#ff9191;
+  --danger-surface:#593036;
+  --editor-bg:#151619;
+  --editor-text:var(--text);
+  --line-bg:#1e2025;
+  --muted:var(--raised);
+  --canvas-dot:#303136;
+  --canvas-frame:#101419;
+  --panel-radius:12px;
+  --control-radius:6px;
+  --toolbar-radius:10px;
+  --panel-shadow:0 8px 30px #0003;
+  --popover-shadow:0 12px 36px #0006;
+  --dialog-shadow:0 20px 80px #0008;
+  --backdrop:#0007;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+}
+[data-theme=light] {
+  --bg:#f1f2f4;
+  --surface:#fff;
+  --raised:#f4f5f7;
+  --hover:#e9ebef;
+  --inset:#ebedf1;
+  --border:#d8dbe1;
+  --control-border:#cbd0d8;
+  --strong-border:#afb6c2;
+  --text:#24262c;
+  --sub:#626875;
+  --soft:#505866;
+  --faint:#737b89;
+  --focus:#346dcc;
+  --selected:#e6edfa;
+  --selected-border:#7597d2;
+  --selected-text:#244b83;
+  --success:#268054;
+  --warning:#986107;
+  --danger:#b33f4e;
+  --danger-surface:#f9e6e8;
+  --editor-bg:#fcfcfd;
+  --line-bg:#f0f2f6;
+  --canvas-dot:#cfd3da;
+  --canvas-frame:#e9ecf2;
+  --panel-shadow:0 8px 30px #2026380a;
+  --popover-shadow:0 12px 36px #20263820;
+  --dialog-shadow:0 20px 80px #20263830;
+  --backdrop:#20263850;
+}
