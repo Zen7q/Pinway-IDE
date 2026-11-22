@@ -73,6 +73,7 @@ function applyPreferences() {
   const root = document.documentElement;
   root.dataset.theme = lightTheme() ? 'light' : 'dark';
   root.style.setProperty('--accent', preferences.accent);
+  root.dataset.accent = preferences.accent.toLowerCase() === '#91baff' ? 'default' : 'custom';
   root.style.colorScheme = lightTheme() ? 'light' : 'dark';
   localStorage.setItem('pinway.preferences', JSON.stringify(preferences));
   for (const doc of files.values()) {

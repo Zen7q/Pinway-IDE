@@ -73,3 +73,13 @@
   --dialog-shadow:0 20px 80px #20263830;
   --backdrop:#20263850;
 }
+/* The saved accent preference remains functional across all three workspaces. */
+[data-accent=custom] {
+  --focus:var(--accent);
+  --selected:color-mix(in srgb,var(--accent) 16%,var(--surface));
+  --selected-border:color-mix(in srgb,var(--accent) 58%,var(--border));
+  --selected-text:color-mix(in srgb,var(--accent) 70%,var(--text));
+}
+[data-theme=light][data-accent=custom] {
+  --selected-text:color-mix(in srgb,var(--accent) 30%,var(--text));
+}
