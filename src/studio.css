@@ -196,3 +196,23 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
   #clear {font-size:0;padding-inline:6px;min-width:26px}
   #clear::before {content:'×';font-size:18px;line-height:1}
 }
+#display-editor :is(input,select):focus-visible {outline:2px solid var(--focus);outline-offset:2px}
+/* Keep native WebKit's compact dock usable even without container queries. */
+.panel-bar {overflow-y:hidden;scrollbar-width:none}
+.panel-bar::-webkit-scrollbar {height:0}
+.tabs {flex-shrink:0}
+@media(max-width:1100px) {
+  .panel-tab {font-size:0;padding-inline:6px;min-width:28px;flex:none;gap:3px}
+  #clear {font-size:0;padding-inline:6px;min-width:26px}
+  #clear::before {content:'×';font-size:18px;line-height:1}
+}
+@media(max-width:690px) {
+  .tabs {min-height:34px;max-height:34px;padding:3px 3px 0;scrollbar-width:none}
+  .tabs::-webkit-scrollbar {height:0}
+  .file-tab {min-height:28px;font-size:11px}
+  .breadcrumb {flex-shrink:0;padding:3px 10px;font-size:10px;line-height:14px}
+  #editor {min-height:64px}
+  .panel-bar {height:34px;padding-block:3px}
+  .panel:not(.collapsed):has(#serial-view:not([hidden])) {min-height:164px}
+  #serial-log {padding-block:4px}
+}
