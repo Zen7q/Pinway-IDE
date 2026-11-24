@@ -127,7 +127,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
   function draw(){if(!defs.length||!enabled)return;
     const c=camera(),w=viewport.clientWidth/c.scale,h=viewport.clientHeight/c.scale;
     scene.setAttribute('viewBox',`${c.x} ${c.y} ${w} ${h}`);
-    scene.innerHTML=`<defs><pattern id="design-dots" patternUnits="userSpaceOnUse" width="10" height="10"><circle cx="0" cy="0" r=".55" fill="#748991" opacity=".3" stroke="none"/></pattern></defs><rect x="${c.x}" y="${c.y}" width="${w}" height="${h}" fill="url(#design-dots)"/>`+drawing()+
+    scene.innerHTML=drawing()+
       (pending?tag('path',{d:path([contactPosition(pending.a),...pending.points,pending.cursor].filter(Boolean)),stroke:$('design-wire').value,'stroke-width':2.4,'stroke-dasharray':'4 4',fill:'none','pointer-events':'none'}):'');
     root.querySelector('.design-welcome').hidden=circuit.parts.length>0;
     $('design-zoom').textContent=Math.round(c.scale*100)+'%';
