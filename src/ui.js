@@ -1329,6 +1329,11 @@ workspaceSwitch.onkeydown = e => {
   items[index].focus();
 };
 async function shortcut(action) {
+  if (action === 'settings' || action === 'updates') {
+    $('settings-view').click();
+    if (action === 'updates') $('update-check').click();
+    return;
+  }
   if (display.shortcut(action)) return;
   if (await designer.shortcut(action)) return;
   if (action === 'save') await designer.flushProject();

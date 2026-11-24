@@ -675,6 +675,9 @@ fn menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
             .build(app)
     };
     let application = SubmenuBuilder::new(app, "Pinway IDE")
+        .item(&item("settings", "Налаштування…", "CmdOrCtrl+,")?)
+        .item(&MenuItemBuilder::with_id("updates", "Перевірити оновлення…").build(app)?)
+        .separator()
         .hide()
         .hide_others()
         .show_all()

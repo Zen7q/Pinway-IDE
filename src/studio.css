@@ -365,3 +365,9 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 #setup-dialog .dialog-head>div {flex:1;min-width:0}
 .setup-logo {width:44px;height:44px;object-fit:contain;flex:none}
 @media(max-width:640px) {.brand-logo {width:48px;height:48px}.hero-title {gap:10px}.hero-title h1 {font-size:32px}}
+
+@media(max-width:690px) {
+  .chrome {gap:6px;padding-inline-end:8px}
+  .chrome>.update-badge {font-size:0;width:26px;min-width:26px;padding:0}
+  .chrome>.update-badge::after {content:'↑';font-size:16px}
+}

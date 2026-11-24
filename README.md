@@ -3,7 +3,7 @@
 # Pinway IDE
 
 [![Build and test](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml/badge.svg)](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.3.0-75dfbc)](https://github.com/Zen7q/Pinway-IDE/releases)
+[![Version](https://img.shields.io/badge/version-0.3.1-75dfbc)](https://github.com/Zen7q/Pinway-IDE/releases)
 [![License](https://img.shields.io/badge/license-source--available-75dfbc)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/Zen7q/Pinway-IDE/total)](https://github.com/Zen7q/Pinway-IDE/releases)
 
