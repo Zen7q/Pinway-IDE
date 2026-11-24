@@ -216,3 +216,8 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
   .panel:not(.collapsed):has(#serial-view:not([hidden])) {min-height:164px}
   #serial-log {padding-block:4px}
 }
+
+/* Compact workspace title; the start screen only retains native window controls. */
+.chrome .workspace-switch {width:auto;flex:none}
+#workspace-toggle {width:auto;justify-content:flex-start;gap:8px}
+#app:has(#welcome:not([hidden])) .chrome > * {visibility:hidden!important;pointer-events:none}
