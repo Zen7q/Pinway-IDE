@@ -326,3 +326,36 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 #display-editor .workspace-toolbar .dp-modes button {width:auto;height:28px;min-height:28px;padding:4px 8px}
 #designer .workspace-toolbar #design-zoom,#display-editor .workspace-toolbar .dp-zoom {width:auto;min-width:52px;font-size:11px;padding:4px 8px}
 #designer .workspace-toolbar #design-wire {box-sizing:border-box;width:32px;height:32px;margin:0;padding:4px;background:var(--raised);border:1px solid var(--control-border);border-radius:var(--control-radius)}
+
+/* Setup, optional packages and voluntary updates use the shared studio controls. */
+#setup-dialog {width:min(520px,92vw)}
+#setup-dialog section {min-height:235px}
+#setup-dialog h3 {margin:20px 0 10px;font-size:17px;font-weight:600;letter-spacing:-.3px}
+:is(#setup-dialog,#package-prompt,#update-dialog) p {color:var(--sub);line-height:1.65;font-size:12px;overflow-wrap:anywhere}
+#setup-step-label {color:var(--sub);font-size:11px;white-space:nowrap;padding-top:8px}
+.setup-steps {display:flex;gap:6px;margin:20px 0}
+.setup-steps span {height:3px;flex:1;border-radius:4px;background:var(--border)}
+.setup-steps .active {background:var(--focus)}
+.setup-choice {display:flex;gap:12px;align-items:center;border:1px solid var(--control-border);border-radius:10px;padding:14px;margin-top:10px;cursor:pointer;background:var(--raised)}
+.setup-choice:has(input:checked) {border-color:var(--selected-border);background:var(--selected)}
+.setup-choice input {width:17px;height:17px;flex:none;min-height:0}
+.setup-choice strong {display:block;font-size:13px;font-weight:550}
+.setup-choice small {display:block;margin-top:5px;font-size:11px;color:var(--sub);line-height:1.5}
+.setup-preview {margin:20px 0 0;display:flex;height:110px;overflow:hidden;border:1px solid var(--border);border-radius:9px;background:var(--editor-bg)}
+.setup-preview>span {width:25%;background:var(--raised);border-right:1px solid var(--border)}
+.setup-preview>div {padding:20px;flex:1}
+.setup-preview i {display:block;background:var(--selected-border);height:5px;border-radius:3px;width:72%;margin-bottom:10px}
+.setup-preview i:nth-child(2) {width:45%;background:var(--focus)}
+.setup-preview i:nth-child(3) {width:58%}
+.package-row {display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)}
+.package-row>div {min-width:0;flex:1}
+.package-row strong {font-size:12px;font-weight:550}
+.package-row small {display:block;color:var(--sub);font-size:11px;line-height:1.6;margin-top:4px}
+.package-row button {flex:none;min-width:88px}
+.installation-status {color:var(--sub);font-size:11px;line-height:1.6;overflow-wrap:anywhere;min-height:18px}
+.installation-status.error {color:var(--danger)}
+.hero-title {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hero-title h1 {margin-bottom:0}
+.update-badge {flex:none;font-size:10px;min-height:25px}
+.board-install {margin:8px;width:calc(100% - 16px);white-space:normal}
+@media(max-width:640px) {.package-row {gap:8px}.package-row button {min-width:76px}#setup-dialog section {min-height:220px}.update-badge {max-width:90px}}

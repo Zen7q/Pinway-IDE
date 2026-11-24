@@ -159,6 +159,8 @@ impl Arduino {
     }
 
     pub fn display_libraries(&self) -> Option<PathBuf> {
+        let installed = self.storage.join("modules").join(crate::releases::VERSION).join("display/libraries");
+        if installed.join("manifest.json").is_file() { return Some(installed); }
         let path=self.runtime.parent()?.join("display-libraries");
         path.join("manifest.json").is_file().then_some(path)
     }
@@ -204,6 +206,26 @@ impl Arduino {
             fs::rename(&out, &self.data).map_err(err)?;
         }
         *ready = true;
+        Ok(())
+    }
+
+    pub fn has_esp(&self) -> bool {
+        self.data.join("packages/esp32/hardware/esp32").read_dir()
+            .is_ok_and(|entries| entries.flatten().any(|entry| entry.path().join("platform.txt").is_file()))
+    }
+
+    pub fn change_esp(&self, install: bool, app: &AppHandle) -> Result<()> {
+        if install {
+            let update = self.run(&["core".into(), "update-index".into()], 180, Some(app.clone()))?;
+            if !update.ok { return Err(message(&update)); }
+        }
+        let args = if install {
+            vec!["core".into(), "install".into(), "esp32:esp32@3.3.12".into()]
+        } else {
+            vec!["core".into(), "uninstall".into(), "esp32:esp32".into()]
+        };
+        let output = self.run(&args, 1800, Some(app.clone()))?;
+        if !output.ok { return Err(message(&output)); }
         Ok(())
     }
 
@@ -307,6 +329,9 @@ impl Arduino {
             .data
             .join("packages/esp32/tools/esptool_py/5.3.1")
             .join(name);
+        if !tool.is_file() {
+            return Ok(json!({"board":null,"chip":"","needsPack":"esp32"}));
+        }
         let out = run_command(
             Command::new(tool).args([
                 "--port",

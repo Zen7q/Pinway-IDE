@@ -1,17 +1,19 @@
 {
   "name": "pinway-ide",
   "productName": "Pinway IDE",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "bash scripts/package-tauri.sh --dev",
-    "ui": "esbuild src/ui.js --bundle --outfile=src/ui.bundle.js",
+    "ui": "esbuild src/ui.js --bundle --minify --target=safari15 --outfile=src/ui.bundle.js",
     "seed": "bash scripts/toolchain.sh",
     "package": "npm run package:tauri",
     "test": "bash scripts/package-tauri.sh --test",
     "ui:tauri": "npm run ui && node scripts/tauri-ui.cjs",
-    "package:tauri": "bash scripts/package-tauri.sh",
-    "test:display": "node --test tests/display-model.test.mjs"
+    "package:tauri": "python3 scripts/package-desktop.py",
+    "test:display": "node --test tests/display-model.test.mjs",
+    "addons": "node scripts/build-addons.mjs && python3 scripts/display-libraries.py --verify && python3 scripts/package-addons.py",
+    "package:dmg": "python3 scripts/package-desktop.py"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "6.20.4",

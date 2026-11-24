@@ -13,3 +13,6 @@ native/target/
 
 # Generated Arduino example builds
 /examples/**/build/
+
+# Python packaging caches
+__pycache__/

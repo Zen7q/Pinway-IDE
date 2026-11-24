@@ -8,8 +8,7 @@ import { setDiagnostics, lintGutter } from '@codemirror/lint';
 import { oneDark } from '@codemirror/theme-one-dark';
 import completions from './arduino-completions.json';
 import { pinouts } from './pinouts';
-import { mountDesigner } from './designer/workspace';
-import { mountDisplay } from './display/workspace';
+import { mountInstallation } from './installation';
 import plotData from './plot-data.cjs';
 const { parsePlotLine } = plotData;
 
@@ -34,8 +33,8 @@ function button(cls, text, fn) {
   b.addEventListener('click', fn);
   return b;
 }
-const basename = p => p.split('/').at(-1);
-const dirname = p => p.slice(0, p.lastIndexOf('/')) || '/';
+const basename = p => p.split(/[\\/]/).at(-1);
+const dirname = p => p.slice(0, Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'))) || '/';
 const files = new Map();
 const folders = new Map();
 const projectProfiles = new Map(Object.entries(JSON.parse(localStorage.getItem('pinway.projectProfiles') || '{}')));
@@ -52,7 +51,11 @@ function saveProfile() {
   projectProfiles.set(project.primary, { board: manualBoard, options: Object.fromEntries(settings) });
   localStorage.setItem('pinway.projectProfiles', JSON.stringify(Object.fromEntries(projectProfiles)));
 }
-const preferences = { theme: 'dark', accent: '#91baff', fontSize: 13, wrap: true, autosave: false, restore: true, ...JSON.parse(localStorage.getItem('pinway.preferences') || '{}') };
+const preferences = { theme: 'system', accent: '#75dfbc', updates: true, fontSize: 13, wrap: true, autosave: false, restore: true, ...JSON.parse(localStorage.getItem('pinway.preferences') || '{}') };
+if (!localStorage.getItem('pinway.accent-default.v2')) {
+  if (preferences.accent.toLowerCase() === '#91baff') preferences.accent = '#75dfbc';
+  localStorage.setItem('pinway.accent-default.v2', 'true');
+}
 const editorAppearance = new Compartment();
 const editorWrapping = new Compartment();
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
@@ -74,7 +77,7 @@ function applyPreferences() {
   const root = document.documentElement;
   root.dataset.theme = lightTheme() ? 'light' : 'dark';
   root.style.setProperty('--accent', preferences.accent);
-  root.dataset.accent = preferences.accent.toLowerCase() === '#91baff' ? 'default' : 'custom';
+  root.dataset.accent = preferences.accent.toLowerCase() === '#75dfbc' ? 'default' : 'custom';
   root.style.colorScheme = lightTheme() ? 'light' : 'dark';
   localStorage.setItem('pinway.preferences', JSON.stringify(preferences));
   for (const doc of files.values()) {
@@ -399,7 +402,7 @@ function renderTree() {
           if (!child.folder) return await openFile(child.path);
           selectedFolder = child.path;
           if (folders.has(child.path)) {
-            for (const p of folders.keys()) if (p === child.path || p.startsWith(child.path + '/')) folders.delete(p);
+            for (const p of folders.keys()) if (p === child.path || p.startsWith(child.path + '/') || p.startsWith(child.path + '\\')) folders.delete(p);
           } else await loadFolder(child.path);
           renderTree();
         } catch (e) { error(e); }
@@ -487,7 +490,7 @@ async function openFile(file, location) {
   if (!editor) editor = new EditorView({ state: doc.state, parent: $('editor') });
   else editor.setState(doc.state);
   if (/\.(ino|pde|c|cc|cpp|cxx|h|hh|hpp)$/i.test(file)) editor.dispatch({ effects: completionMode.reconfigure(arduinoComplete()) });
-  $('breadcrumb').textContent = [project.name, ...file.slice(project.root.length + 1).split('/')].join('  ›  ');
+  $('breadcrumb').textContent = [project.name, ...file.slice(project.root.length + 1).split(/[\\/]/)].join('  ›  ');
   if (location) {
     const doc = editor.state.doc;
     const line = doc.line(Math.min(doc.lines, Math.max(1, location.line)));
@@ -620,8 +623,8 @@ async function acceptProject(value, session) {
     renderRecent();
     status('Готово');
   }
-  await designer.setProject(value);
-  await display.setProject(value);
+  await designer.setProject(installation.has('build') ? value : null);
+  await display.setProject(installation.has('display') ? value : null);
   if (!value) {
     await designer.activate(false);
     display.activate(false);
@@ -757,6 +760,11 @@ function renderBoards() {
   const favorites = matches.filter(p => favoriteBoards.has(p.id));
   addGroup('Улюблені', favorites);
   addGroup(favorites.length ? 'Інші плати' : '', matches.filter(p => !favoriteBoards.has(p.id)));
+  const addPacks = button('button board-install', installation.has('esp32') ? 'Керувати пакетами плат…' : 'Встановити пакет ESP32…', () => {
+    closeMenus();
+    if (installation.has('esp32')) $('settings-view').click(); else void installation.offer('esp32');
+  });
+  fragment.append(addPacks);
   menu.replaceChildren(fragment);
   menu.scrollTop = 0;
   $('board-catalog').textContent = catalogState || (matches.length ? String(matches.length) + ' профілів' : 'Плат не знайдено.');
@@ -948,6 +956,7 @@ async function detect(device) {
     const found = await call('probe', device.address);
     if (devicePort !== device.address || !devices.some(d => d.key === device.key)) return;
     chip = found.chip || '';
+    if (found.needsPack) { status('Для визначення ESP встановіть пакет ESP32 у налаштуваннях.'); return; }
     if (manualBoard) return;
     const genericId = chip ? 'esp32:esp32:' + chip.toLowerCase().replace('-', '') : '';
     const selected = profiles.find(p => p.id === (found.board?.id || genericId));
@@ -993,6 +1002,19 @@ async function build(upload) {
   showPanel('console');
   if (!board) { if ($('board-menu').hidden) toggleMenu('board'); return error(Error('Виберіть профіль плати у шапці.'), true); }
   if (upload && !devicePort) { if ($('tools-menu').hidden) toggleMenu('tools'); return error(Error('Виберіть підключений порт у Tools.'), true); }
+  if (board.id.startsWith('esp32:') && !installation.has('esp32')) { await installation.offer('esp32'); return; }
+  let layout;
+  changing = true;
+  try { layout = await call('display', { op: 'load', root: project.root }); }
+  catch (e) { error(e, true); return; }
+  finally { changing = false; }
+  if (layout?.hardware && !installation.has('display')) { await installation.offer('display'); return; }
+  if (layout?.hardware) {
+    changing = true;
+    try { await loadWorkspace('display'); }
+    catch (e) { error(e, true); return; }
+    finally { changing = false; }
+  }
   const selection = { upload, board: board.id, options: { ...options }, port: devicePort };
   closeMenus();
   setTask('build');
@@ -1002,7 +1024,7 @@ async function build(upload) {
   renderProblems();
   showDiagnostics();
   try {
-    selection.display = await display.prepareBuild();
+    selection.display = installation.has('display') ? await display.prepareBuild() : null;
     await save(true);
     buildSnapshots = new Map([...files].map(([k, v]) => [k, v.saved]));
     const result = await call('build', selection);
@@ -1181,7 +1203,37 @@ $('quick-query').onkeydown = event => {
     renderQuick();
   }
 };
-const designer = mountDesigner({ call, settings: () => $('settings-view').click(), projectActions: {
+function inactiveWorkspace() {
+  return { active: false, dirty: false, activate() {}, async setProject() {}, async flushProject() {},
+    async save() {}, shortcut() { return false; }, discardChanges() {}, async refreshCode() {},
+    async prepareBuild() { return null; }, showGenerationConflicts() {} };
+}
+let designer = inactiveWorkspace();
+let display = inactiveWorkspace();
+const loadedWorkspaces = new Set();
+const detachedWorkspaces = new Set();
+async function loadWorkspace(id) {
+  if (loadedWorkspaces.has(id)) {
+    if (detachedWorkspaces.delete(id)) await (id === 'build' ? designer : display).setProject(project);
+    return;
+  }
+  const content = await call('packModule', id);
+  const url = URL.createObjectURL(new Blob([content.javascript], { type: 'text/javascript' }));
+  try {
+    const module = await import(url);
+    const style = document.createElement('style');
+    style.dataset.module = id; style.textContent = content.css; document.head.append(style);
+    if (id === 'build') {
+      designer = module.mountDesigner(designerOptions);
+      await designer.setProject(project);
+    } else {
+      display = module.mountDisplay(displayOptions);
+      await display.setProject(project);
+    }
+    loadedWorkspaces.add(id);
+  } finally { URL.revokeObjectURL(url); }
+}
+const designerOptions = { call, settings: () => $('settings-view').click(), projectActions: {
   new: () => newDialog(),
   open: () => changeProject(() => call('select')),
   save: () => save(true)
@@ -1194,8 +1246,8 @@ const designer = mountDesigner({ call, settings: () => $('settings-view').click(
   document.querySelector('.statusbar').hidden = active && !!project;
   $('caption').textContent = active ? '' : project?.name || '';
   closeMenus();
-} });
-const display = mountDisplay({ call, preferences: () => preferences,
+} };
+const displayOptions = { call, preferences: () => preferences,
   async codeSource() {
     if(!project)return '';
     return files.get(project.primary)?.state.sliceDoc() ?? await call('read',project.primary);
@@ -1211,7 +1263,7 @@ const display = mountDisplay({ call, preferences: () => preferences,
     if (active) document.documentElement.dataset.workspace = 'display';
     closeMenus();
   }
-});
+};
 const workspaceSwitch = document.createElement('div');
 workspaceSwitch.className = 'workspace-switch';
 workspaceSwitch.innerHTML = '<button id="workspace-toggle" aria-haspopup="menu" aria-expanded="false"><span>Pinway Code</span><svg><use href="#i-down"></use></svg></button><div id="workspace-options" class="popover" role="menu" hidden><button data-workspace="code" role="menuitem"><span>Pinway Code<small>Write and upload firmware</small></span><span class="workspace-check">✓</span></button><button data-workspace="build" role="menuitem"><span>Pinway Build<small>Design an electronic circuit</small></span><span class="workspace-check"></span></button><button data-workspace="display" role="menuitem"><span>Pinway Display<small>Інтерфейси фізичних дисплеїв</small></span><span class="workspace-check"></span></button></div>';
@@ -1219,14 +1271,47 @@ document.querySelector('.title').before(workspaceSwitch);
 $('caption').textContent = '';
 const workspaceClose = () => { $('workspace-options').hidden = true; $('workspace-toggle').setAttribute('aria-expanded', 'false'); };
 $('workspace-toggle').onclick = () => { const opening = $('workspace-options').hidden; closeMenus(); $('workspace-options').hidden = !opening; $('workspace-toggle').setAttribute('aria-expanded', String(opening)); };
-workspaceSwitch.addEventListener('click', e => {
-  const button = e.target.closest('button[data-workspace]'); if (!button || !workspaceSwitch.contains(button)) return;
-  const build = button.dataset.workspace === 'build';
-  const isDisplay = button.dataset.workspace === 'display';
-  workspaceClose();
-  $('workspace-toggle').querySelector('span').textContent = isDisplay ? 'Pinway Display' : build ? 'Pinway Build' : 'Pinway Code';
-  for (const b of workspaceSwitch.querySelectorAll('[data-workspace]')) b.querySelector('.workspace-check').textContent = (b.dataset.workspace === button.dataset.workspace) ? '✓' : '';
-  void designer.activate(build).then(() => { display.activate(isDisplay); if (build) return designer.activate(true); }).catch(error);
+let switchingWorkspace = false;
+async function switchWorkspace(id) {
+  if (switchingWorkspace || task || changing) return;
+  switchingWorkspace = true;
+  try {
+    workspaceClose();
+    if (id !== 'code') {
+      if (!installation.has(id) && !await installation.offer(id)) return;
+      await loadWorkspace(id);
+    }
+    await designer.activate(false);
+    display.activate(false);
+    if (id === 'build') await designer.activate(true);
+    else if (id === 'display') display.activate(true);
+    else {
+      document.documentElement.dataset.workspace = 'code';
+      designerOptions.onVisibility(false);
+    }
+    $('workspace-toggle').querySelector('span').textContent = id === 'code' ? 'Pinway Code' : id === 'build' ? 'Pinway Build' : 'Pinway Display';
+    for (const b of workspaceSwitch.querySelectorAll('[data-workspace]')) b.querySelector('.workspace-check').textContent = b.dataset.workspace === id ? '✓' : '';
+  } catch (e) { error(e); }
+  finally { switchingWorkspace = false; }
+}
+workspaceSwitch.addEventListener('click', event => {
+  const button = event.target.closest('button[data-workspace]');
+  if (button) void switchWorkspace(button.dataset.workspace);
+});
+const installation = mountInstallation({ call, theme: () => preferences.theme,
+  autoUpdates: () => preferences.updates,
+  setTheme(value) { preferences.theme = value; applyPreferences(); },
+  busy: () => !!task || changing, setBusy: value => setTask(value ? 'pack' : ''),
+  async beforeRemove(id) {
+    await save(true); await designer.flushProject();
+    if ((id === 'build' && designer.active) || (id === 'display' && display.active)) await switchWorkspace('code');
+    if (id === 'build' || id === 'display') {
+      await (id === 'build' ? designer : display).setProject(null);
+      detachedWorkspaces.add(id);
+    }
+    return true;
+  },
+  async changed() { await refreshCatalog(); }
 });
 document.addEventListener('pointerdown', e => { if (!workspaceSwitch.contains(e.target)) workspaceClose(); });
 workspaceSwitch.onkeydown = e => {
@@ -1271,6 +1356,7 @@ async function shortcut(action) {
   }
 }
 window.pinway.subscribe((type, data) => {
+  installation.subscribe(type, data);
   if (type === 'console' || type === 'serial') append(type, data);
   if (type === 'shortcut') void shortcut(data);
   if (type === 'monitor') { monitorPort = data?.port || ''; renderPorts(); }
@@ -1318,6 +1404,7 @@ $('new-form').onsubmit = async e => {
     } else error(e);
   } finally { changing = false; $('create').disabled = false; }
 };
+$('welcome-settings').onclick = () => $('settings-view').click();
 $('settings-view').onclick = () => {
   closeMenus();
   $('setting-theme').value = preferences.theme;
@@ -1326,10 +1413,12 @@ $('settings-view').onclick = () => {
   $('setting-wrap').checked = preferences.wrap;
   $('setting-autosave').checked = preferences.autosave;
   $('setting-restore').checked = preferences.restore;
+  $('setting-updates').checked = preferences.updates;
+  void installation.refresh().catch(error);
   $('setting-zoom').value = String(zoomPercent);
   $('settings-dialog').showModal();
 };
-for (const [id, key] of [['theme','theme'],['accent','accent'],['font','fontSize'],['wrap','wrap'],['autosave','autosave'],['restore','restore']]) {
+for (const [id, key] of [['theme','theme'],['accent','accent'],['font','fontSize'],['wrap','wrap'],['autosave','autosave'],['restore','restore'],['updates','updates']]) {
   $('setting-' + id).addEventListener('change', event => {
     const input = event.target;
     preferences[key] = input.type === 'checkbox' ? input.checked : key === 'fontSize' ? Number(input.value) : input.value;
@@ -1544,6 +1633,7 @@ window.addEventListener('resize',()=>{if(project&&!panelCollapsed)panelHeight($(
 async function init() {
   applyPreferences();
   await setZoom(zoomPercent);
+  await installation.initialize();
   const state = await call('state');
   profiles = state.profiles;
   recent = state.recent;
@@ -1568,10 +1658,13 @@ async function init() {
     if (!project && !(preferences.restore && state.recovery?.primary)) status('Готово');
   } catch (e) { error(e); }
   void poll();
+  await refreshCatalog();
+}
+async function refreshCatalog() {
   catalogState = 'Завантаження каталогу плат…';
   try {
     const catalog = await call('catalog');
-    const merged = new Map(profiles.map(p => [p.id, p]));
+    const merged = new Map(profiles.filter(p => installation.has('esp32') || !p.id.startsWith('esp32:')).map(p => [p.id, p]));
     for (const p of catalog.sort((a, b) => a.name.localeCompare(b.name))) {
       if (!merged.has(p.id)) merged.set(p.id, p);
     }

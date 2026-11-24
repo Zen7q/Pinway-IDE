@@ -6,8 +6,6 @@
 <title>Pinway IDE</title>
 <link rel="stylesheet" href="design-tokens.css">
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="designer.css">
-<link rel="stylesheet" href="display.css">
 <link rel="stylesheet" href="studio.css">
   <script defer src="tauri-bridge.js"></script>
 <script defer src="ui.bundle.js"></script>
@@ -53,16 +51,18 @@
       <button id="upload" class="button primary" title="Завантажити"><span data-icon="upload"></span>Завантажити</button>
       <div class="menu-anchor"><button id="tools-button" class="button bare" title="Tools" aria-haspopup="true" aria-expanded="false"><span data-icon="settings"></span>Tools</button><div id="tools-menu" class="popover" hidden></div></div>
     </div>
+    <button class="button compact update-badge" data-update hidden>Оновити IDE</button>
     <span id="version" class="chrome-version">v0.2</span>
   </header>
   <main id="welcome">
     <div class="welcome-content">
       <section class="hero">
         <div class="eyebrow">ARDUINO / ESP32 WORKBENCH</div>
-        <h1>Pinway IDE<span>.</span></h1>
+        <div class="hero-title"><h1>Pinway IDE<span>.</span></h1><button class="button compact" data-update hidden>Оновити IDE</button></div>
         <p>Пишіть, збирайте та завантажуйте прошивки для Arduino й ESP.</p>
         <div class="welcome-actions">
           <button id="new" class="button primary"><span data-icon="plus"></span>Новий проєкт <kbd>⌘N</kbd></button>
+          <button id="welcome-settings" class="button" type="button">Налаштування</button>
           <button id="open" class="button"><span data-icon="folder"></span>Відкрити проєкт <kbd>⌘O</kbd></button>
         </div>
       </section>
@@ -211,8 +211,48 @@
     <h3>Запуск</h3>
     <label class="settings-row"><span>Відновлювати попередній сеанс</span><input id="setting-restore" type="checkbox"></label>
   </section>
+  <section class="settings-section">
+    <h3>Пакети</h3><div id="package-list"></div>
+    <p id="package-status" class="installation-status" role="status"></p>
+  </section>
+  <section class="settings-section">
+    <h3>Оновлення</h3><p id="installed-version"></p>
+    <label class="settings-row"><span>Перевіряти при запуску</span><input id="setting-updates" type="checkbox" checked></label>
+    <div class="settings-row"><button id="update-check" class="button compact">Перевірити оновлення</button><button class="button compact primary" data-update hidden>Оновити IDE</button></div>
+    <p id="update-status" class="installation-status" role="status"></p>
+  </section>
   <div class="settings-footer">Зміни застосовуються одразу.</div>
 </dialog>
 
+<dialog id="setup-dialog" aria-labelledby="setup-title">
+  <div class="dialog-head"><div><div class="eyebrow">PINWAY IDE</div><h2 id="setup-title">Ваш робочий простір</h2></div><span id="setup-step-label"></span></div>
+  <div class="setup-steps" aria-hidden="true"><span></span><span></span><span></span></div>
+  <section data-setup-step="0"><h3>Оберіть тему</h3><p>Оформлення можна змінити в налаштуваннях.</p>
+    <label class="field">Тема<select id="setup-theme"><option value="system">Як у системі</option><option value="dark">Темна</option><option value="light">Світла</option></select></label>
+    <div class="setup-preview"><span></span><div><i></i><i></i><i></i></div></div>
+  </section>
+  <section data-setup-step="1" hidden><h3>З якими платами працюватимете?</h3><p>Arduino AVR вже готовий до роботи. Додаткові пакети завантажуються через інтернет.</p>
+    <label class="setup-choice"><input type="checkbox" checked disabled><span><strong>Arduino AVR</strong><small>Uno, Nano, Mega · у комплекті</small></span></label>
+    <label class="setup-choice"><input id="setup-esp32" type="checkbox"><span><strong>ESP32</strong><small>ESP32, C3, S3 та інші · близько 6,4 ГБ на диску</small></span></label>
+  </section>
+  <section data-setup-step="2" hidden><h3>Додайте потрібні інструменти</h3><p>Будь-який пакет можна встановити пізніше в налаштуваннях.</p>
+    <label class="setup-choice"><input type="checkbox" checked disabled><span><strong>Pinway Code</strong><small>Редактор, компіляція та Serial Monitor · у комплекті</small></span></label>
+    <label class="setup-choice"><input id="setup-build" type="checkbox"><span><strong>Pinway Build</strong><small>Електронні схеми й макетні плати</small></span></label>
+    <label class="setup-choice"><input id="setup-display" type="checkbox"><span><strong>Pinway Display</strong><small>Інтерфейси пристроїв і драйвери · близько 271 МБ</small></span></label>
+  </section>
+  <p id="setup-status" class="installation-status" role="status"></p>
+  <div class="dialog-actions"><button id="setup-back" class="button" hidden>Назад</button><button id="setup-next" class="button primary">Далі</button></div>
+</dialog>
+<dialog id="package-prompt" aria-labelledby="package-prompt-title">
+  <div class="dialog-head"><h2 id="package-prompt-title"></h2></div>
+  <p id="package-prompt-description"></p><p>Пакет завантажиться окремо. Проєкт залишиться відкритим.</p>
+  <p id="package-prompt-status" class="installation-status" role="status"></p>
+  <div class="dialog-actions"><button id="package-prompt-later" class="button">Пізніше</button><button id="package-prompt-install" class="button primary">Встановити</button></div>
+</dialog>
+<dialog id="update-dialog" aria-labelledby="update-title">
+  <div class="dialog-head"><h2 id="update-title">Оновити Pinway IDE</h2><button class="icon-button dismiss" aria-label="Закрити" data-icon="x"></button></div>
+  <p id="update-version"></p><p id="update-download-status" class="installation-status" role="status"></p>
+  <div class="dialog-actions"><button class="button dismiss">Пізніше</button><button id="update-download" class="button primary">Завантажити й відкрити інсталятор</button></div>
+</dialog>
 </body>
 </html>

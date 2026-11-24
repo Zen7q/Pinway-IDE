@@ -9,6 +9,8 @@ mod display_scene;
 mod display_driver;
 mod display_managed;
 mod projects;
+mod packs;
+mod releases;
 
 use arduino::{Arduino, Monitor};
 use projects::{err, Project, Result};
@@ -303,6 +305,9 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
             | "install"
             | "refreshLibraries"
             | "serialOpen"
+            | "packInstall"
+            | "packRemove"
+            | "updateInstall"
     ) {
         Some(
             host.operation
@@ -317,7 +322,36 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
             sync_window_chrome(app)?;
             Ok(Value::Null)
         }
-        "designer" => designer::dispatch(app, p),
+        "designer" => {
+            if !packs::installed(&host.storage, "build") { return Err("Спочатку встановіть Pinway Build у налаштуваннях.".into()); }
+            designer::dispatch(app, p)
+        },
+        "packs" => packs::state(&host.storage, cli),
+        "packModule" => packs::module(&host.storage, text(&p)),
+        "finishSetup" => { packs::finish_setup(&host.storage)?; Ok(Value::Null) },
+        "packInstall" | "packRemove" => {
+            let id = text(&p);
+            if !matches!(id, "esp32" | "build" | "display") { return Err("Цей пакет змінити неможливо.".into()); }
+            host.stop_monitor(app);
+            let install = action == "packInstall";
+            emit(app, "packProgress", json!({"id":id,"message":if install {"Встановлення…"} else {"Видалення…"}}));
+            if id == "esp32" {
+                cli.change_esp(install, app)?;
+            } else if install {
+                packs::install(&host.storage, id, |received, total| emit(app, "packProgress",
+                    json!({"id":id,"received":received,"total":total})))?;
+            } else {
+                packs::remove(&host.storage, id)?;
+            }
+            packs::state(&host.storage, cli)
+        },
+        "updateCheck" => releases::latest(),
+        "updateInstall" => {
+            let installer = releases::installer(&host.storage, |received, total| emit(app, "updateProgress",
+                json!({"received":received,"total":total})))?;
+            app.opener().open_path(installer.to_string_lossy(), None::<&str>).map_err(err)?;
+            value(installer)
+        },
         "display" => {
             let project = host.project()?;
             if p["root"].as_str() != project.root.to_str() {
@@ -342,7 +376,7 @@ fn dispatch(app: &AppHandle, window: &WebviewWindow, action: &str, p: Value) -> 
                 .collect();
             Ok(
                 json!({"project":session.project,"recent":session.recent,"recovery":session.recovery,
-                "profiles":arduino::profiles(),"templates":templates}),
+                "profiles":arduino::array(&arduino::profiles()).iter().filter(|p| cli.has_esp() || !text(&p["id"]).starts_with("esp32:")).collect::<Vec<_>>(),"templates":templates}),
             )
         }
         "rememberSession" => {
