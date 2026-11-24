@@ -12,7 +12,7 @@ if [[ "${1:-}" == --test ]]; then
 fi
 if [[ "${1:-}" == --dev ]]; then
   python3 scripts/prepare-release.py
-  node node_modules/@tauri-apps/cli/tauri.js icon src-tauri/icons/icon.png --output .toolchain/icons
+  node node_modules/@tauri-apps/cli/tauri.js icon assets/Pinway.png --output .toolchain/icons
   python3 scripts/prepare-notices.py
   exec node node_modules/@tauri-apps/cli/tauri.js dev
 fi

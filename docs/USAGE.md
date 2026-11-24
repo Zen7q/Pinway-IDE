@@ -102,4 +102,3 @@ The initial nine-part library and manual, single-layer PCB layout support circui
 Display → Параметри полотна → Модель дисплея → Waveshare 1.69″ Touch LCD → Налаштувати контакти. Далі Code → Перевірити / Завантажити. Драйвери LCD/тачу, графіка, переходи між сторінками та запуск створюються автоматично; основний .ino не переписується. Інструкція й межі підтримки: [DISPLAY-WAVESHARE.md](../DISPLAY-WAVESHARE.md).
 
 Перевірено через підписану native app на новому Yo, який спочатку мав тільки .ino: успішна ESP32 збірка481251bytesFlash/28160bytesRAM, дві сторінки й brightness0–255. 15JS/23Rust tests пройшли; усі257PNGстанів двох сторінок збігаються з generatedRGB565, streaming8rows також перевірено. Нова автоматична прошивка фізично не перевірялася: користувач попросив завершити без плати.
-

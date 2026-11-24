@@ -51,7 +51,7 @@ def main():
         fetch(f'{base}/{archive_name}', archive)
         checksums = work / 'checksums.txt'
         fetch(f'{base}/{VERSION}-checksums.txt', checksums)
-        expected = next(line.split()[0] for line in checksums.read_text().splitlines() if line.split()[-1] == archive_name)
+        expected = next(line.split()[0] for line in checksums.read_text(encoding="utf-8").splitlines() if line.split()[-1] == archive_name)
         if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
             raise RuntimeError('Arduino CLI checksum mismatch')
         shutil.unpack_archive(archive, runtime)

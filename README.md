@@ -1,3 +1,5 @@
+<img src="assets/Pinway.png" width="88" height="88" alt="Логотип Pinway">
+
 # Pinway IDE
 
 [![Build and test](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml/badge.svg)](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml)

@@ -20,7 +20,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf
       - run: npm ci
       - run: npm run ui:tauri
-      - run: node node_modules/@tauri-apps/cli/tauri.js icon src-tauri/icons/icon.png --output .toolchain/icons
+      - run: node node_modules/@tauri-apps/cli/tauri.js icon assets/Pinway.png --output .toolchain/icons
       - run: mkdir -p .toolchain/release-runtime .toolchain/legal
       - run: cargo test --locked -p pinway-ide
       - run: node --test tests/*.test.mjs

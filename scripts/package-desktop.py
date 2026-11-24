@@ -25,7 +25,7 @@ def main():
         os.environ.update(RUSTUP_HOME=str(local / 'rustup'), CARGO_HOME=str(local / 'cargo'))
         os.environ['PATH'] = str(local / 'cargo/bin') + os.pathsep + os.environ['PATH']
     run('python3' if platform.system() != 'Windows' else 'python', 'scripts/prepare-release.py')
-    run('node', 'node_modules/@tauri-apps/cli/tauri.js', 'icon', 'src-tauri/icons/icon.png', '--output', '.toolchain/icons')
+    run('node', 'node_modules/@tauri-apps/cli/tauri.js', 'icon', 'assets/Pinway.png', '--output', '.toolchain/icons')
     run('python3' if platform.system() != 'Windows' else 'python', 'scripts/prepare-notices.py')
     output = Path(os.environ.get('PINWAY_TAURI_OUT', str(ROOT / 'dist' / ('release-' + time.strftime('%Y%m%d-%H%M%S')))))
     if output.exists() and any(output.iterdir()):
@@ -39,7 +39,7 @@ def main():
     run(*args)
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], text=True))
     target = Path(metadata['target_directory']) / ('debug' if options.debug else 'release') / 'bundle'
-    version = json.loads((ROOT / 'package.json').read_text())['version']
+    version = json.loads((ROOT / 'package.json').read_text(encoding="utf-8"))['version']
     architecture = 'aarch64' if platform.machine().lower() in ('arm64', 'aarch64') else 'x86_64'
     key = {'Darwin': 'macos', 'Windows': 'windows', 'Linux': 'linux'}[system] + '-' + architecture
     if system == 'Darwin':

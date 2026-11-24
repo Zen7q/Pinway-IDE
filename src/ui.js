@@ -968,6 +968,7 @@ async function detect(device) {
   finally { setTask(''); }
 }
 async function poll() {
+  if (task === 'pack' || document.hidden) { setTimeout(poll, 5000); return; }
   try {
     const found = await call('ports');
     const fingerprint = JSON.stringify(found);
@@ -995,7 +996,7 @@ async function poll() {
   } catch (e) {
     if (!task && lastPorts !== 'error') status(e.message, 'error');
     lastPorts = 'error';
-  } finally { setTimeout(poll, 2100); }
+  } finally { setTimeout(poll, project ? 2500 : 10000); }
 }
 async function build(upload) {
   if (task || changing || !project) return;

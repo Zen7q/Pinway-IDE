@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 work=$(mktemp -d "${TMPDIR:-/tmp}/pinway-assets.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/Pinway.iconset" dist
-sips -s format png assets/Pinway.svg --out "$work/Pinway.png" >/dev/null
+cp assets/Pinway.png "$work/Pinway.png"
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" "$work/Pinway.png" --out "$work/Pinway.iconset/icon_${size}x${size}.png" >/dev/null
   double=$((size*2))

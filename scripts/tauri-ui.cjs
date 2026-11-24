@@ -7,3 +7,5 @@ fs.mkdirSync(output, { recursive: true });
 for (const name of ['index.html', 'design-tokens.css', 'studio.css', 'style.css', 'ui.bundle.js', 'tauri-bridge.js']) {
   fs.copyFileSync(path.join(root, 'src', name), path.join(output, name));
 }
+
+fs.copyFileSync(path.join(root, 'assets/Pinway.png'), path.join(output, 'Pinway.png'));

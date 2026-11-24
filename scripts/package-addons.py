@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 def main():
-    version = json.loads((ROOT / 'package.json').read_text())['version']
+    version = json.loads((ROOT / 'package.json').read_text(encoding="utf-8"))['version']
     output = ROOT / 'dist/release'
     output.mkdir(parents=True, exist_ok=True)
     manifest = {'version': version, 'packs': {}}

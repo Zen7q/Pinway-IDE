@@ -17,8 +17,8 @@ def main():
     for name in ('LICENSE', 'LICENSE-REVIEW.md', 'THIRD_PARTY.md'):
         shutil.copy2(ROOT / name, destination / name)
     shutil.copytree(ROOT / 'licenses', destination / 'toolchain-licenses')
-    npm = json.loads((ROOT / 'package-lock.json').read_text())['packages']
-    with (destination / 'npm-notices.txt').open('w') as output:
+    npm = json.loads((ROOT / 'package-lock.json').read_text(encoding="utf-8"))['packages']
+    with (destination / 'npm-notices.txt').open('w', encoding='utf-8') as output:
         for location, package in npm.items():
             directory = ROOT / location
             if not location or not directory.is_dir():
@@ -26,10 +26,10 @@ def main():
             for file in sorted(directory.iterdir()):
                 if file.is_file() and file.name.lower().startswith(('license', 'copying', 'notice')):
                     output.write(f'\n{location} {package.get("version", "")}\n\n')
-                    output.write(file.read_text(errors='replace'))
-    host = subprocess.check_output(['rustc', '-vV'], text=True)
+                    output.write(file.read_text(encoding='utf-8', errors='replace'))
+    host = subprocess.check_output(['rustc', '-vV'], text=True, encoding="utf-8")
     target = next(line.split(': ', 1)[1] for line in host.splitlines() if line.startswith('host: '))
-    data = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--filter-platform', target, '--format-version', '1'], text=True, cwd=ROOT))
+    data = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--filter-platform', target, '--format-version', '1'], text=True, encoding="utf-8", cwd=ROOT))
     sources = []
     for package in data['packages']:
         if not package.get('source'):
