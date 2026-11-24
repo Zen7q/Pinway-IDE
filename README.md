@@ -54,6 +54,8 @@ For a Nano with the old bootloader, select **Tools → Processor → ATmega328P 
 
 ## Preview
 
+![Pinway IDE home screen](docs/images/home.png)
+
 ![Pinway IDE first-launch setup](docs/images/setup.png)
 
 ## Why Pinway?
@@ -85,6 +87,8 @@ To create a DMG or Windows EXE, run `npm run package:tauri` on the corresponding
 docker build -t pinway-cli .
 docker run --rm pinway-cli version
 ```
+
+A prebuilt `pinway-cli-docker.tar.gz` is also provided in Releases. Load it with `docker load -i pinway-cli-docker.tar.gz`.
 
 To compile `Blink/Blink.ino` inside your current directory, run the following command.
 

@@ -94,6 +94,31 @@ pub fn installer(storage: &Path, mut progress: impl FnMut(u64, u64)) -> Result<P
 mod tests {
     use super::*;
     #[test]
+    fn downloads_verify_checksums_before_replacing_existing_files() {
+        use std::net::TcpListener;
+        for valid in [false, true] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let server = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0u8; 2048];
+                stream.read(&mut request).unwrap();
+                stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nnew").unwrap();
+            });
+            let temp = tempfile::tempdir().unwrap();
+            let target = temp.path().join("installer");
+            fs::write(&target, b"old").unwrap();
+            let digest = if valid { format!("{:x}", Sha256::digest(b"new")) } else { "0".repeat(64) };
+            let result = download(&format!("http://{address}/asset"), &target,
+                &json!({"bytes":3,"sha256":digest}), |_, _| {});
+            server.join().unwrap();
+            assert_eq!(result.is_ok(), valid);
+            assert_eq!(fs::read(&target).unwrap(), if valid { b"new" } else { b"old" });
+            assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 1);
+        }
+    }
+
+    #[test]
     fn assets_stay_in_versioned_project_release() {
         assert!(asset_url("0.3.0", "pinway-display.zip").unwrap().starts_with("https://github.com/Zen7q/Pinway-IDE/releases/download/v0.3.0/"));
         for name in ["../a", "a/b", "https://example.com", "", "a?b"] {

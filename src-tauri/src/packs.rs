@@ -97,7 +97,7 @@ mod tests {
         for id in ["..", "../display", "esp32", "", "code"] { assert!(directory(Path::new("/tmp"), id).is_err()); }
     }
     #[test]
-    fn extraction_rejects_traversal_and_keeps_previous_install() {
+    fn extraction_rejects_traversal() {
         let temp = tempfile::tempdir().unwrap();
         let archive = temp.path().join("test.zip");
         let mut zip = zip::ZipWriter::new(fs::File::create(&archive).unwrap());

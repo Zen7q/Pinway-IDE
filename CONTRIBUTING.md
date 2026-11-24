@@ -1,8 +1,8 @@
-# Внесок у Pinway IDE
+# Contributing to Pinway IDE
 
-Повідомляйте про помилки й пропонуйте функції через GitHub Issues. Для помилки вкажіть версію Pinway, операційну систему, модель плати, пакет і кроки відтворення. Видаліть паролі, назви приватних мереж і особисті шляхи з логів.
+Report bugs and propose features through GitHub Issues. Include the Pinway version, operating system, board model, relevant package and reproduction steps. Remove passwords, private network names and personal information from logs.
 
-Перед великою зміною відкрийте issue для обговорення. Для виправлення створіть fork, окрему гілку й pull request із поясненням результату та перевірок.
+Open an issue before starting a large change. For a fix, create a fork, use a separate branch and submit a pull request describing the resulting behavior and how you verified it.
 
 ```sh
 npm ci
@@ -11,8 +11,8 @@ node --test tests/*.test.mjs
 npm test
 ```
 
-Для десктопного запуску потрібні Rust stable, Node.js 24, Python 3.12+ і системні залежності Tauri. Команда `npm run dev` підготує базові Arduino-інструменти та запустить застосунок. Інструкції пакування наведено в [документації релізу](docs/RELEASE.md).
+Desktop development requires Rust stable, Node.js 24, Python 3.12+ and the platform dependencies for Tauri. Run `npm run dev` to prepare the base Arduino tools and start the application. See the [release guide](docs/RELEASE.md) for packaging instructions.
 
-Зберігайте сумісність із наявними `.ino`, схемами та Display-макетами. Для змін інтерфейсу перевіряйте темну й світлу теми, клавіатуру, вузьке вікно та реальний WebView. Особисті скетчі, токени, залежності й зібрані застосунки залишайте поза Git.
+Preserve compatibility with existing sketches, circuits and Display layouts. For interface changes, check light and dark themes, keyboard navigation, narrow windows and the actual platform WebView. Keep personal sketches, tokens, dependencies and compiled applications out of Git.
 
-Внески регулюються [ліцензією Pinway](LICENSE). Ви зберігаєте авторські права й маєте володіти правами на запропонований матеріал. Додавайте notices для стороннього коду. Правила спілкування наведено в [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are governed by the [Pinway license](LICENSE). You retain copyright and must have permission to contribute the material you submit. Preserve notices for third-party code. Follow our [Code of Conduct](CODE_OF_CONDUCT.md).

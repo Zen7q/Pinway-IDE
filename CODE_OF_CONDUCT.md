@@ -1,9 +1,9 @@
-# Правила спільноти
+# Code of Conduct
 
-Учасники Pinway IDE мають спілкуватися з повагою, обговорювати конкретні зміни та приймати конструктивну критику. Новачкам і людям із різним досвідом має бути комфортно ставити запитання.
+Pinway IDE participants should communicate respectfully, discuss specific changes and accept constructive feedback. People with different backgrounds and experience levels should feel comfortable asking questions.
 
-Заборонені образи, переслідування, дискримінація, погрози, публікація чужих особистих даних і спам. Це стосується issues, pull requests та інших просторів проєкту.
+Harassment, discrimination, threats, personal attacks, disclosure of another person's private information and spam are prohibited. These rules apply to issues, pull requests and other project spaces.
 
-Про порушення повідомляйте власнику репозиторію Zen7q через доступний приватний спосіб зв'язку в його GitHub-профілі. Уникайте публікації чутливих подробиць у відкритих issues. Якщо приватний контакт недоступний, використайте інструменти скарг GitHub.
+Report violations to the repository owner, Zen7q, using a private contact method listed on their GitHub profile. Avoid posting sensitive details in public issues. If no private contact method is available, use GitHub's reporting tools.
 
-Супроводжувач може редагувати або видаляти неприйнятні повідомлення, закривати обговорення й обмежувати участь. Заходи мають відповідати тяжкості та повторюваності порушення.
+The maintainer may edit or remove inappropriate content, close discussions or restrict participation. Actions should be proportionate to the severity and recurrence of the behavior.
