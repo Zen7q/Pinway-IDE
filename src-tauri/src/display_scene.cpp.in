@@ -10,14 +10,14 @@ extern void pinwaySceneWrite(int);
 namespace {
 using namespace PinwayHardware;
 using namespace PinwayScene;
-uint16_t pixels[240*8];
+uint16_t pixels[WIDTH*8];
 bool ready=false,wasDown=false;
 int page=0,previousPage=-1,previousValue=INT_MIN,activeSlider=-1,activeButton=-1;
 uint32_t lastPress=0;
 void redraw(int value){
  const auto& p=pages[page];const auto& frame=frames[p.frameFirst+value-(MINIMUM)];
- for(int row=0;row<280;row+=8){
-  const uint32_t first=uint32_t(row)*240,last=first+1920;uint32_t at=0;
+ for(int row=0;row<HEIGHT;row+=8){
+  const uint32_t first=uint32_t(row)*WIDTH,last=first+WIDTH*min(8,HEIGHT-row);uint32_t at=0;
   for(uint32_t i=p.baseFirst;i<p.baseFirst+p.baseCount;i++){
    const auto& r=bases[i];uint32_t end=at+r.count;
    for(uint32_t k=max(at,first);k<min(end,last);k++)pixels[k-first]=r.color;
@@ -26,7 +26,7 @@ void redraw(int value){
   for(uint32_t i=frame.first;i<frame.first+frame.count;i++){
    const auto& r=patches[i];for(uint32_t k=max(r.index,first);k<min(r.index+r.count,last);k++)pixels[k-first]=r.color;
   }
-  displayPixelRows(pixels,row,8);
+  displayPixelRows(pixels,row,min(8,HEIGHT-row));
  }
 }
 bool inside(int x,int y,int sx,int sy,int w,int h){return x>=sx&&y>=sy&&x<sx+w&&y<sy+h;}

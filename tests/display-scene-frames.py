@@ -16,12 +16,13 @@ def records(name):
     body = re.search(r'constexpr \w+ ' + name + r'\[\]=\{(.*?)\};', header, re.S)[1]
     return [tuple(map(int, row.split(','))) for row in re.findall(r'\{([\d,]+)\}', body)]
 bases, patches, frames, pages = map(records, ['bases', 'patches', 'frames', 'pages'])
+width, height = doc["canvas"]["width"], doc["canvas"]["height"]
 count = 0
 for page, preview in zip(pages, doc['hardwarePreview']['dynamic']['pages'], strict=True):
     base_first, base_count, frame_first, *_ = page
     runs = bases[base_first:base_first + base_count]
     base = [color for n, color in runs for _ in range(n)]
-    assert len(base) == 67200
+    assert len(base) == width * height
     for value, image in enumerate(preview['images']):
         first, size = frames[frame_first + value]
         changes = patches[first:first + size]
@@ -33,9 +34,9 @@ for page, preview in zip(pages, doc['hardwarePreview']['dynamic']['pages'], stri
         assert pixels == expected, (preview['id'], value)
         if value in (0, 20, 128, 255):
             streamed = []
-            for row in range(0, 280, 8):
-                begin, end, at = row * 240, (row + 8) * 240, 0
-                tile = [0] * 1920
+            for row in range(0, height, 8):
+                begin, end, at = row * width, min(row + 8, height) * width, 0
+                tile = [0] * (end - begin)
                 for n, color in runs:
                     finish = at + n
                     for k in range(max(at, begin), min(finish, end)):

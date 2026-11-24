@@ -43,7 +43,7 @@ export function validate(doc) {
   }
   if (doc.hardwarePreview !== undefined) {
     const p = doc.hardwarePreview;
-    if (!p || p.target !== 'TouchLed169/RGB565' || (doc.hardware?.profile==='waveshare169' ? !Number.isInteger(p.pin)||p.pin < -1||p.pin>39 : p.pin !== 14) || typeof p.page !== 'string' ||
+    if (!p || p.target !== 'TouchLed169/RGB565' || (doc.hardware ? !Number.isInteger(p.pin)||p.pin < -1||p.pin>39 : p.pin !== 14) || typeof p.page !== 'string' ||
         !p.source || p.source.hardwarePreview !== undefined || !p.frames ||
         !['off','on'].every(k => typeof p.frames[k] === 'string' && p.frames[k].length < 500000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.frames[k]))) fail('некоректний апаратний кадр.');
   }
@@ -51,7 +51,7 @@ export function validate(doc) {
     const d=doc.hardwarePreview.dynamic;
     if(!/^[A-Za-z_]\w*$/.test(d.name)||!Number.isInteger(d.min)||!Number.isInteger(d.max)||d.max-d.min>256||d.max<d.min||!Array.isArray(d.images??d.pages)||((d.pages??[{images:d.images}]).some(p=>!Array.isArray(p.images)||![1,d.max-d.min+1].includes(p.images.length)||p.images.some(s=>typeof s!=='string'||s.length>500000||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(s)))))fail('некоректні динамічні кадри.');
   }
-  if(doc.hardware && (doc.hardware.profile!=='waveshare169'||!doc.hardware.pins||Object.values(doc.hardware.pins).some(v=>!Number.isInteger(v))))fail('некоректний профіль дисплея.');
+  if(doc.hardware && (hardwareErrors(doc.hardware).length))fail('некоректний профіль дисплея.');
   const names = new Set();
   for (const v of doc.variables) {
     if (!v || !/^[A-Za-z_][A-Za-z0-9_]{0,62}$/.test(v.name) || names.has(v.name) || !['number','boolean','text'].includes(v.type)) fail('некоректна змінна.');
@@ -112,21 +112,6 @@ export function interact(doc,e,values,next,gpio={}) {
   if(a.type==='custom')result.message='Власний C++ у превʼю не виконується. Апаратну інтеграцію буде додано окремим етапом.';
   return result;
 }
-export function starter(doc,type) {
-  const p=doc.pages[0];
-  if(doc.canvas.class==='character') {const e=element('text',doc);e.text='Темп: 24 C';e.width=Math.min(doc.canvas.width,12);p.elements=[e];return;}
-  const scale=Math.min(doc.canvas.width/320,doc.canvas.height/240);
-  const make=(kind,props)=>Object.assign(element(kind,doc),props);
-  if(type==='monitor') {
-    doc.variables=[{name:'temperature',type:'number',value:24}];
-    p.elements=[make('text',{text:'МОНІТОРИНГ',x:24,y:20,fontSize:12,color:'#8c9aaf'}),make('text',{name:'Температура',x:24,y:68,width:270,height:45,fontSize:32,binding:'temperature',suffix:' °C',decimals:1}),make('progress',{name:'Рівень',x:24,y:140,width:272,height:10,binding:'temperature',max:50}),make('text',{text:'Система працює',x:24,y:177,color:'#65d39b',fontSize:14})];
-  } else {
-    doc.variables=[{name:'brightness',type:'number',value:128},{name:'enabled',type:'boolean',value:true}];
-    p.elements=[make('text',{text:'КЕРУВАННЯ',x:24,y:16,fontSize:12,color:'#8c9aaf'}),make('button',{x:24,y:62,width:168,text:'Увімкнути',input:'physical',action:{type:'set',variable:'enabled',value:true}}),make('toggle',{x:232,y:64,width:56,height:30,binding:'enabled',input:'physical'}),make('slider',{x:24,y:134,width:264,binding:'brightness',max:255,input:'physical'}),make('text',{x:24,y:188,fontSize:14,binding:'brightness',prefix:'Яскравість: ',width:264})];
-  }
-  for(const e of p.elements) { for(const key of ['x','y','width','height','fontSize'])e[key]=Math.max(1,Math.round(e[key]*scale)); }
-}
-
 // A generated snapshot is usable only for its exact source document. Editing any
 // layout property falls back to normal artwork and exposes a stale-frame issue.
 export function hardwareFrame(doc, page, gpio = {}, values = {}) {

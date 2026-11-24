@@ -3,7 +3,7 @@ use serde_json::{json,Value};
 use std::{fs,path::Path};
 const PREFIX:&str="src/pinway_display/";
 fn integer(v:&Value,lo:i64,hi:i64)->Result<i64>{v.as_i64().filter(|n|*n>=lo&&*n<=hi).ok_or("Некоректне число Display.".into())}
-fn geometry(v:&Value)->Result<[i64;4]>{let a=[integer(&v["x"],0,239)?,integer(&v["y"],0,279)?,integer(&v["width"],1,240)?,integer(&v["height"],1,280)?];if a[0]+a[2]>240||a[1]+a[3]>280{return Err("Touch-елемент виходить за межі дисплея.".into());}Ok(a)}
+fn geometry(v:&Value,w:i64,h:i64)->Result<[i64;4]>{let a=[integer(&v["x"],0,w-1)?,integer(&v["y"],0,h-1)?,integer(&v["width"],1,w)?,integer(&v["height"],1,h)?];if a[0]+a[2]>w||a[1]+a[3]>h{return Err("Touch-елемент виходить за межі дисплея.".into());}Ok(a)}
 pub fn pins(h:&Value)->Result<String>{
  if h["profile"]!="waveshare169"{return Err("Невідомий апаратний профіль Display.".into());}
  let mut source=include_str!("../display-templates/waveshare169/hardware.h").to_owned();let mut used=std::collections::HashSet::new();
@@ -17,14 +17,24 @@ pub fn pins(h:&Value)->Result<String>{
  Ok(source)
 }
 pub fn generate(doc:&Value,s:&Value)->Result<Files>{
- let mut files=Files::new();files.insert(format!("{PREFIX}hardware.h"),pins(&doc["hardware"])?);
+ let (width,height)=crate::display_driver::dimensions(&doc["hardware"])?;let pixel_count=width*height;
+ let wave=doc["hardware"]["profile"]=="waveshare169";
+ let mut files=Files::new();if wave {files.insert(format!("{PREFIX}hardware.h"),pins(&doc["hardware"])?);
  for(name,text)in [
  ("display_ui.cpp",include_str!("../display-templates/waveshare169/display_ui.cpp")),
  ("display_ui.h",include_str!("../display-templates/waveshare169/display_ui.h")),
  ("touch.cpp",include_str!("../display-templates/waveshare169/touch.cpp")),
  ("touch.h",include_str!("../display-templates/waveshare169/touch.h")),
  ("touch_button.h",include_str!("../display-templates/waveshare169/touch_button.h")),
- ("THIRD_PARTY.md",include_str!("../display-templates/waveshare169/THIRD_PARTY.md"))]{files.insert(format!("{PREFIX}{name}"),text.into());}
+ ("THIRD_PARTY.md",include_str!("../display-templates/waveshare169/THIRD_PARTY.md"))]{files.insert(format!("{PREFIX}{name}"),text.into());}}else{
+ files.insert(format!("{PREFIX}hardware.h"),"#pragma once\n// Configuration is in display_ui.cpp.\n".into());
+ files.insert(format!("{PREFIX}display_ui.cpp"),crate::display_driver::source(&doc["hardware"])?);
+ files.insert(format!("{PREFIX}display_ui.h"),include_str!("../display-templates/waveshare169/display_ui.h").into());
+ files.insert(format!("{PREFIX}touch.h"),include_str!("../display-templates/waveshare169/touch.h").into());
+ // Retire previously generated Waveshare implementation when switching profiles.
+ for name in ["touch.cpp","touch_button.h","display_frames.h"]{files.insert(format!("{PREFIX}{name}"),"// Generated Pinway adapter; implementation in display_ui.cpp.\n".into());}
+ files.insert(format!("{PREFIX}THIRD_PARTY.md"),"LovyanGFX 1.3.0 — FreeBSD license. Source and full license in bundled display-libraries/LovyanGFX.\n".into());
+ }
  let min=integer(&s["min"],-100000,100000)?;let max=integer(&s["max"],min,min+256)?;let states=(max-min+1)as usize;
  integer(&s["initial"],min,max)?;
  if !["static","variable","gpio"].contains(&s["mode"].as_str().unwrap_or("")){return Err("Невідомий режим Display.".into());}
@@ -35,37 +45,37 @@ pub fn generate(doc:&Value,s:&Value)->Result<Files>{
  let(mut nb,mut np,mut nf,mut ns,mut na)=(0usize,0usize,0usize,0usize,0usize);
  for(index,p)in pages.iter().enumerate(){
   if p["id"]!=source_pages[index]["id"]{return Err("Порядок сторінок змінився.".into());}
-  let base=p["base"].as_array().filter(|p|p.len()<=67200).ok_or("Відсутній кадр сторінки.")?;let mut pixels=0;
+  let base=p["base"].as_array().filter(|p|p.len()<=pixel_count as usize).ok_or("Відсутній кадр сторінки.")?;let mut pixels=0;
   for run in base{let n=integer(&run[0],1,65535)?;let c=integer(&run[1],0,65535)?;pixels+=n;bases.push_str(&format!("{{{n},{c}}},\n"));}
-  if pixels!=67200{return Err("Неповний кадр сторінки.".into());}
+  if pixels!=pixel_count{return Err("Неповний кадр сторінки.".into());}
   let patch_frames=p["patches"].as_array().filter(|p|p.len()==states||p.len()==1).ok_or("Відсутні стани сторінки.")?;
   for value in 0..states{
    let changes=patch_frames[if patch_frames.len()==1{0}else{value}].as_array().ok_or("Невідомі графічні зміни.")?;
    let first=np;
    for r in changes{
-    let i=integer(&r[0],0,67199)?;let n=integer(&r[1],1,65535)?;let c=integer(&r[2],0,65535)?;
-    if i+n>67200{return Err("Графічна зміна за межами екрана.".into());}
+    let i=integer(&r[0],0,pixel_count-1)?;let n=integer(&r[1],1,65535)?;let c=integer(&r[2],0,65535)?;
+    if i+n>pixel_count{return Err("Графічна зміна за межами екрана.".into());}
     patches.push_str(&format!("{{{i},{n},{c}}},\n"));np+=1;
     if np>85000{return Err("Забагато динамічної графіки для ESP32.".into());}
    }
    frames.push_str(&format!("{{{first},{}}},\n",np-first));
   }
   let ps=p["sliders"].as_array().filter(|p|p.len()<=200).ok_or("Некоректні повзунки.")?;
-  for v in ps{let g=geometry(v)?;sliders.push_str(&format!("{{{},{},{},{}}},\n",g[0],g[1],g[2],g[3]));}
+  for v in ps{let g=geometry(v,width,height)?;sliders.push_str(&format!("{{{},{},{},{}}},\n",g[0],g[1],g[2],g[3]));}
   let actions=p["buttons"].as_array().filter(|p|p.len()<=200).ok_or("Некоректні кнопки.")?;
-  for v in actions{let g=geometry(v)?;let kind=integer(&v["kind"],1,3)?;let target=integer(&v["target"],0,if kind==1{pages.len()as i64-1}else{1})?;buttons.push_str(&format!("{{{},{},{},{},{kind},{target}}},\n",g[0],g[1],g[2],g[3]));}
+  for v in actions{let g=geometry(v,width,height)?;let kind=integer(&v["kind"],1,3)?;let target=integer(&v["target"],0,if kind==1{pages.len()as i64-1}else{1})?;buttons.push_str(&format!("{{{},{},{},{},{kind},{target}}},\n",g[0],g[1],g[2],g[3]));}
   records.push_str(&format!("{{{nb},{},{nf},{ns},{},{na},{}}},\n",base.len(),ps.len(),actions.len()));
   nb+=base.len();nf+=states;ns+=ps.len();na+=actions.len();
   if nb*4+np*8+nf*8+ns*16+na*24>850000{return Err("Графіка дисплея перевищує бюджет Flash ESP32.".into());}
  }
  if np==0{patches.push_str("{0,1,0},\n");}if ns==0{sliders.push_str("{0,0,0,0},\n");}if na==0{buttons.push_str("{0,0,0,0,1,0},\n");}
- let header=format!("// Generated by Pinway Display.\n#pragma once\n#include <stdint.h>\nnamespace PinwayScene {{\nconstexpr int MINIMUM={min},MAXIMUM={max};\nstruct Run{{uint16_t count,color;}};\nstruct Patch{{uint32_t index;uint16_t count,color;}};\nstruct Frame{{uint32_t first,count;}};\nstruct Slider{{int x,y,w,h;}};\nstruct Button{{int x,y,w,h,kind,target;}};\nstruct Page{{uint32_t baseFirst,baseCount,frameFirst,sliderFirst,sliderCount,buttonFirst,buttonCount;}};\nconstexpr Run bases[]={{\n{bases}}};\nconstexpr Patch patches[]={{\n{patches}}};\nconstexpr Frame frames[]={{\n{frames}}};\nconstexpr Slider sliders[]={{\n{sliders}}};\nconstexpr Button buttons[]={{\n{buttons}}};\nconstexpr Page pages[]={{\n{records}}};\n}}\n");
+ let header=format!("// Generated by Pinway Display.\n#pragma once\n#include <stdint.h>\nnamespace PinwayScene {{\nconstexpr int WIDTH={width},HEIGHT={height},MINIMUM={min},MAXIMUM={max};\nstruct Run{{uint16_t count,color;}};\nstruct Patch{{uint32_t index;uint16_t count,color;}};\nstruct Frame{{uint32_t first,count;}};\nstruct Slider{{int x,y,w,h;}};\nstruct Button{{int x,y,w,h,kind,target;}};\nstruct Page{{uint32_t baseFirst,baseCount,frameFirst,sliderFirst,sliderCount,buttonFirst,buttonCount;}};\nconstexpr Run bases[]={{\n{bases}}};\nconstexpr Patch patches[]={{\n{patches}}};\nconstexpr Frame frames[]={{\n{frames}}};\nconstexpr Slider sliders[]={{\n{sliders}}};\nconstexpr Button buttons[]={{\n{buttons}}};\nconstexpr Page pages[]={{\n{records}}};\n}}\n");
  files.insert(format!("{PREFIX}scene_data.h"),header);
  files.insert(format!("{PREFIX}runtime.cpp"),include_str!("display_scene.cpp.in").into());
  files.insert(format!("{PREFIX}runtime.h"),"#pragma once\nvoid pinwayDisplaySetup();\nvoid pinwayDisplayTick();\nvoid pinwayDisplayDelay(unsigned long duration);\n".into());
  let first=&pages[0]["base"];
- files.insert(format!("{PREFIX}display_frames.h"),crate::display_firmware::frames_header(&json!({"off":first,"on":first}))?);
- files.insert(format!("{PREFIX}README.md"),"# Pinway Display — Waveshare 1.69″\n\nЦі файли створено з макета та контактів Display. Code залишається твоїм; Pinway додає виклики запуску/тачу в копію для компіляції. Звичайні delay() в головному .ino обслуговують дисплей під час очікування.\n\nРучні зміни захищено .pinway/display-generated.json. При конфлікті Pinway покаже різницю та зупинить збірку без перезапису. Змінюй графіку та контакти в Display.\n".into());
+ if wave{files.insert(format!("{PREFIX}display_frames.h"),crate::display_firmware::frames_header(&json!({"off":first,"on":first}))?);}
+ files.insert(format!("{PREFIX}README.md"),"# Pinway Display\n\nЦі файли створено з макета та контактів Display. Code залишається твоїм; Pinway додає виклики запуску/тачу в копію для компіляції. Звичайні delay() в головному .ino обслуговують дисплей під час очікування.\n\nРучні зміни захищено .pinway/display-generated.json. При конфлікті Pinway покаже різницю та зупинить збірку без перезапису. Змінюй графіку та контакти в Display.\n".into());
  Ok(files)
 }
 // Mask comments and quoted literals without changing byte offsets used for edits.
@@ -113,6 +123,21 @@ pub fn stage_entry(staged:&Path,s:&Value)->Result<()>{let file=staged.join(forma
 #[cfg(test)]mod tests{
  use super::*;
  fn hardware()->Value{json!({"profile":"waveshare169","pins":{"LCD_MOSI":23,"LCD_CLK":18,"LCD_CS":27,"LCD_DC":26,"LCD_RST":25,"LCD_BL":32,"TOUCH_SDA":21,"TOUCH_SCL":22,"TOUCH_RST":33,"TOUCH_IRQ":13}})}
+ #[test]fn generates_supported_adapters_and_validates_geometry(){
+  let temp=tempfile::tempdir().unwrap();let root=std::env::var_os("PINWAY_ADAPTER_FIXTURES").map(std::path::PathBuf::from).unwrap_or_else(||temp.path().to_path_buf());
+  for (index,(controller,w,h,touch,rotation)) in [("ST7789",240,240,"none",0),("ST7789",240,320,"CST816S",0),("ILI9341",240,320,"XPT2046",1),("GC9A01",240,240,"FT5x06",0),("ST7735S",128,159,"GT911",0)].iter().enumerate(){
+   let hardware=json!({"profile":"lovyangfx","library":"LovyanGFX","name":"Fixture","config":{"controller":controller,"width":w,"height":h,"offsetX":0,"offsetY":0,"rotation":rotation,"invert":true,"rgbOrder":false,"touch":touch,"touchRotation":0,"address":if *touch=="FT5x06"{56}else if *touch=="GT911"{93}else{21},"xMin":0,"xMax":w-1,"yMin":0,"yMax":h-1},"pins":{"LCD_MOSI":23,"LCD_CLK":18,"LCD_CS":27,"LCD_DC":26,"LCD_RST":25,"LCD_BL":32,"LCD_MISO":19,"TOUCH_SDA":21,"TOUCH_SCL":22,"TOUCH_RST":33,"TOUCH_IRQ":13,"TOUCH_CS":4}});
+   let (width,height)=crate::display_driver::dimensions(&hardware).unwrap();let pixels=width*height;let mut runs=Vec::new();let mut remain=pixels;while remain>0{let n=remain.min(65535);runs.push(json!([n,0]));remain-=n;}
+   let code="void setup(){}\nvoid loop(){delay(10);}";
+   let scene=json!({"mode":"static","min":0,"max":0,"initial":0,"code":code,"pages":[{"id":"home","base":runs,"patches":[[]],"sliders":[],"buttons":[]}]});
+   let doc=json!({"hardware":hardware,"pages":[{"id":"home"}]});let files=generate(&doc,&scene).unwrap();
+   assert!(files["src/pinway_display/scene_data.h"].contains(&format!("WIDTH={width},HEIGHT={height}")));
+   let dir=root.join(format!("Adapter{index}"));fs::create_dir_all(&dir).unwrap();assert!(crate::display_managed::sync(&dir,&files).unwrap().is_empty());fs::write(dir.join(format!("Adapter{index}.ino")),entry(code,&scene).unwrap()).unwrap();
+   let mut bad=scene.clone();bad["pages"][0]["base"]=json!([[1,0]]);assert!(generate(&doc,&bad).is_err());
+   let mut bad=doc.clone();bad["hardware"]["config"]["controller"]=json!("Injected;code");assert!(generate(&bad,&scene).is_err());
+   let mut bad=doc.clone();bad["hardware"]["pins"]["LCD_DC"]=json!(18);assert!(generate(&bad,&scene).is_err());
+  }
+ }
  #[test]fn validates_model_pins_and_keeps_comments_out_of_hooks(){
   let mut h=hardware();assert!(pins(&h).unwrap().contains("LCD_CS = 27"));h["pins"]["LCD_CS"]=json!(21);assert!(pins(&h).is_err());h["pins"]["LCD_CS"]=json!(6);assert!(pins(&h).is_err());
   let code="int brightness=190;\nconst char* s=R\"tag(void setup(){ delay(3); } \" quote)tag\";\n// void loop(){}\nvoid setup(){}\nvoid loop(){delay(1000);}\n";

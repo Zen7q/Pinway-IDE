@@ -1,7 +1,7 @@
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
-import {fresh,element,validate,issues,interact,displayText,starter,canonical,clone,availableKinds,hardwareFrame} from '../src/display/model.mjs';
+import {fresh,element,validate,issues,interact,displayText,canonical,clone,availableKinds,hardwareFrame} from '../src/display/model.mjs';
 test('layout roundtrip preserves coordinates, pages, images, visibility and locks',()=>{
  const d=fresh(),e=element('image',d);e.x=230;e.editorHidden=true;e.runtimeVisible=false;e.locked=true;e.image='data:image/png;base64,aGVsbG8=';d.pages[0].elements.push(e);
  d.canvas.width=128;const reopened=validate(JSON.parse(JSON.stringify(d)));assert.deepEqual(reopened,d);assert.equal(e.x,230);assert.equal(issues(d).length,1);
@@ -25,11 +25,10 @@ test('incompatible bindings and deleted navigation targets remain visible issues
 test('character canvas restricts tools and keeps incompatible layers recoverable',()=>{
  const d=fresh();d.pages[0].elements.push(element('button',d));d.canvas.class='character';d.canvas.width=16;d.canvas.height=2;
  assert.deepEqual(availableKinds(d),['text']);assert.ok(issues(d).some(i=>i.text.includes('недоступний')));assert.equal(d.pages[0].elements[0].kind,'button');
- starter(d,'monitor');assert.equal(d.pages[0].elements[0].kind,'text');assert.ok(validate(d));
+ d.pages[0].elements.push(element('text',d));assert.equal(d.pages[0].elements.at(-1).kind,'text');assert.ok(validate(d));
 });
-test('all starter layouts validate and Cyrillic text is retained',()=>{
- for(const type of ['monitor','control']){const d=fresh();starter(d,type);assert.equal(issues(d).length,0);assert.deepEqual(validate(clone(d)),d);}
- const d=fresh(),e=element('text',d);e.text='і ї є ґ І Ї Є Ґ';d.pages[0].elements.push(e);assert.equal(validate(d).pages[0].elements[0].text,e.text);
+test('new Display starts empty and retains Code variables and Cyrillic text',()=>{
+ const d=fresh();assert.deepEqual(d.variables,[]);assert.deepEqual(d.pages[0].elements,[]);const e=element('text',d);e.text='Яскравість';d.pages[0].elements.push(e);assert.deepEqual(validate(clone(d)),d);
 });
 test('malformed or executable resource references and IDs are rejected',()=>{
  const d=fresh(),e=element('image',d);d.pages[0].elements.push(e);e.image='data:image/svg+xml,<svg onload=alert(1) />';assert.throws(()=>validate(d));delete e.image;e.id='" onload="x';assert.throws(()=>validate(d));
@@ -127,4 +126,12 @@ test('Waveshare profiles validate pins and plan new multi-page projects without 
  d.hardware.pins.LCD_CS=wavePins.LCD_DC;assert.ok(hardwareErrors(d.hardware).some(s=>s.includes('одночасно')));assert.throws(()=>scenePlan(d));
  d.hardware.pins.LCD_CS=6;assert.ok(hardwareErrors(d.hardware).some(s=>s.includes('недоступний')));
  function uidForTest(){return 'control';}
+});
+
+test('supported display presets and custom rotated modules roundtrip and use their own geometry',async()=>{
+ const {displayPresets,displaySize,makeDisplay,hardwareErrors,scenePlan}=await import('../src/display/hardware.mjs');
+ for(const preset of displayPresets){const d=fresh();d.hardware=clone(preset.hardware);Object.assign(d.canvas,displaySize(d.hardware),{class:'color'});assert.deepEqual(hardwareErrors(d.hardware),[]);assert.deepEqual(validate(clone(d)),d);const plan=scenePlan(d);assert.equal(plan.width,d.canvas.width);assert.equal(plan.height,d.canvas.height);}
+ const h=makeDisplay('ST7735S',128,159,'Мій екран');h.config.rotation=1;assert.deepEqual(displaySize(h),{width:159,height:128,touch:false});
+ h.library='arbitrary-library';assert.ok(hardwareErrors(h).length);h.library='LovyanGFX';h.config.touch='XPT2046';h.pins.TOUCH_CS=h.pins.LCD_CLK;assert.ok(hardwareErrors(h).some(s=>s.includes('одночасно')));h.pins.TOUCH_CS=4;assert.deepEqual(hardwareErrors(h),[]);
+ h.config.offsetX=10;assert.ok(hardwareErrors(h).length);
 });

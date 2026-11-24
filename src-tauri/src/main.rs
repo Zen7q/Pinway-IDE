@@ -6,6 +6,7 @@ mod display;
 mod display_firmware;
 mod display_dynamic;
 mod display_scene;
+mod display_driver;
 mod display_managed;
 mod projects;
 
@@ -184,9 +185,9 @@ fn build(host: &Host, app: &AppHandle, payload: &Value) -> Result<Value> {
     let dir = tempfile::tempdir().map_err(err)?;
     let workspace = fs::canonicalize(dir.path()).map_err(err)?;
     let mut layout=display::load(&project.root)?;
-    let managed=layout["hardware"]["profile"]=="waveshare169";
+    let managed=!layout["hardware"].is_null();
     if managed {
-        if board!="esp32:esp32:esp32" {return Err("Для Waveshare 1.69″ вибери ESP32 Dev Module.".into());}
+        if board!="esp32:esp32:esp32" {return Err("Для цих профілів дисплея вибери ESP32 Dev Module.".into());}
         let input=&payload["display"];
         layout.as_object_mut().ok_or("Некоректний Display")?.remove("hardwarePreview");
         if input["source"]!=layout {return Err("Макет змінився. Повтори збірку.".into());}

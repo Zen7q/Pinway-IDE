@@ -1,7 +1,8 @@
-import {wavePins,pinLabels,outputPins,inputPins,hardwareErrors,scenePlan} from './hardware.mjs';
+import {deviceDialog,personalDisplays} from './device-dialog.js';
+import {wavePins,pinLabels,outputPins,inputPins,hardwareErrors,scenePlan,displaySize,displayPresets} from './hardware.mjs';
 import {scanCodeVariables} from './code-variables.mjs';
 import {firmwareSource, firmwareButton, rgb565Frame, dynamicPlan, deltaRuns} from './firmware.mjs';
-import { clone, canonical, uid, kinds, fonts, fresh, element, validate, availableKinds, issues, displayText, boundValue, compatible, interact, starter, hardwareFrame, duplicatePage, removePage, movePage } from './model.mjs';
+import { clone, canonical, uid, kinds, fonts, fresh, element, validate, availableKinds, issues, displayText, boundValue, compatible, interact, hardwareFrame, duplicatePage, removePage, movePage } from './model.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const paths={select:'m4 3 13 9-7 1-3 7Z',undo:'m8 4-5 5 5 5M3 9h10a6 6 0 0 1 6 6',redo:'m16 4 5 5-5 5M21 9H11a6 6 0 0 0-6 6',plus:'M12 5v14M5 12h14',minus:'M5 12h14',trash:'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 10v7M14 10v7',copy:'M9 8h11v13H9ZM5 16H3V3h12v2',up:'m6 14 6-6 6 6',down:'m6 10 6 6 6-6',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',lock:'M6 10h12v11H6ZM8 10V6a4 4 0 0 1 8 0v4',grid:'M3 3h18v18H3ZM3 9h18M3 15h18M9 3v18M15 3v18',save:'M4 3h13l3 3v15H4ZM8 3v6h8V3M8 21v-7h8v7',image:'M3 3h18v18H3ZM3 17l6-6 5 5 3-3 4 4M17 7h.01',export:'M12 16V3m-5 5 5-5 5 5M4 14v7h16v-7',fit:'M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6'};
 const icon=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[n]||paths.select}"/></svg>`;
@@ -10,7 +11,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   const root=document.createElement('main');root.id='display-editor';root.hidden=true;
   root.innerHTML=`<aside class="dp-panel dp-left"><header><div><span class="dp-eyebrow">PINWAY</span><h2>Display <span class="dp-beta">EDITOR</span></h2></div>${btn('save','Зберегти проєкт · ⌘S','save')}</header><section class="dp-add"><h3>ДОДАТИ ЕЛЕМЕНТ</h3><div class="dp-palette"></div></section><section class="dp-pages"><h3>СТОРІНКИ ${btn('page-add','Додати сторінку','plus')}</h3><div class="dp-page-list"></div></section><section class="dp-layers"><h3>ШАРИ <span id="dp-layer-count"></span></h3><div class="dp-layer-list"></div></section><footer><span class="dp-dot"></span><span class="dp-save-state">Відкрийте проєкт</span></footer></aside>
     <nav class="dp-toolbar" aria-label="Інструменти Display"><div>${btn('undo','Скасувати · ⌘Z','undo')}${btn('redo','Повторити · ⇧⌘Z','redo')}</div><i></i><div class="dp-modes">${btn('edit','Редактор')}${btn('preview','Превʼю')}${btn('map','Мапа')}</div><i></i><div>${btn('zoom-out','Зменшити','minus')}<button data-do="zoom-reset" class="dp-zoom">100%</button>${btn('zoom-in','Збільшити','plus')}${btn('fit','Вписати полотно','fit')}</div><i></i>${btn('grid','Прив’язка до сітки','grid')}</nav>
-    <section class="dp-stage" tabindex="0" aria-label="Полотно Display"><div class="dp-screen-group"><div class="dp-screen-caption"></div><div class="dp-screen-wrap"><svg class="dp-screen" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Інтерфейс дисплея"></svg></div><div class="dp-screen-meta"></div></div><div class="dp-map" hidden></div></section>
+    <section class="dp-stage" tabindex="0" aria-label="Полотно Display"><div class="dp-screen-group"><div class="dp-screen-caption"></div><div class="dp-screen-wrap"><svg class="dp-screen" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Інтерфейс дисплея"></svg></div><div class="dp-screen-meta"></div></div><div class="dp-map" hidden></div><div class="dp-start design-welcome" hidden><div class="design-welcome-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 22h8m-4-4v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="dp-eyebrow">PINWAY DISPLAY</span><h1>Створи інтерфейс свого пристрою.</h1><p>Вибери дисплей і додай елементи.<br>Змінні з Code з’являться тут автоматично.</p><button data-do="device-add">Додати дисплей</button><small>Або додай перший елемент із панелі зліва.</small></div></section>
     <aside class="dp-panel dp-right"><header><div><span class="dp-eyebrow">ІНСПЕКТОР</span><h2 class="dp-inspector-title">Полотно</h2></div>${btn('canvas','Параметри полотна','grid')}</header><div class="dp-properties"></div></aside>
     <div class="dp-message" role="status"></div><div class="dp-empty" hidden><h1>Інтерфейс вашого пристрою.</h1><p>Створіть або відкрийте проєкт Pinway.<br>Плату й фізичний дисплей можна підключити пізніше.</p><div class="dp-empty-actions"><button data-do="new-project">Новий проєкт</button><button data-do="open-project">Відкрити проєкт</button></div></div><input class="dp-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>`;
   document.querySelector('.statusbar').before(root);
@@ -39,8 +40,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     const ticket=++codeTicket,projectOwner=owner;
     const scan=scanCodeVariables(await codeSource());
     if(ticket!==codeTicket||owner!==projectOwner||!ready)return;
-    const names=new Set(scan.variables.map(v=>v.name));
-    const next=[...doc.variables.filter(v=>v.source!=='code'&&!names.has(v.name)),...scan.variables];
+    const next=scan.variables;
     if(canonical(next)!==canonical(doc.variables)) {
       doc.variables=next;resetValues();recover();onChange();render();
     }
@@ -60,7 +60,10 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   function section(label) {const h=document.createElement('h3');h.textContent=label;$('.dp-properties').append(h);}
   function paragraph(text,cls='') {const p=document.createElement('p');p.className=cls;p.textContent=text;$('.dp-properties').append(p);}
   function actionButton(label,fn) {const b=document.createElement('button');b.className='dp-wide';b.textContent=label;b.onclick=fn;$('.dp-properties').append(b);}
+  function applyDevice(h){edit(()=>{doc.hardware=h;delete doc.hardwarePreview;Object.assign(doc.canvas,displaySize(h),{class:"color"});});}
+  function addDevice(existing){const projectOwner=owner;deviceDialog(existing,h=>{if(owner===projectOwner)applyDevice(h);});}
   function hardwareDialog() {
+    if(doc.hardware?.profile!=="waveshare169")return addDevice(doc.hardware);
     const projectOwner=owner,draft=clone(doc.hardware);if(!draft)return;
     const dialog=document.createElement('dialog');dialog.className='dp-confirm dp-hardware';
     dialog.innerHTML='<form><h2>Підключення Waveshare 1.69″</h2><p>ESP32 Dev Module · VCC → 3V3 · GND → GND</p><div class="dp-pin-grid"></div><p class="dp-pin-errors" role="status"></p><div class="dp-pin-presets"><button type="button" data-default>Типові контакти</button><button type="button" data-personal>Зберегти моє підключення</button></div><div><button type="button" data-cancel>Скасувати</button><button type="submit">Застосувати контакти</button></div></form>';
@@ -74,18 +77,15 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   }
   function inspector() {
     $('.dp-properties').replaceChildren();const e=selected(),c=doc.canvas;
-    $('.dp-inspector-title').textContent=mode==='preview'?'Тестові значення':e?kinds[e.kind]:'Полотно';
+    $('.dp-inspector-title').textContent=mode==='preview'?'Значення з Code':e?kinds[e.kind]:'Полотно';
     if(!ready)return;
     if(mode==='preview') {
       paragraph('Локальне превʼю. Початкові значення беруться з Code; зміни тут не надсилаються платі. Після прошивання прив’язаний touch-повзунок змінює цю змінну на ESP32.');
-      for(const v of doc.variables) {
-        const input=field(v.name,values[v.name],()=>{},{type:v.type==='boolean'?'checkbox':v.type==='number'?'number':'text'});
-        input.onchange=()=>{const value=v.type==='boolean'?input.checked:v.type==='number'?Number(input.value):input.value;if(typeof value==='number'&&!Number.isFinite(value))return;values[v.name]=value;draw();};
-      }
+      for(const v of doc.variables.filter(v=>v.source==='code'))paragraph(`${v.name}: ${values[v.name]??v.value}`);
       const pins=[...new Set(doc.pages.flatMap(p=>p.elements).filter(e=>e.action.type==='gpio').map(e=>e.action.pin))].sort((a,b)=>a-b);
-      if(pins.length){section('СТАН GPIO · СИМУЛЯЦІЯ');for(const pin of pins)paragraph(`GPIO ${pin}: ${gpioValues[pin]?'HIGH':'LOW'}`);}
-      if(!doc.variables.length&&!pins.length)paragraph('Додайте тестову змінну у властивостях полотна.');
-      actionButton('Скинути тестові значення',()=>{resetValues();draw();inspector();});return;
+      if(pins.length){section('СТАН GPIO · ПРЕВʼЮ');for(const pin of pins)paragraph(`GPIO ${pin}: ${gpioValues[pin]?'HIGH':'LOW'}`);}
+      if(!doc.variables.length&&!pins.length)paragraph('Створи глобальну змінну в Code, наприклад int brightness = 20; — вона з’явиться тут автоматично.');
+      actionButton('Повернути початкові значення Code',()=>{resetValues();draw();inspector();});return;
     }
     if(e) {
       field('Назва шару',e.name,v=>e.name=v.slice(0,100));
@@ -106,21 +106,21 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
       }
       if(['text','button','progress','toggle','slider'].includes(e.kind)) {
         section('ПРИВ’ЯЗКА ДО ЗМІННОЇ');
-        field('Змінна',e.binding,v=>e.binding=v,{choices:[['','Без прив’язки'],...doc.variables.filter(v=>e.kind==='toggle'?v.type==='boolean'&&!v.readonly:e.kind==='slider'?v.type==='number'&&!v.readonly:e.kind==='progress'?v.type==='number':true).map(v=>[v.name,`${v.name} · ${v.source==='code'?'Code · '+v.cppType:'тест · '+v.type}${v.readonly?' · лише читання':''}`])]});
+        field('Змінна',e.binding,v=>e.binding=v,{choices:[['','Без прив’язки'],...doc.variables.filter(v=>e.kind==='toggle'?v.type==='boolean'&&!v.readonly:e.kind==='slider'?v.type==='number'&&!v.readonly:e.kind==='progress'?v.type==='number':true).map(v=>[v.name,`${v.name} · ${v.source==='code'?'Code · '+v.cppType:'Code · '+v.type}${v.readonly?' · лише читання':''}`])]});
         if(e.binding&&['text','button'].includes(e.kind)) {field('Перед значенням',e.prefix,v=>e.prefix=v.slice(0,100));field('Після значення',e.suffix,v=>e.suffix=v.slice(0,100));field('Десяткові знаки',e.decimals,v=>e.decimals=v,{type:'number',min:0,max:6,step:1});}
         if(!compatible(doc,e))paragraph('Тип змінної несумісний. Виберіть іншу змінну.','dp-warning');
       }
       if(c.class!=='character'&&['button','toggle','slider','image','rectangle','text'].includes(e.kind)) {
         section('ПОДІЯ ТА ДІЯ');
         field('Активація',e.input,v=>e.input=v,{choices:[['none','Без дотику · показ значення'],['physical','Зв’язок із фізичною кнопкою'],...(c.touch?[['touch','Дотик']]:[])]});
-        if(e.input==='physical')paragraph('Явна асоціація для локального тесту: клік по цьому елементу моделює кнопку. GPIO кнопки налаштовуватиметься на апаратному етапі.');
-        field('Дія',e.action.type,v=>e.action={type:v,page:doc.pages[0].id,variable:doc.variables[0]?.name||'',value:doc.variables[0]?.value??0,pin:2,level:true},{choices:[['none','Без додаткової дії'],['navigate','Перейти на сторінку'],['set','Змінити змінну'],['gpio','GPIO HIGH / LOW · симуляція'],['custom','Власний C++ · не виконується']]});
+        if(e.input==='physical')paragraph('У превʼю клік моделює кнопку. Для фізичного екрана вибери «Дотик».');
+        field('Дія',e.action.type,v=>e.action={type:v,page:doc.pages[0].id,variable:doc.variables[0]?.name||'',value:doc.variables[0]?.value??0,pin:2,level:true},{choices:[['none','Без додаткової дії'],['navigate','Перейти на сторінку'],['set','Змінити змінну'],['gpio','GPIO HIGH / LOW'],['custom','Власний C++ · не виконується']]});
         if(e.action.type==='navigate')field('Цільова сторінка',e.action.page,v=>e.action.page=v,{choices:doc.pages.map(p=>[p.id,p.name])});
         if(e.action.type==='set') {
           field('Змінна дії',e.action.variable,v=>{e.action.variable=v;e.action.value=doc.variables.find(x=>x.name===v)?.value??0;},{choices:[['','Оберіть змінну'],...doc.variables.map(v=>[v.name,v.name])]});
           const v=doc.variables.find(v=>v.name===e.action.variable);if(v)field('Задати значення',e.action.value,x=>e.action.value=x,{type:v.type==='number'?'number':v.type==='boolean'?'checkbox':'text'});
         }
-        if(e.action.type==='gpio'){field('GPIO · лише тест',e.action.pin,v=>e.action.pin=v,{type:'number',min:0,max:99,step:1});field('Рівень GPIO',e.action.mode==='toggle'?'toggle':e.action.level?'high':'low',v=>{e.action.mode=v==='toggle'?'toggle':'set';e.action.level=v==='high';},{choices:[['high','Встановити HIGH'],['low','Встановити LOW'],['toggle','Перемкнути HIGH ↔ LOW']]});paragraph('Допустимість піна та конфлікти з Build/Code ще не перевіряються.');}
+        if(e.action.type==='gpio'){field('GPIO',e.action.pin,v=>e.action.pin=v,{type:'number',min:0,max:99,step:1});field('Рівень GPIO',e.action.mode==='toggle'?'toggle':e.action.level?'high':'low',v=>{e.action.mode=v==='toggle'?'toggle':'set';e.action.level=v==='high';},{choices:[['high','Встановити HIGH'],['low','Встановити LOW'],['toggle','Перемкнути HIGH ↔ LOW']]});paragraph('Допустимість піна та конфлікти з Build/Code ще не перевіряються.');}
         if(e.action.type==='custom')paragraph('Arduino C++ не виконується в локальному превʼю. Генерація та прив’язка обробників — наступний етап.');
       }
       section('ШАР');
@@ -131,13 +131,19 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
       return;
     }
     section('ФІЗИЧНИЙ ДИСПЛЕЙ');
-    field('Модель дисплея',doc.hardware?.profile||'',v=>{
-      if(!v){delete doc.hardware;delete doc.hardwarePreview;return;}
-      let pins={...wavePins};try{const saved=JSON.parse(localStorage.getItem('pinway.waveshare169.pins'));if(saved&&!hardwareErrors({profile:v,pins:saved}).length)pins=saved;}catch{}
-      doc.hardware={profile:v,pins};c.class='color';c.width=240;c.height=280;c.touch=true;
-    },{choices:[['','Лише макет · без плати'],['waveshare169','Waveshare 1.69″ Touch LCD']]});
-    if(doc.hardware){paragraph('ST7789V2 · CST816 · ESP32 Dev Module · 240 × 280');actionButton('Налаштувати контакти',hardwareDialog);paragraph('Драйвери, тач і запуск будуть підготовлені автоматично під час компіляції.');}
-    else paragraph('Вибери свій модуль, щоб Pinway додав драйвери й запуск екрана до нового проєкту.');
+    const presets=[...displayPresets,...personalDisplays()];
+    const current=doc.hardware?.preset||doc.hardware?.profile||'';
+    if(doc.hardware&&!presets.some(p=>p.id===current))presets.push({id:current,name:doc.hardware.name||'Мій дисплей',hardware:clone(doc.hardware)});
+    field('Модель дисплея',current,v=>{
+      delete doc.hardwarePreview;
+      if(!v){delete doc.hardware;return;}
+      const h=clone(presets.find(p=>p.id===v).hardware);h.preset=v;
+      if(v==='waveshare169')try{const pins=JSON.parse(localStorage.getItem('pinway.waveshare169.pins'));if(pins&&!hardwareErrors({...h,pins}).length)h.pins=pins;}catch{}
+      doc.hardware=h;Object.assign(c,displaySize(h),{class:'color'});
+    },{choices:[['','Лише макет · без плати'],...presets.map(p=>[p.id,p.name])]});
+    actionButton('Додати дисплей',()=>addDevice());
+    if(doc.hardware){const size=displaySize(doc.hardware);paragraph(`${doc.hardware.profile==='waveshare169'?'ST7789V2 · CST816':doc.hardware.library+' · '+doc.hardware.config.controller} · ESP32 · ${size.width} × ${size.height}`);actionButton('Налаштувати дисплей і контакти',hardwareDialog);paragraph('Драйвери, тач і запуск будуть підготовлені автоматично під час компіляції.');}
+    else paragraph('Вибери свій модуль або додай його на основі підтримуваного драйвера.');
     section('ГЕОМЕТРІЯ');
     field('Клас дисплея',c.class,v=>{c.class=v;if(v==='character'){c.width=16;c.height=2;c.touch=false;c.grid=1;}else if(c.width<=80&&c.height<=8){c.width=320;c.height=240;}},{choices:[['color','Кольоровий · пікселі'],['mono','Монохромний · пікселі'],['character','Символьний · комірки']],help:'Позиції елементів зберігаються. Несумісні шари залишаться в документі з попередженням.'});
     for(const [k,label]of [['width',c.class==='character'?'Стовпці':'Ширина'],['height',c.class==='character'?'Рядки':'Висота']])field(label,c[k],v=>c[k]=Math.round(v),{type:'number',min:1,max:c.class==='character'?(k==='width'?80:8):2048,step:1});
@@ -146,17 +152,12 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     field('Крок сітки',c.grid,v=>c.grid=Math.round(v),{type:'number',min:1,max:c.class==='character'?1:128,step:1});field('Прив’язка до сітки',c.snap,v=>c.snap=v,{type:'checkbox'});
     section('ПОТОЧНА СТОРІНКА');field('Назва сторінки',page().name,v=>page().name=v.trim().slice(0,100)||'Сторінка');
     actionButton('Видалити сторінку',()=>command('page-delete'));
-    if(!doc.pages.some(p=>p.elements.length)){section('ПОЧАТИ З МАКЕТА');actionButton('Моніторинг',()=>edit(()=>starter(doc,'monitor')));actionButton('Керування',()=>edit(()=>starter(doc,'control')));}
-    section('ЗМІННІ CODE ТА ТЕСТОВІ ЗМІННІ');
-    paragraph('Змінні Code підтягуються зі скетчу автоматично. Тестові змінні існують лише в превʼю.');
-    for(const v of doc.variables) {
-      if(v.source==='code'){paragraph(`${v.name} · Code · ${v.cppType} = ${v.value}${v.readonly?' · лише читання':''}`);continue;}
-      const row=document.createElement('div');row.className='dp-variable';row.innerHTML=`<span>${esc(v.name)}<small>${esc(v.type)}</small></span>${btn('variable-delete','Видалити змінну','trash',`data-name="${esc(v.name)}"`)}`;$('.dp-properties').append(row);
-    }
-    const form=document.createElement('form');form.className='dp-variable-form';form.innerHTML=`<input name="name" placeholder="temperature" aria-label="Назва нової змінної" pattern="[A-Za-z_][A-Za-z0-9_]{0,62}" required maxlength="63"><select name="type" aria-label="Тип нової змінної"><option value="number">Число</option><option value="boolean">Логічна</option><option value="text">Текст</option></select><button type="submit">Додати змінну</button>`;
-    form.onsubmit=ev=>{ev.preventDefault();const name=form.elements.name.value,type=form.elements.type.value;if(doc.variables.length>=100)return notice('До 100 змінних на документ.');if(doc.variables.some(v=>v.name===name))return notice('Така змінна вже існує.');edit(()=>{doc.variables.push({name,type,value:type==='number'?0:type==='boolean'?false:''});});};$('.dp-properties').append(form);
+    section('ЗМІННІ З CODE');
+    paragraph('Створи глобальну змінну в Code — вона автоматично з’явиться тут і в прив’язках елементів. Початкове значення змінюй у коді.');
+    for(const v of doc.variables.filter(v=>v.source==='code'))paragraph(`${v.name} · ${v.cppType} = ${v.value}${v.readonly?' · лише читання':''}`);
+    if(!doc.variables.some(v=>v.source==='code'))paragraph('Наприклад: int brightness = 20;');
     section('ДОКУМЕНТ');actionButton('Експорт документа JSON',()=>command('export'));
-    paragraph(doc.hardware?.profile==='waveshare169'||doc.hardwarePreview?.target==='TouchLed169/RGB565'?'Графіка й область дотику оновлюються автоматично під час компіляції або завантаження.':'Зображення зберігаються всередині документа. Апаратний адаптер для цього макета ще не налаштований.');
+    paragraph(doc.hardware||doc.hardwarePreview?.target==='TouchLed169/RGB565'?'Графіка й область дотику оновлюються автоматично під час компіляції або завантаження.':'Зображення зберігаються всередині документа. Апаратний адаптер для цього макета ще не налаштований.');
     if(recoveryWarning){paragraph(recoveryWarning,'dp-warning');actionButton('Відновити резервну чернетку',()=>{try{const r=JSON.parse(localStorage.getItem(recoveryKey()));validate(r.doc);edit(()=>{doc=r.doc;pageId=doc.pages[0].id;selection='';});recoveryWarning='';render();}catch(e){notice(e.message);}});}
   }
   function lists() {
@@ -187,7 +188,8 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   function draw() {
     if(!ready||!enabled)return;
     const c=doc.canvas,cells=c.class==='character',w=c.width*(cells?12:1),h=c.height*(cells?24:1),preview=mode==='preview';
-    $('.dp-screen-group').hidden=mode==='map';$('.dp-map').hidden=mode!=='map';
+    const starting=!doc.hardware&&!doc.pages.some(p=>p.elements.length);
+    $('.dp-start').hidden=!starting;$('.dp-screen-group').hidden=starting||mode==='map';$('.dp-map').hidden=starting||mode!=='map';
     if(mode==='map'){drawMap();return;}
     screen.setAttribute('viewBox',`0 0 ${w} ${h}`);screen.style.width=w*scale+'px';screen.style.height=h*scale+'px';
     const gridX=cells?12:c.grid,gridY=cells?24:c.grid;
@@ -253,6 +255,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     if(action==='new-project')return onNew();
     if(action==='open-project')return onOpen();
     if(!ready)return;
+    if(action==='device-add')return addDevice();
     const e=selected();
     if(['edit','preview','map'].includes(action)){mode=action;drag=null;guides=[];if(mode==='preview')resetValues();notice(mode==='preview'?'Клік моделює тільки явно призначену подію. Реальна плата не використовується.':'');render();return;}
     if(action==='save'){void onSave().catch(e=>notice(e.message));return;}
@@ -281,7 +284,6 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     }
     if(action==='layer-up'||action==='layer-down'){if(!e||e.locked)return;edit(()=>{const a=page().elements,i=a.indexOf(e),j=Math.max(0,Math.min(a.length-1,i+(action==='layer-up'?1:-1)));[a[i],a[j]]=[a[j],a[i]];});return;}
     if(action==='hide'||action==='lock') {edit(()=>{const e=page().elements.find(x=>x.id===target.dataset.id);if(e)e[action==='hide'?'editorHidden':'locked']=!e[action==='hide'?'editorHidden':'locked'];});return;}
-    if(action==='variable-delete'){edit(()=>{doc.variables=doc.variables.filter(v=>v.name!==target.dataset.name);});return;}
     if(action==='grid') {edit(()=>doc.canvas.snap=!doc.canvas.snap);return;}
     if(action==='fit')return fit();
     if(action.startsWith('zoom-')){scale=action==='zoom-reset'?1:Math.max(.15,Math.min(6,scale*(action==='zoom-in'?1.25:.8)));draw();state();return;}
@@ -375,9 +377,9 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
         const pages=[],previews=[];let total=0;
         const raster=async(p,value)=>{
           const testValues=scene.variable?{...initial,[scene.variable.name]:value}:initial,levels=scene.mode==='gpio'?{[scene.gpio]:!!value}:{};
-          const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="280"><rect width="240" height="280" fill="${doc.canvas.background}"/>${p.elements.filter(e=>e.runtimeVisible).map(e=>artwork(e,true,true,levels,testValues)).join('')}</svg>`;
+          const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${scene.width}" height="${scene.height}"><rect width="${scene.width}" height="${scene.height}" fill="${doc.canvas.background}"/>${p.elements.filter(e=>e.runtimeVisible).map(e=>artwork(e,true,true,levels,testValues)).join('')}</svg>`;
           const image=new Image();image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);await image.decode();
-          const canvas=document.createElement('canvas');canvas.width=240;canvas.height=280;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);const data=ctx.getImageData(0,0,240,280),frame=rgb565Frame(data.data);data.data.set(frame.pixels);ctx.putImageData(data,0,0);return {...frame,image:canvas.toDataURL('image/png')};
+          const canvas=document.createElement('canvas');canvas.width=scene.width;canvas.height=scene.height;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);const data=ctx.getImageData(0,0,scene.width,scene.height),frame=rgb565Frame(data.data);data.data.set(frame.pixels);ctx.putImageData(data,0,0);return {...frame,image:canvas.toDataURL('image/png')};
         };
         for(let i=0;i<scene.pages.length;i++){
           const p=doc.pages[i],plan=scene.pages[i],baseFrame=await raster(p,scene.initial),patches=[],images=[];
