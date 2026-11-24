@@ -11,7 +11,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   const root=document.createElement('main');root.id='display-editor';root.hidden=true;
   root.innerHTML=`<aside class="dp-panel dp-left"><header><div><span class="dp-eyebrow">PINWAY</span><h2>Display <span class="dp-beta">EDITOR</span></h2></div>${btn('save','Зберегти проєкт · ⌘S','save')}</header><section class="dp-add"><h3>ДОДАТИ ЕЛЕМЕНТ</h3><div class="dp-palette"></div></section><section class="dp-pages"><h3>СТОРІНКИ ${btn('page-add','Додати сторінку','plus')}</h3><div class="dp-page-list"></div></section><section class="dp-layers"><h3>ШАРИ <span id="dp-layer-count"></span></h3><div class="dp-layer-list"></div></section><footer><span class="dp-dot"></span><span class="dp-save-state">Відкрийте проєкт</span></footer></aside>
     <nav class="dp-toolbar" aria-label="Інструменти Display"><div>${btn('undo','Скасувати · ⌘Z','undo')}${btn('redo','Повторити · ⇧⌘Z','redo')}</div><i></i><div class="dp-modes">${btn('edit','Редактор')}${btn('preview','Превʼю')}${btn('map','Мапа')}</div><i></i><div>${btn('zoom-out','Зменшити','minus')}<button data-do="zoom-reset" class="dp-zoom">100%</button>${btn('zoom-in','Збільшити','plus')}${btn('fit','Вписати полотно','fit')}</div><i></i>${btn('grid','Прив’язка до сітки','grid')}</nav>
-    <section class="dp-stage" tabindex="0" aria-label="Полотно Display"><div class="dp-screen-group"><div class="dp-screen-caption"></div><div class="dp-screen-wrap"><svg class="dp-screen" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Інтерфейс дисплея"></svg></div><div class="dp-screen-meta"></div></div><div class="dp-map" hidden></div><div class="dp-start design-welcome" hidden><div class="design-welcome-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 22h8m-4-4v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="dp-eyebrow">PINWAY DISPLAY</span><h1>Створи інтерфейс свого пристрою.</h1><p>Вибери дисплей і додай елементи.<br>Змінні з Code з’являться тут автоматично.</p><button data-do="device-add">Додати дисплей</button><small>Або додай перший елемент із панелі зліва.</small></div></section>
+    <section class="dp-stage" tabindex="0" aria-label="Полотно Display"><div class="dp-screen-group"><div class="dp-screen-caption"></div><div class="dp-screen-wrap"><svg class="dp-screen" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Інтерфейс дисплея"></svg></div><div class="dp-screen-meta"></div></div><div class="dp-map" hidden></div><div class="dp-start design-welcome" hidden><div class="design-welcome-symbol"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 22h8m-4-4v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="dp-eyebrow">PINWAY DISPLAY</span><h1>Створи інтерфейс свого пристрою.</h1><p>Спочатку вибери та налаштуй дисплей.<br>Після цього відкриється редактор інтерфейсу.</p><button data-do="device-add">Вибрати й налаштувати дисплей</button></div></section>
     <aside class="dp-panel dp-right"><header><div><span class="dp-eyebrow">ІНСПЕКТОР</span><h2 class="dp-inspector-title">Полотно</h2></div>${btn('canvas','Параметри полотна','grid')}</header><div class="dp-properties"></div></aside>
     <div class="dp-message" role="status"></div><div class="dp-empty" hidden><h1>Інтерфейс вашого пристрою.</h1><p>Створіть або відкрийте проєкт Pinway.<br>Плату й фізичний дисплей можна підключити пізніше.</p><div class="dp-empty-actions"><button data-do="new-project">Новий проєкт</button><button data-do="open-project">Відкрити проєкт</button></div></div><input class="dp-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>`;
   document.querySelector('.statusbar').before(root);
@@ -76,7 +76,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     dialog.onclose=()=>dialog.remove();document.body.append(dialog);drawPins();dialog.showModal();
   }
   function inspector() {
-    $('.dp-properties').replaceChildren();const e=selected(),c=doc.canvas;
+    $('.dp-properties').replaceChildren();const e=doc.hardware?selected():null,c=doc.canvas;
     $('.dp-inspector-title').textContent=mode==='preview'?'Значення з Code':e?kinds[e.kind]:'Полотно';
     if(!ready)return;
     if(mode==='preview') {
@@ -144,6 +144,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     actionButton('Додати дисплей',()=>addDevice());
     if(doc.hardware){const size=displaySize(doc.hardware);paragraph(`${doc.hardware.profile==='waveshare169'?'ST7789V2 · CST816':doc.hardware.library+' · '+doc.hardware.config.controller} · ESP32 · ${size.width} × ${size.height}`);actionButton('Налаштувати дисплей і контакти',hardwareDialog);paragraph('Драйвери, тач і запуск будуть підготовлені автоматично під час компіляції.');}
     else paragraph('Вибери свій модуль або додай його на основі підтримуваного драйвера.');
+    if(!doc.hardware)return;
     section('ПОЛОТНО');
     if(c.class!=='character')field('Колір фону',c.background,v=>c.background=v,{type:'color'});
     field('Крок сітки',c.grid,v=>c.grid=Math.round(v),{type:'number',min:1,max:c.class==='character'?1:128,step:1});field('Прив’язка до сітки',c.snap,v=>c.snap=v,{type:'checkbox'});
@@ -185,7 +186,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   function draw() {
     if(!ready||!enabled)return;
     const c=doc.canvas,cells=c.class==='character',w=c.width*(cells?12:1),h=c.height*(cells?24:1),preview=mode==='preview';
-    const starting=!doc.hardware&&!doc.pages.some(p=>p.elements.length);
+    const starting=!doc.hardware;
     $('.dp-start').hidden=!starting;$('.dp-screen-group').hidden=starting||mode==='map';$('.dp-map').hidden=starting||mode!=='map';
     if(mode==='map'){drawMap();return;}
     screen.setAttribute('viewBox',`0 0 ${w} ${h}`);screen.style.width=w*scale+'px';screen.style.height=h*scale+'px';
@@ -224,6 +225,9 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     });
   }
   function state() {
+    $('.dp-toolbar').hidden=!doc.hardware;
+    root.querySelectorAll('[data-add]').forEach(b=>b.disabled=!ready||!doc.hardware);
+    root.querySelector('[data-do="page-add"]').disabled=!ready||!doc.hardware;
     const isDirty=dirty();root.classList.toggle('dp-dirty',isDirty);
     $('.dp-save-state').textContent=!ready?'Відкрийте проєкт':isDirty?'Незбережені зміни':'Збережено в проєкті';
     for(const [a,disabled]of [['undo',!history.length],['redo',!future.length],['save',!ready]])root.querySelector(`[data-do="${a}"]`).disabled=disabled||!ready;
@@ -234,9 +238,10 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
   function render() {lists();inspector();draw();state();if(ready){const warnings=issues(doc);if(warnings.length)notice(`⚠ ${warnings.length}: ${warnings[0].text}`);else if($('.dp-message').textContent.startsWith('⚠ '))notice('');}}
   function fit() {if(!enabled||!ready)return;const cells=doc.canvas.class==='character';scale=Math.max(.15,Math.min(3,(stage.clientWidth-70)/(doc.canvas.width*(cells?12:1)),(stage.clientHeight-130)/(doc.canvas.height*(cells?24:1))));draw();state();}
   function copy() {const e=selected();if(e)clipboard=clone(e);}
-  function paste() {if(!clipboard)return;edit(()=>{if(page().elements.length>=200)return;const e=clone(clipboard);e.id=uid();e.name+=' · копія';e.x+=doc.canvas.class==='character'?1:8;e.y+=doc.canvas.class==='character'?0:8;e.locked=false;page().elements.push(e);selection=e.id;});}
+  function paste() {if(!doc.hardware)return notice('Спочатку вибери та налаштуй дисплей.');if(!clipboard)return;edit(()=>{if(page().elements.length>=200)return;const e=clone(clipboard);e.id=uid();e.name+=' · копія';e.x+=doc.canvas.class==='character'?1:8;e.y+=doc.canvas.class==='character'?0:8;e.locked=false;page().elements.push(e);selection=e.id;});}
   function closePageMenu(){if(pageMenu){pageMenu.remove();pageMenu=null;}}
   function showPageMenu(target) {
+    if(!doc.hardware)return notice('Спочатку вибери та налаштуй дисплей.');
     closePageMenu();const id=target.dataset.pageTarget,index=doc.pages.findIndex(p=>p.id===id),p=doc.pages[index];if(!p)return;
     const menu=document.createElement('div');menu.className='dp-page-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label',`Дії сторінки «${p.name}»`);
     const actions=[['page-rename','Перейменувати',false],['page-duplicate','Дублювати',doc.pages.length>=40],['page-home','Зробити стартовою',index===0],['page-up','Перемістити вище',index===0],['page-down','Перемістити нижче',index===doc.pages.length-1],['page-delete','Видалити сторінку',doc.pages.length===1]];
@@ -260,6 +265,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     if(action==='undo'||action==='redo'){if(drag)return;const from=action==='undo'?history:future,to=action==='undo'?future:history;if(!from.length)return;to.push(snapshot());doc=JSON.parse(from.pop());if(!doc.pages.some(p=>p.id===pageId))pageId=doc.pages[0].id;recover();onChange();render();return;}
     if(action==='copy')return copy();if(action==='paste')return paste();if(action==='duplicate'){copy();paste();return;}
     if(action==='delete'){if(!e||e.locked)return;edit(()=>{page().elements=page().elements.filter(x=>x.id!==e.id);selection='';});return;}
+    if(action==='page-add'&&!doc.hardware)return notice('Спочатку вибери та налаштуй дисплей.');
     if(action==='page-add'){if(doc.pages.length>=40)return notice('До 40 сторінок у документі.');edit(()=>{const p={id:uid(),name:`Сторінка ${doc.pages.length+1}`,elements:[]};doc.pages.push(p);pageId=p.id;selection='';});return;}
     if(action==='page-menu')return showPageMenu(target);
     if(['page-rename','page-duplicate','page-home','page-up','page-down','page-delete'].includes(action)) {
@@ -290,7 +296,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     const target=ev.target.closest('button');if(!target)return;
     if(target.dataset.do)return command(target.dataset.do,target);
     if(!ready)return;
-    if(target.dataset.add){if(mode!=='edit')return notice('Для додавання перейдіть у редактор.');if(page().elements.length>=200)return notice('До 200 елементів на сторінці.');edit(()=>{const e=element(target.dataset.add,doc);page().elements.push(e);selection=e.id;});}
+    if(target.dataset.add){if(!doc.hardware)return notice('Спочатку вибери та налаштуй дисплей.');if(mode!=='edit')return notice('Для додавання перейдіть у редактор.');if(page().elements.length>=200)return notice('До 200 елементів на сторінці.');edit(()=>{const e=element(target.dataset.add,doc);page().elements.push(e);selection=e.id;});}
     if(target.dataset.page||target.dataset.mapPage){pageId=target.dataset.page||target.dataset.mapPage;selection='';if(target.dataset.mapPage)mode='edit';render();}
     if(target.dataset.select){selection=target.dataset.select;render();}
   };
