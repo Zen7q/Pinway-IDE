@@ -140,15 +140,12 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
       const h=clone(presets.find(p=>p.id===v).hardware);h.preset=v;
       if(v==='waveshare169')try{const pins=JSON.parse(localStorage.getItem('pinway.waveshare169.pins'));if(pins&&!hardwareErrors({...h,pins}).length)h.pins=pins;}catch{}
       doc.hardware=h;Object.assign(c,displaySize(h),{class:'color'});
-    },{choices:[['','Лише макет · без плати'],...presets.map(p=>[p.id,p.name])]});
+    },{choices:[['','Дисплей не вибрано'],...presets.map(p=>[p.id,p.name])]});
     actionButton('Додати дисплей',()=>addDevice());
     if(doc.hardware){const size=displaySize(doc.hardware);paragraph(`${doc.hardware.profile==='waveshare169'?'ST7789V2 · CST816':doc.hardware.library+' · '+doc.hardware.config.controller} · ESP32 · ${size.width} × ${size.height}`);actionButton('Налаштувати дисплей і контакти',hardwareDialog);paragraph('Драйвери, тач і запуск будуть підготовлені автоматично під час компіляції.');}
     else paragraph('Вибери свій модуль або додай його на основі підтримуваного драйвера.');
-    section('ГЕОМЕТРІЯ');
-    field('Клас дисплея',c.class,v=>{c.class=v;if(v==='character'){c.width=16;c.height=2;c.touch=false;c.grid=1;}else if(c.width<=80&&c.height<=8){c.width=320;c.height=240;}},{choices:[['color','Кольоровий · пікселі'],['mono','Монохромний · пікселі'],['character','Символьний · комірки']],help:'Позиції елементів зберігаються. Несумісні шари залишаться в документі з попередженням.'});
-    for(const [k,label]of [['width',c.class==='character'?'Стовпці':'Ширина'],['height',c.class==='character'?'Рядки':'Висота']])field(label,c[k],v=>c[k]=Math.round(v),{type:'number',min:1,max:c.class==='character'?(k==='width'?80:8):2048,step:1});
-    if(c.class!=='character'){field('Колір фону',c.background,v=>c.background=v,{type:'color'});field('Підтримка дотику · макет',c.touch,v=>c.touch=v,{type:'checkbox'});}
-    else paragraph('Лише текст у комірках. Превʼю кирилиці не гарантує наявності символів у ROM фізичного LCD.');
+    section('ПОЛОТНО');
+    if(c.class!=='character')field('Колір фону',c.background,v=>c.background=v,{type:'color'});
     field('Крок сітки',c.grid,v=>c.grid=Math.round(v),{type:'number',min:1,max:c.class==='character'?1:128,step:1});field('Прив’язка до сітки',c.snap,v=>c.snap=v,{type:'checkbox'});
     section('ПОТОЧНА СТОРІНКА');field('Назва сторінки',page().name,v=>page().name=v.trim().slice(0,100)||'Сторінка');
     actionButton('Видалити сторінку',()=>command('page-delete'));
