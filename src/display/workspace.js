@@ -1,3 +1,4 @@
+import {bindSidebarResize} from '../workspace-panels';
 import {deviceDialog,personalDisplays} from './device-dialog.js';
 import {wavePins,pinLabels,outputPins,inputPins,hardwareErrors,scenePlan,displaySize,displayPresets} from './hardware.mjs';
 import {scanCodeVariables} from './code-variables.mjs';
@@ -15,6 +16,7 @@ export function mountDisplay({call,onVisibility,onChange,onSave,onNew,onOpen,pre
     <aside class="dp-panel dp-right"><header><div><span class="dp-eyebrow">ІНСПЕКТОР</span><h2 class="dp-inspector-title">Полотно</h2></div>${btn('canvas','Параметри полотна','grid')}</header><div class="dp-properties"></div></aside>
     <div class="dp-message" role="status"></div><div class="dp-empty" hidden><h1>Інтерфейс вашого пристрою.</h1><p>Створіть або відкрийте проєкт Pinway.<br>Плату й фізичний дисплей можна підключити пізніше.</p><div class="dp-empty-actions"><button data-do="new-project">Новий проєкт</button><button data-do="open-project">Відкрити проєкт</button></div></div><input class="dp-image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>`;
   document.querySelector('.statusbar').before(root);
+  const sash=document.createElement('div');sash.className='dp-sidebar-sash';sash.setAttribute('aria-label','Ширина бічної панелі Display');sash.setAttribute('aria-controls','display-editor');root.append(sash);bindSidebarResize(sash);
   const $=s=>root.querySelector(s),screen=$('.dp-screen'),stage=$('.dp-stage');
   let pageMenu=null;
   let codeTicket=0;

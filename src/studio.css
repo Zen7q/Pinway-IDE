@@ -237,3 +237,72 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 #display-editor .dp-field:has(select[aria-label="Модель дисплея"]) {grid-template-columns:minmax(0,1fr);gap:8px}
 #display-editor select[aria-label="Модель дисплея"] {width:100%;min-width:0}
 .dp-device-fields :is(input:not([type=checkbox]),select) {height:36px;min-height:36px;margin:0;font:inherit;line-height:1.35}
+
+/* Shared workspace shell. Display is the reference for panel geometry. */
+:root {--workspace-sidebar-width:224px;--workspace-inspector-width:262px;--workspace-gap:16px;--workspace-top:20px}
+.workspace-panel-heading {display:flex;align-items:center;justify-content:space-between;gap:8px;box-sizing:border-box;padding:15px 16px;min-height:67px;height:67px;flex:none;border-bottom:1px solid var(--border)}
+.workspace-eyebrow {display:block;font:600 9px var(--font-ui);letter-spacing:1.6px;color:var(--sub);margin-bottom:2px}
+.workspace-panel-heading h2,.design-properties .design-heading h2 {display:flex;align-items:center;gap:8px;font:600 16px/1.5 var(--font-ui);letter-spacing:-.35px;margin:0;color:var(--text)}
+.workspace-badge {font:600 8px var(--font-ui);letter-spacing:1px;padding:2px 4px;border:1px solid var(--selected-border);border-radius:4px;background:var(--selected);color:var(--selected-text)}
+.workspace-panel-heading button {width:28px;height:28px;padding:5px;background:transparent;border:1px solid transparent;border-radius:var(--control-radius);color:var(--sub)}
+.workspace-panel-heading svg {width:16px;height:16px}
+#workbench,[data-host=tauri] #workbench {position:relative;padding:20px 16px;gap:16px;background:radial-gradient(var(--hover) .6px,transparent .7px) 0 0/20px 20px,var(--bg)}
+#sidebar,[data-host=tauri] #sidebar {position:relative;display:flex;flex-direction:column;width:var(--workspace-sidebar-width);min-width:var(--workspace-sidebar-width);--panel-width:100%;border:1px solid var(--border);border-radius:var(--panel-radius);background:var(--surface);box-shadow:var(--panel-shadow);overflow:hidden}
+#sidebar .side-views,[data-host=tauri] #sidebar .side-views {width:100%;flex-direction:row;align-items:center;padding:7px 12px;gap:4px;border-right:0;border-bottom:1px solid var(--border);height:48px}
+#sidebar .side-view {width:32px;height:32px;flex:none;border-radius:var(--control-radius);margin:0;box-shadow:none}
+#sidebar #settings-view {margin-left:auto}
+#files-panel,#libraries {width:100%;flex:1;min-width:0;overflow:hidden}
+#sidebar .side-heading {padding:8px 10px;gap:2px;min-height:46px;flex-wrap:wrap}
+#sidebar .root-heading {min-width:0;flex:1}
+#sidebar .side-heading .icon-button {width:25px;height:26px;padding:4px;flex:none}
+#sidebar .side-heading svg {width:15px;height:15px}
+#sidebar #tree {padding:8px 9px}
+#sidebar .tree-node {min-height:34px;padding:7px 9px;font-size:11px;border-radius:var(--control-radius)}
+#sidebar .library-toolbar {padding:12px 9px;gap:4px;flex-wrap:wrap}
+#sidebar #library-search {min-width:0;flex:1;flex-wrap:wrap;gap:6px}
+#sidebar #library-search input {width:100%;min-width:0;flex-basis:100%}
+#sidebar #library-results {overflow:auto;min-height:0}
+#workbench .workspace,[data-host=tauri] #workbench .workspace {border:1px solid var(--border);border-radius:var(--panel-radius);box-shadow:var(--panel-shadow);overflow:hidden}
+#app:has(#workbench:not([hidden])) > .statusbar {position:absolute;bottom:0;left:0;right:0;height:18px;min-height:18px;font-size:10px;background:var(--bg);border:0;z-index:3}
+.workspace-sash,#sidebar-split,#designer .design-sash {position:absolute;z-index:5;left:calc(16px + var(--workspace-sidebar-width));top:20px;bottom:20px;width:16px;margin:0;border:0;background:transparent;cursor:col-resize;touch-action:none;outline:none}
+.workspace-sash::after,#sidebar-split::after {content:'';position:absolute;top:8px;bottom:8px;left:6px;width:3px;border-radius:2px;background:transparent}
+.workspace-sash:hover::after,.workspace-sash:focus-visible::after,.workspace-sash.dragging::after {background:var(--focus)}
+#sidebar-split::before {display:none}
+#designer {position:relative;margin:0;overflow:hidden;background:radial-gradient(var(--hover) .6px,transparent .7px) 0 0/20px 20px,var(--bg);font:12px/1.45 var(--font-ui);--library-width:var(--workspace-sidebar-width)}
+#designer .design-sidebar {position:absolute;left:16px;top:20px;bottom:20px;width:var(--workspace-sidebar-width);box-sizing:border-box;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--panel-radius);background:var(--surface);box-shadow:var(--panel-shadow);overflow:hidden}
+#designer .design-activity {width:100%;height:48px;flex-direction:row;align-items:center;padding:7px 12px;gap:4px;border-right:0;border-bottom:1px solid var(--border);background:transparent;box-sizing:border-box}
+#designer .design-activity button {width:32px;height:32px;flex:none;border-radius:var(--control-radius);box-shadow:none}
+#designer .design-parts {width:100%;min-width:0;max-width:none;flex:1;min-height:0}
+#designer .design-parts .design-heading {height:42px;min-height:42px;padding:10px 14px;margin:0;border:0}
+#designer .design-parts .design-heading strong {font:600 10px var(--font-ui);letter-spacing:1.1px;color:var(--sub)}
+#designer .design-search {margin:0 12px 10px;height:32px;min-height:32px;padding:6px 8px}
+#designer .design-catalog {padding:0 9px 12px}
+#designer .design-card {gap:8px;min-width:0;padding:7px 8px;font-size:11px}
+#designer .design-card .design-preview {width:44px;min-width:44px}
+#designer .design-preview svg {width:44px;max-width:44px;height:36px}
+#designer .design-library-note {font:10px/1.7 var(--font-ui);padding:12px 14px;color:var(--sub);border-top:1px solid var(--border)}
+#designer .design-editor {position:absolute;left:calc(var(--workspace-sidebar-width) + 32px);right:calc(var(--workspace-inspector-width) + 32px);top:20px;bottom:20px;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
+#designer .design-viewport {position:absolute;inset:0;background:transparent}
+#designer .design-tools {top:0;max-width:calc(100% - 8px);box-shadow:var(--panel-shadow);padding:4px;min-height:36px}
+#designer .design-status {position:absolute;bottom:0;left:0;right:0;background:var(--inset);border:1px solid var(--border);border-radius:7px;font:10px/1.5 var(--font-ui);padding:6px 10px}
+#designer .design-properties {position:absolute;right:16px;top:20px;width:var(--workspace-inspector-width);max-height:calc(100% - 40px);box-sizing:border-box;margin:0;border:1px solid var(--border);border-radius:var(--panel-radius);box-shadow:var(--panel-shadow);background:var(--surface)}
+#designer .design-properties .design-heading {box-sizing:border-box;height:67px;min-height:67px;padding:15px 16px;margin:0 0 12px}
+#designer #design-properties {padding:0 16px}
+#designer .design-welcome {width:min(420px,90%);max-width:90%}
+#designer .design-welcome h1 {font-size:25px;line-height:1.3}
+#designer.design-collapsed .design-sidebar {display:none}
+#designer.design-collapsed .design-editor {left:16px}
+#display-editor .dp-left {width:var(--workspace-sidebar-width)}
+#display-editor .dp-right {width:var(--workspace-inspector-width)}
+#display-editor .dp-stage {left:calc(var(--workspace-sidebar-width) + 32px);right:calc(var(--workspace-inspector-width) + 32px)}
+#display-editor .dp-message {left:calc(var(--workspace-sidebar-width) + 32px);right:calc(var(--workspace-inspector-width) + 32px)}
+#display-editor .dp-toolbar {left:calc((100% + var(--workspace-sidebar-width) - var(--workspace-inspector-width))/2);max-width:calc(100% - var(--workspace-sidebar-width) - var(--workspace-inspector-width) - 80px)}
+@media(max-width:1000px){:root{--workspace-inspector-width:208px}}
+@media(max-width:760px){:root{--workspace-inspector-width:160px}}
+/* Exact header rhythm across all workspace panels. */
+.workspace-panel-heading {padding:12px 16px}
+.workspace-eyebrow {line-height:1.45}
+#display-editor .dp-panel > header {height:67px;min-height:67px;padding:12px 16px;box-sizing:border-box}
+#designer .design-properties .design-heading {padding:12px 16px}
+#designer .design-viewport {inset:60px 0 40px}
+#designer .design-tools button {font-size:11px;min-height:27px}

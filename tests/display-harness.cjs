@@ -19,7 +19,8 @@ window.pinway={subscribe(fn){testSubscriber=fn;},async call(action,p){testCalls.
  if(action==='files')return [];
  if(action==='read')return code;
  if(action==='ports')return [];
- if(action==='catalog')return [];
+ if(action==='catalog'||action==='search')return [];
+ if(action==='installed')return {};
  if(action==='designer')return p.op==='library'?[]:p.op==='inspect'?{nets:[]}:null;
  if(action==='display'){if(p.op==='load')return structuredClone(stores[p.root]||null);stores[p.root]=structuredClone(p.document);localStorage.setItem('test-display-store',JSON.stringify(stores));return null;}
  if(action==='dirtyPrompt')return testChoice;

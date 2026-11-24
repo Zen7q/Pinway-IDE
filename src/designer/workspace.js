@@ -1,3 +1,4 @@
+import {bindSidebarResize,panelHeading} from '../workspace-panels';
 import { component, artwork, xml, tag } from './graphics';
 const MODES=['breadboard','schematic','pcb'];
 const clone=value=>structuredClone(value);
@@ -11,16 +12,19 @@ const btn=(action,label,glyph='',extra='')=>`<button type="button" data-action="
 export function mountDesigner({call,onVisibility,settings,projectActions}) {
   const root=document.createElement('main');root.id='designer';root.hidden=true;
   root.innerHTML=`<aside class="design-activity" aria-label="Build views">${btn('breadboard','Breadboard','chip','aria-pressed="true"')}${btn('schematic','Schematic','activity','aria-pressed="false"')}${btn('pcb','PCB','layers','aria-pressed="false"')}<span class="design-flex"></span>${btn('settings','Settings','settings')}</aside>
-    <aside class="design-parts" aria-label="Component library"><div class="design-heading"><strong>Components</strong>${btn('collapse','Collapse library','left')}</div><label class="design-search">${icon('search')}<input type="search" placeholder="Find a component…" aria-label="Find a component"></label><div class="design-catalog"></div><div class="design-library-note">Drag onto the canvas<br>or click to place a component.</div></aside>
+    <aside class="design-parts" aria-label="Component library"><div class="design-heading"><strong>Components</strong>${btn('collapse','Collapse library','left')}</div><label class="design-search">${icon('search')}<input type="search" placeholder="Знайти компонент…" aria-label="Find a component"></label><div class="design-catalog"></div><div class="design-library-note">Перетягни на полотно<br>або натисни, щоб додати.</div></aside>
     <nav aria-label="Project files">${btn('new','New project','new-file')}${btn('open','Open project','folder')}${btn('save','Save project','save')}${btn('export','Export SVG','external')}</nav>
     <section class="design-editor">
     <div class="design-tools">${btn('expand','Show component library','folder')}<div class="design-toolgroup">${btn('select','Select','cursor','aria-pressed="true"')}${btn('wire','Draw wire','activity','aria-pressed="false"')}<input id="design-wire" type="color" value="#e27c67" aria-label="Wire color"></div><i></i><div class="design-toolgroup">${btn('rotate','Rotate · R','rotate')}${btn('duplicate','Duplicate · ⌘D','copy')}${btn('delete','Delete','trash')}</div><span class="design-flex"></span>${btn('undo','Undo · ⌘Z','undo')}${btn('redo','Redo · ⇧⌘Z','redo')}<i></i>${btn('out','Zoom out','minus')}<button data-action="fit" id="design-zoom" title="Fit circuit">100%</button>${btn('in','Zoom in','plus')}</div>
-    <div class="design-viewport" tabindex="0" aria-label="Circuit workspace"><svg id="design-scene" xmlns="http://www.w3.org/2000/svg" aria-label="Circuit drawing"></svg><div class="design-welcome"><div class="design-welcome-symbol">${icon('chip')}</div><span class="design-eyebrow">PINWAY BUILD</span><h1>Make your next connection.</h1><p>Bring components together.<br>Turn an idea into a circuit.</p><button data-action="starter" class="design-primary">Create an LED circuit ${icon('right')}</button><span class="design-hint">Or drag your first component from the library.</span></div><div class="design-canvas-label">2.54 mm grid</div></div>
+    <div class="design-viewport" tabindex="0" aria-label="Circuit workspace"><svg id="design-scene" xmlns="http://www.w3.org/2000/svg" aria-label="Circuit drawing"></svg><div class="design-welcome"><div class="design-welcome-symbol">${icon('chip')}</div><span class="design-eyebrow">PINWAY BUILD</span><h1>Створи наступне з’єднання.</h1><p>Поєднуй компоненти.<br>Перетворюй ідеї на схеми.</p><button data-action="starter" class="design-primary">Створити LED-схему ${icon('right')}</button><span class="design-hint">Або додай перший компонент із бібліотеки.</span></div><div class="design-canvas-label">2.54 mm grid</div></div>
     <footer class="design-status"><span id="design-message" role="status">Preparing component library…</span><span id="design-count"></span></footer></section>
-    <aside class="design-properties" aria-label="Circuit inspector"><div class="design-heading"><strong>Inspector</strong></div><div id="design-properties"></div><section id="design-board" hidden><h3>Board size</h3><label>Width <span><input type="number" id="design-width" aria-label="PCB width" min="25.4" max="508" step="2.54"> mm</span></label><label>Height <span><input type="number" id="design-height" aria-label="PCB height" min="25.4" max="508" step="2.54"> mm</span></label><p>Single copper layer. Dashed connections still need a route.</p></section><section class="design-outline"><h3>In this circuit <span id="design-part-count">0</span></h3><div id="design-outline"></div></section></aside>
+    <aside class="design-properties" aria-label="Circuit inspector"><div class="design-heading"><strong>Inspector</strong></div><div id="design-properties"></div><section id="design-board" hidden><h3>Board size</h3><label>Width <span><input type="number" id="design-width" aria-label="PCB width" min="25.4" max="508" step="2.54"> mm</span></label><label>Height <span><input type="number" id="design-height" aria-label="PCB height" min="25.4" max="508" step="2.54"> mm</span></label><p>Single copper layer. Dashed connections still need a route.</p></section><section class="design-outline"><h3>У цій схемі <span id="design-part-count">0</span></h3><div id="design-outline"></div></section></aside>
     `;
   const sidebar=document.createElement('div');sidebar.className='design-sidebar';
   root.prepend(sidebar);sidebar.append(root.querySelector('.design-activity'),root.querySelector('.design-parts'));
+  sidebar.prepend(panelHeading('Build',root.querySelector('nav [data-action=save]')));
+  root.querySelector('.design-properties .design-heading').innerHTML='<div><span class="workspace-eyebrow">ІНСПЕКТОР</span><h2>Схема</h2></div>';
+  root.querySelector('.design-parts .design-heading strong').textContent='КОМПОНЕНТИ';
   const controls=document.createElement('div');controls.id='design-topbar';controls.hidden=true;
   const tools=root.querySelector('.design-tools'),files=root.querySelector('nav');
   tools.setAttribute('role','toolbar');tools.setAttribute('aria-label','Build tools');
@@ -28,9 +32,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
   root.querySelector('.design-editor').append(tools);
   document.querySelector('.chrome .zoom-controls').after(controls);
   const sash=document.createElement('div');sash.className='design-sash';sash.role='separator';sash.tabIndex=0;sash.setAttribute('aria-label','Component library width');sash.setAttribute('aria-orientation','vertical');root.querySelector('.design-editor').before(sash);
-  root.style.setProperty('--library-width',(Number(localStorage.getItem('pinway-designer-width'))||218)+'px');
-  sash.onpointerdown=e=>{sash.setPointerCapture(e.pointerId);const start=e.clientX,width=root.querySelector('.design-parts').getBoundingClientRect().width;sash.onpointermove=e=>{const next=Math.max(155,Math.min(380,width+e.clientX-start));root.style.setProperty('--library-width',next+'px');localStorage.setItem('pinway-designer-width',next);};sash.onpointerup=()=>{sash.onpointermove=null;};};
-  sash.onkeydown=e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const width=root.querySelector('.design-parts').getBoundingClientRect().width;const next=Math.max(155,Math.min(380,width+(e.key==='ArrowLeft'?-10:10)));root.style.setProperty('--library-width',next+'px');localStorage.setItem('pinway-designer-width',next);};
+  bindSidebarResize(sash);
   document.querySelector('.statusbar').before(root);
   const $=id=>root.querySelector('#'+id)||controls.querySelector('#'+id), viewport=root.querySelector('.design-viewport'), scene=$('design-scene');
   let circuit=fresh(), defs=[], nets=[], owner=null, selection='', mode='breadboard', tool='select', enabled=false, ready=false,busy=false;
@@ -59,8 +61,8 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
     });notice('Component placed. Drag to move, R to rotate.');viewport.focus();
   }
   function stateBar() {
-    for(const action of ['save','export'])controls.querySelector(`[data-action=${action}]`).disabled=!owner||!ready;
-    $('design-count').textContent=`${circuit.parts.length} components · ${circuit.links.length} wires`;
+    for(const action of ['save','export'])(root.querySelector(`[data-action=${action}]`)||controls.querySelector(`[data-action=${action}]`)).disabled=!owner||!ready;
+    $('design-count').textContent=`${circuit.parts.length} компонентів · ${circuit.links.length} з’єднань`;
     $('design-part-count').textContent=circuit.parts.length;
     tools.querySelector('[data-action=undo]').disabled=!history.length;tools.querySelector('[data-action=redo]').disabled=!future.length;
     for(const action of ['rotate','duplicate'])tools.querySelector(`[data-action=${action}]`).disabled=!partById(selection);
@@ -150,7 +152,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
       const p=document.createElement('p');p.textContent='Double-click to add a bend. Drag a bend to reshape the connection.';target.append(p);
       if(mode==='pcb'){const b=document.createElement('button');b.className='design-route';b.textContent=circuit.routing[edge.uid]?.copper?'Mark as unrouted':'Route on copper layer';b.onclick=()=>edit(()=>{const r=ensureRoute(edge.uid);r.copper=!r.copper;});target.append(b);}
       target.insertAdjacentHTML('beforeend',btn('delete','Delete connection','trash'));
-    }else target.innerHTML=`<div class="design-inspector-empty">${icon('cursor')}<h2>A place for every detail.</h2><p>Select a component or connection to edit its properties.</p></div>`;
+    }else target.innerHTML=`<div class="design-inspector-empty">${icon('cursor')}<h2>Місце для кожної деталі.</h2><p>Вибери компонент або з’єднання, щоб змінити його властивості.</p></div>`;
     $('design-board').hidden=mode!=='pcb';$('design-width').value=(circuit.board.x/10*2.54).toFixed(2);$('design-height').value=(circuit.board.y/10*2.54).toFixed(2);
     const outline=$('design-outline');outline.replaceChildren();for(const p of circuit.parts){const b=document.createElement('button');b.className=p.uid===selection?'selected':'';b.dataset.select=p.uid;b.innerHTML=`<span>${xml(p.label)}</span><small>${xml(definition(p.kind).title)}</small>`;outline.append(b);}
   }
@@ -273,7 +275,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
       circuit=fresh();nets=[];history=[];future=[];selection='';pending=null;hover.clear();revision++;
       root.hidden=!enabled||!owner;stateBar();
       try{
-        if(owner){const loaded=await run('projectLoad',{root:owner.root});if(loaded)circuit=loaded;ready=true;await analyze();notice('Project ready.');}
+        if(owner){const loaded=await run('projectLoad',{root:owner.root});if(loaded)circuit=loaded;ready=true;await analyze();notice('Проєкт готовий.');}
         render();if(enabled&&owner)fit();
       }finally{busy=false;stateBar();}
     },
