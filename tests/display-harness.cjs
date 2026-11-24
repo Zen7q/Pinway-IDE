@@ -7,7 +7,7 @@ const mock=`
 document.querySelector('#toolbar').before(document.querySelector('.zoom-controls'));
 window.testErrors=[];addEventListener('error',e=>testErrors.push(e.message));addEventListener('unhandledrejection',e=>testErrors.push(String(e.reason)));
 const stores=JSON.parse(localStorage.getItem('test-display-store')||'{}');
-window.testCalls=[];window.testChoice=2;window.testProject='/test/One';window.testSubscriber=null;
+window.testCalls=[];window.testChoice=2;window.testProject='/test/'+(new URLSearchParams(location.search).get('project')||'One');window.testSubscriber=null;
 const code='void setup() {}\\nvoid loop() {}\\n';
 window.pinway={subscribe(fn){testSubscriber=fn;},async call(action,p){testCalls.push({action,p});
  const project=()=>({root:testProject,primary:testProject+'/Main.ino',selected:testProject+'/Main.ino',name:testProject.split('/').pop()});

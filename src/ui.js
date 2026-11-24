@@ -621,8 +621,17 @@ async function acceptProject(value, session) {
   }
   await designer.setProject(value);
   await display.setProject(value);
-  if (designer.active) await designer.activate(true);
-  if (display.active) display.activate(true);
+  if (!value) {
+    await designer.activate(false);
+    display.activate(false);
+    $('workspace-toggle').querySelector('span').textContent = 'Pinway Code';
+    for (const button of workspaceSwitch.querySelectorAll('[data-workspace]')) button.querySelector('.workspace-check').textContent = button.dataset.workspace === 'code' ? '✓' : '';
+    workspaceClose();
+    $('welcome').hidden = false;
+  } else {
+    if (designer.active) await designer.activate(true);
+    if (display.active) display.activate(true);
+  }
 }
 async function changeProject(action) {
   if (changing || task) return false;
