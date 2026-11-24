@@ -15,6 +15,7 @@ if [[ -e "$app" ]]; then
   exit 1
 fi
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp LICENSE LICENSE-REVIEW.md THIRD_PARTY.md "$app/Contents/Resources/"
 cp native/target/debug/pinway-native "$app/Contents/MacOS/Pinway IDE"
 cp -cR .toolchain/runtime "$app/Contents/Resources/arduino"
 cp dist/Pinway.icns "$app/Contents/Resources/Pinway.icns"

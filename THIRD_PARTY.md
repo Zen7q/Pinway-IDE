@@ -1,5 +1,10 @@
 # Pinway IDE: third-party notices
 
+The Pinway license in `LICENSE` covers original project material. Each component
+below retains its own license and permissions, including commercial rights granted
+by its authors. See `LICENSE-REVIEW.md` for the dependency review and remaining
+source-distribution and notice obligations.
+
 - [Tauri](https://github.com/tauri-apps/tauri) (MIT or Apache-2.0) hosts the desktop UI in the operating system’s WebView. `src-tauri/Cargo.lock` records the Rust dependencies and versions.
 - [CodeMirror 6 and Lezer](https://codemirror.net/) and their browser dependencies: MIT notices are collected in `Contents/Resources/npm-notices.txt`. The lockfile records the exact editor versions.
 - [Arduino CLI 1.5.1](https://github.com/arduino/arduino-cli/tree/v1.5.1) (GPL-3.0): official macOS ARM64 executable and accompanying license in `Contents/Resources/arduino`. It runs as a separate process.

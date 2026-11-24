@@ -1,0 +1,107 @@
+Pinway IDE Source-Available License, Version 1.0
+
+Copyright (c) 2026 Pinway IDE contributors.
+Each contributor retains copyright in their respective contributions.
+
+1. Scope and acceptance
+
+This license applies to the original Pinway IDE code, documentation, and assets
+in this repository, except material that carries a different license or belongs
+to a third party. "Software" means that covered material and copies or modified
+versions of it. "Licensors" means the copyright holders of the covered material.
+By exercising the permissions below, you agree to their conditions. Rights you
+already have under applicable law are unaffected.
+
+2. Permissions
+
+Subject to this license, the Licensors grant you a worldwide, non-exclusive,
+royalty-free copyright license to inspect, use, reproduce, modify, and distribute
+the Software in source or executable form. You may use and modify the Software
+for personal, educational, professional, and commercial activities, including
+paid firmware development and the manufacture and sale of your own devices.
+Redistribution must meet sections 3 and 4.
+
+3. Free redistribution and attribution
+
+You may distribute original or modified copies free of charge. Include this
+license and preserve applicable copyright, attribution, and third-party notices.
+For executable distributions, include these documents with the application or
+in its accompanying documentation. Identify modified versions and describe your
+changes in a notice or changelog, so recipients can distinguish your version
+from the upstream project. Preserve this license for the covered material in
+modified versions. You are not required by this license to publish private
+modifications or to provide source with an executable distribution.
+
+4. Sale and paid distribution
+
+Without separate written permission from the relevant Licensors, you may not
+sell, rent, lease, or charge a license fee for the Software or a modified version.
+You may not require payment or a paid subscription to obtain, install, or access
+a copy. This restriction also applies to including the Software in a paid bundle
+or product as a way of charging for that copy.
+
+You may accept voluntary donations that are not required for access to a copy.
+You may charge for independent services such as training, support, installation,
+or development work, provided the service fee does not purchase a copy of the
+Software and recipients can obtain that copy free of charge. Selling firmware
+or devices created with the Software is permitted under section 5.
+
+5. User projects and generated output
+
+The Licensors claim no ownership in your sketches, firmware, circuit designs,
+display layouts, or other work merely because you create or process it using
+the Software. You may use, license, distribute, and sell that work.
+
+To the extent the Licensors own code or assets intentionally emitted or copied
+by Pinway into user projects, including generated runtime code, adapters, and
+project templates, they grant you additional permission to use, copy, modify,
+distribute, sublicense, and sell those portions as part of your projects and
+their source or compiled output, without the restrictions in sections 3 and 4.
+This additional permission covers project output and does not extend to copying
+the IDE itself into another development tool. Third-party material included in
+output remains subject to its own license.
+
+6. Third-party components
+
+Third-party libraries, tools, fonts, examples, and other separately licensed
+material retain their original licenses. See THIRD_PARTY.md and the notices
+accompanying those components. This license does not impose its sale restriction
+on those components or reduce rights granted by their licenses. Comply with all
+applicable third-party terms when distributing the Software or generated output.
+
+7. Names and contributions
+
+No trademark permission is granted, except the use needed for truthful attribution
+and identification of origin. Modified distributions must not suggest endorsement
+by the upstream project without permission.
+
+You retain ownership of your contributions. If you intentionally submit original
+material for inclusion in Pinway IDE, you offer it under this license unless you
+explicitly state otherwise before submission. You must have authority to grant
+those rights. No copyright assignment or additional commercial licensing right
+is implied by contributing.
+
+8. Termination
+
+Your permissions terminate if you violate this license. They are reinstated if
+you cure the violation within 30 days after your first written notice from a
+Licensor. Recipients who comply retain their own permissions. After termination
+you must stop activities requiring permission under this license, except as
+permitted by applicable law or separate written agreement.
+
+9. Warranty and liability
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS",
+WITHOUT WARRANTIES OF ANY KIND, INCLUDING MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. THE LICENSORS ARE NOT LIABLE
+FOR DAMAGES OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE, WHETHER
+IN CONTRACT, TORT, OR OTHERWISE. MANDATORY RIGHTS UNDER APPLICABLE LAW REMAIN
+UNAFFECTED.
+
+10. Separate permission
+
+For permission to sell or distribute the Software for payment, contact the
+project maintainer through https://github.com/Zen7q/Pinway-IDE. Any separate
+agreement must cover the rights of all relevant copyright holders. Changes to
+future license versions do not revoke permissions already granted for copies
+received under this version, subject to its conditions.
