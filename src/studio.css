@@ -316,7 +316,7 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 .workspace-toolbar::-webkit-scrollbar {display:none}
 :is(#designer,#display-editor) .workspace-toolbar button {
   box-sizing:border-box;flex:none;width:32px;height:32px;min-height:32px;padding:4px;
-  display:inline-flex;align-items:center;justify-content:center;line-height:1.2;font-size:11px;
+  align-items:center;justify-content:center;line-height:1.2;font-size:11px;
   border-radius:var(--control-radius);color:var(--sub);
 }
 :is(#designer,#display-editor) .workspace-toolbar button svg {width:16px;height:16px}
