@@ -63,6 +63,13 @@ jobs:
           mkdir -p /tmp/PinwaySmoke
           printf 'void setup() {}\nvoid loop() {}\n' > /tmp/PinwaySmoke/PinwaySmoke.ino
           docker run --rm -v /tmp/PinwaySmoke:/workspace/PinwaySmoke pinway-cli compile --fqbn arduino:avr:uno /workspace/PinwaySmoke
+      - name: Export Docker image
+        run: docker save pinway-cli | gzip > pinway-cli-docker.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pinway-docker-image
+          path: pinway-cli-docker.tar.gz
+          compression-level: 0
       - name: Publish CLI image
         if: github.ref == 'refs/heads/main'
         env:
