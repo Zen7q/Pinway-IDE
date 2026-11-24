@@ -27,6 +27,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
   root.querySelector('.design-parts .design-heading strong').textContent='КОМПОНЕНТИ';
   const controls=document.createElement('div');controls.id='design-topbar';controls.hidden=true;
   const tools=root.querySelector('.design-tools'),files=root.querySelector('nav');
+  tools.classList.add('workspace-toolbar');
   tools.setAttribute('role','toolbar');tools.setAttribute('aria-label','Build tools');
   files.classList.add('design-files');controls.append(files);
   root.querySelector('.design-editor').append(tools);

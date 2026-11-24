@@ -306,3 +306,23 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 #designer .design-properties .design-heading {padding:12px 16px}
 #designer .design-viewport {inset:60px 0 40px}
 #designer .design-tools button {font-size:11px;min-height:27px}
+
+/* One toolbar scale for Build and Display. */
+:is(#designer,#display-editor) .workspace-toolbar {
+  box-sizing:border-box;height:42px;min-height:42px;padding:4px;gap:4px;
+  align-items:center;border:1px solid var(--border);border-radius:var(--toolbar-radius);
+  background:var(--surface);box-shadow:var(--panel-shadow);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+}
+.workspace-toolbar::-webkit-scrollbar {display:none}
+:is(#designer,#display-editor) .workspace-toolbar button {
+  box-sizing:border-box;flex:none;width:32px;height:32px;min-height:32px;padding:4px;
+  display:inline-flex;align-items:center;justify-content:center;line-height:1.2;font-size:11px;
+  border-radius:var(--control-radius);color:var(--sub);
+}
+:is(#designer,#display-editor) .workspace-toolbar button svg {width:16px;height:16px}
+:is(#designer,#display-editor) .workspace-toolbar > i {height:18px;width:1px;margin:0 4px;flex:none;background:var(--border)}
+:is(#designer,#display-editor) .workspace-toolbar > div {height:32px;gap:2px;flex:none;align-items:center}
+#display-editor .workspace-toolbar .dp-modes {box-sizing:border-box;height:32px;padding:2px;border-radius:var(--control-radius)}
+#display-editor .workspace-toolbar .dp-modes button {width:auto;height:28px;min-height:28px;padding:4px 8px}
+#designer .workspace-toolbar #design-zoom,#display-editor .workspace-toolbar .dp-zoom {width:auto;min-width:52px;font-size:11px;padding:4px 8px}
+#designer .workspace-toolbar #design-wire {box-sizing:border-box;width:32px;height:32px;margin:0;padding:4px;background:var(--raised);border:1px solid var(--control-border);border-radius:var(--control-radius)}
