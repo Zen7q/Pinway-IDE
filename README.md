@@ -1,4 +1,4 @@
-<img src="assets/Pinway.png" width="88" height="88" alt="Логотип Pinway">
+<img src="assets/Pinway.png" width="88" height="88" alt="Pinway logo">
 
 # Pinway IDE
 
@@ -7,26 +7,26 @@
 [![License](https://img.shields.io/badge/license-source--available-75dfbc)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/Zen7q/Pinway-IDE/total)](https://github.com/Zen7q/Pinway-IDE/releases)
 
-Десктопна IDE для Arduino C++ та ESP32 зі знайомим компонуванням редактора й оформленням у стилі macOS. Пишіть прошивки в Code, додавайте редактор схем Build та інтерфейсів пристроїв Display, коли вони потрібні.
+A desktop IDE for Arduino C++ and ESP32, with a familiar editor layout and a macOS-inspired interface. Write firmware in Code, then add the Build circuit editor and Display interface designer when you need them.
 
-**[Завантажити інсталятор](https://github.com/Zen7q/Pinway-IDE/releases/latest)** · [Посібник](docs/USAGE.md) · [Повідомити про помилку](https://github.com/Zen7q/Pinway-IDE/issues)
+**[Download Pinway IDE](https://github.com/Zen7q/Pinway-IDE/releases/latest)** · [User guide](docs/USAGE.md) · [Report a bug](https://github.com/Zen7q/Pinway-IDE/issues)
 
-## Встановлення
+## Install
 
-- **macOS Apple Silicon** — відкрийте `.dmg` із релізу й перетягніть Pinway IDE в Applications. Потрібна macOS 13+ та Rosetta 2 для AVR-компілятора й Arduino ctags.
-- **Windows x64** — запустіть `.exe` із релізу. Потрібна Windows із підтримкою WebView2. Інсталятор збирається окремо на Windows у GitHub Actions.
-- **Linux / Docker** — контейнер для компіляції скетчів описаний нижче. Пакування десктопної Linux-версії доступне з вихідного коду.
+- **macOS, Apple Silicon** — open the release `.dmg` and drag Pinway IDE into Applications. Requires macOS 13+ and Rosetta 2 for the AVR compiler and Arduino ctags.
+- **Windows x64** — run the release `.exe` installer. Requires a Windows version supported by WebView2. The installer is built on Windows through GitHub Actions.
+- **Linux / Docker** — use the firmware compilation container below. Desktop Linux packaging is available from source.
 
-Базове встановлення містить **Pinway Code + Arduino AVR** для Uno, Nano й Mega. На першому запуску виберіть тему, потрібні плати та інструменти. Пакет ESP32, Build і Display встановлюються додатково через інтернет. Встановленими пакетами можна керувати в налаштуваннях.
+The base installation includes **Pinway Code + Arduino AVR** for boards such as Uno, Nano and Mega. On first launch, choose your theme, board support and optional workspaces. ESP32 support, Build and Display are downloaded separately. You can add or remove packages later in Settings.
 
-macOS-збірка має ad-hoc підпис і поки проходить без Apple notarization. Windows-збірка потребує перевірки USB на реальному обладнанні. Стан автоматичних перевірок показує CI вище.
+The macOS build uses an ad-hoc signature and has not been notarized by Apple. The Windows build still needs USB testing on physical hardware. The CI badge above shows the current automated build and test status. The current application interface is in Ukrainian.
 
-## Швидкий старт
+## Quick start
 
-1. Створіть проєкт, наприклад `SerialHello`, і виберіть папку.
-2. Вставте код нижче, виберіть свою плату й натисніть **Перевірити**.
-3. Підключіть плату, перевірте порт і натисніть **Завантажити**.
-4. Відкрийте **Serial Monitor** на 115200 бод.
+1. Create a project, such as `SerialHello`, and choose a folder.
+2. Paste the sketch below, select your board and click **Verify** (`Перевірити`).
+3. Connect your board, check the selected port and click **Upload** (`Завантажити`).
+4. Open **Serial Monitor** at 115200 baud.
 
 ```cpp
 void setup() {
@@ -39,45 +39,45 @@ void loop() {
 }
 ```
 
-Для Nano зі старим бутлоадером виберіть **Tools → Processor → ATmega328P (Old Bootloader)**. Для ESP32 спочатку встановіть пакет плат. Якщо USB визначає тільки чип або послідовний адаптер, точний профіль плати можна вибрати вручну.
+For a Nano with the old bootloader, select **Tools → Processor → ATmega328P (Old Bootloader)**. Install the ESP32 board package before working with ESP boards. If USB detection identifies only the chip or serial adapter, select the exact board profile manually.
 
-## Можливості
+## Features
 
-- Редактор C++ із підсвічуванням, Arduino-автодоповненням і переходом від помилки збірки до рядка коду.
-- Відкриття звичайних `.ino`-проєктів, дерево файлів, останні проєкти й відновлення чернеток.
-- Arduino CLI для компіляції та прошивання, параметри плати й порту в Tools.
-- Менеджер бібліотек, Serial Monitor і Plotter.
-- **Build** — макетні плати, електричні схеми й планування PCB. Поточні PCB footprints ілюстративні, fabrication export ще потребує реалізації.
-- **Display** — макети інтерфейсів, локальне превʼю та генерація прошивок для підтримуваних дисплеїв. Перелік і межі підтримки наведено в [каталозі](DISPLAY-CATALOG.md).
-- Додаткові пакети за потреби та добровільне оновлення IDE через налаштування.
-- Темна, світла й системна теми, зелений акцент за замовчуванням, масштабування інтерфейсу.
+- C++ editor with syntax highlighting, Arduino completions and compiler diagnostics linked to source lines.
+- Standard `.ino` projects, file navigation, recent projects and draft recovery.
+- Arduino CLI compilation and upload, with board and port settings in Tools.
+- Library Manager, Serial Monitor and Plotter.
+- **Build** — breadboards, schematics and PCB planning. Current PCB footprints are illustrative. Fabrication export is still pending.
+- **Display** — device interface layouts, local previews and firmware generation for supported displays. See the [display catalog](DISPLAY-CATALOG.md) for supported profiles and implementation limits.
+- Optional packages and user-controlled application updates.
+- Light, dark and system themes, a green default accent and interface scaling.
 
-## Як це виглядає
+## Preview
 
-![Початкове налаштування Pinway IDE](docs/images/setup.png)
+![Pinway IDE first-launch setup](docs/images/setup.png)
 
-## Навіщо Pinway
+## Why Pinway?
 
-Pinway розвивається як єдиний робочий простір для прошивки, схеми та екрану пристрою. Його базове встановлення орієнтоване на швидкий старт з Arduino, а додаткові інструменти користувач вибирає сам.
+Pinway brings firmware, circuits and device screens into one project. The base installation provides an Arduino starting point, while optional tools let each user choose what to install.
 
-| Варіант | Робочий сценарій |
+| Environment | Workflow |
 |---|---|
-| Pinway IDE | Окремий застосунок із Code та додатковими Build/Display у спільному проєкті. |
-| Arduino IDE | Офіційне Arduino-середовище для скетчів із менеджерами плат і бібліотек та Serial Monitor. |
-| PlatformIO IDE | Розширення VS Code для embedded-розробки з конфігурацією проєктів PlatformIO. |
+| Pinway IDE | A standalone application with Code and optional Build/Display workspaces in one project. |
+| Arduino IDE | The official Arduino sketch environment, with board and library management and Serial Monitor. |
+| PlatformIO IDE | A VS Code extension for embedded development using PlatformIO project configuration. |
 
-Деталі альтернатив наведено в офіційній документації [Arduino IDE](https://docs.arduino.cc/software/ide-v2/) та [PlatformIO IDE](https://docs.platformio.org/en/latest/integration/ide/vscode.html).
+For details on the alternatives, see the official [Arduino IDE documentation](https://docs.arduino.cc/software/ide-v2/) and [PlatformIO IDE documentation](https://docs.platformio.org/en/latest/integration/ide/vscode.html).
 
-## Збірка з коду
+## Build from source
 
-Потрібні Node.js 24, Python 3.12+, Rust stable і системні залежності Tauri. На macOS також потрібні Xcode Command Line Tools.
+Requires Node.js 24, Python 3.12+, Rust stable and the platform dependencies for Tauri. On macOS, install Xcode Command Line Tools as well.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Для DMG або Windows EXE виконайте `npm run package:tauri` на відповідній системі. Інсталятор потрапить у нову папку `dist/release-<дата-час>`. Перший запуск команди завантажує базові Arduino-інструменти. [Пакування, пакети й оновлення](docs/RELEASE.md)
+To create a DMG or Windows EXE, run `npm run package:tauri` on the corresponding operating system. The installer is written to a new `dist/release-<timestamp>` directory. The first run downloads the base Arduino tools. See [packaging, packages and updates](docs/RELEASE.md).
 
 ## Docker
 
@@ -86,18 +86,18 @@ docker build -t pinway-cli .
 docker run --rm pinway-cli version
 ```
 
-Щоб скомпілювати скетч `Blink/Blink.ino` у поточній папці, виконайте команду нижче.
+To compile `Blink/Blink.ino` inside your current directory, run the following command.
 
 ```sh
 docker run --rm -v "$PWD:/workspace" pinway-cli compile --fqbn arduino:avr:uno /workspace/Blink
 ```
 
-Пакет ESP32 можна включити через `docker build --build-arg ESP32=true -t pinway-cli-esp .`. Образ надає Arduino CLI для збірки прошивок. Десктопний інтерфейс встановлюється через DMG або EXE.
+Include ESP32 support with `docker build --build-arg ESP32=true -t pinway-cli-esp .`. The image provides Arduino CLI for firmware builds. Install the desktop interface using the DMG or EXE.
 
-## Внесок
+## Contributing
 
-Помилки й пропозиції приймаються через [Issues](https://github.com/Zen7q/Pinway-IDE/issues), зміни — через pull requests. Порядок роботи описаний у [CONTRIBUTING.md](CONTRIBUTING.md), правила спільноти — у [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Use [Issues](https://github.com/Zen7q/Pinway-IDE/issues) for bugs and proposals, and pull requests for changes. Read [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
-## Ліцензія
+## License
 
-[Pinway IDE Source-Available License 1.0](LICENSE) дозволяє перегляд коду, зміни, безкоштовне поширення й використання для комерційної розробки прошивок. Продаж IDE та похідних версій потребує письмового дозволу. Сторонні компоненти зберігають власні ліцензії. [Результати перевірки й відкриті юридичні питання](LICENSE-REVIEW.md)
+The [Pinway IDE Source-Available License 1.0](LICENSE) permits source inspection, modification, free redistribution and commercial firmware development. Selling the IDE or derivative versions requires written permission. Third-party components retain their own licenses. See the [license review and outstanding legal questions](LICENSE-REVIEW.md).
