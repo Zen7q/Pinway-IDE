@@ -1,3 +1,4 @@
+import {partBounds,terminalExit,wireRoute} from './routing.mjs';
 import {bindSidebarResize,panelHeading} from '../workspace-panels';
 import { component, artwork, xml, tag } from './graphics';
 const MODES=['breadboard','schematic','pcb'];
@@ -103,7 +104,11 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
       const sa=stub(edge.a,a),sb=stub(edge.b,b);return [a,sa,sa.horizontal?{x:sa.x,y:sb.y}:{x:sb.x,y:sa.y},sb,b];
     }
     const points=[a,...bends,b];
-    if(mode==='breadboard')return points;
+    if(mode==='breadboard'){
+      const obstacles=circuit.parts.filter(p=>p.kind!=='breadboard').map(p=>partBounds(definition(p.kind).shapes[mode],p.poses[mode]));
+      const exit=(ref,point)=>{const p=partById(ref.part);return p.kind==='breadboard'?point:terminalExit(point,partBounds(definition(p.kind).shapes[mode],p.poses[mode]));};
+      return wireRoute(a,b,{start:exit(edge.a,a),end:exit(edge.b,b),bends,obstacles});
+    }
     return points.flatMap((p,i)=>i&&Math.abs(p.x-points[i-1].x)>.1&&Math.abs(p.y-points[i-1].y)>.1?[{x:p.x,y:points[i-1].y},p]:[p]);
   }
   function path(points){if(!points.length)return '';let d=`M${points[0].x} ${points[0].y}`;
@@ -129,7 +134,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
     const c=camera(),w=viewport.clientWidth/c.scale,h=viewport.clientHeight/c.scale;
     scene.setAttribute('viewBox',`${c.x} ${c.y} ${w} ${h}`);
     scene.innerHTML=drawing()+
-      (pending?tag('path',{d:path([contactPosition(pending.a),...pending.points,pending.cursor].filter(Boolean)),stroke:$('design-wire').value,'stroke-width':2.4,'stroke-dasharray':'4 4',fill:'none','pointer-events':'none'}):'');
+      (pending?tag('path',{d:path(mode==='breadboard'&&pending.cursor?wireRoute(contactPosition(pending.a),pending.cursor,{bends:pending.points}):[contactPosition(pending.a),...pending.points,pending.cursor].filter(Boolean)),stroke:$('design-wire').value,'stroke-width':2.4,'stroke-dasharray':'4 4',fill:'none','pointer-events':'none'}):'');
     root.querySelector('.design-welcome').hidden=circuit.parts.length>0;
     $('design-zoom').textContent=Math.round(c.scale*100)+'%';
   }
@@ -150,7 +155,7 @@ export function mountDesigner({call,onVisibility,settings,projectActions}) {
       for(const t of definition(p.kind).shapes[mode].terminals){const b=document.createElement('button');b.textContent=t.id;b.dataset.terminal=p.uid;b.dataset.pin=t.id;b.title='Connect '+t.id;pins.append(b);}target.append(pins);
     }else if(edge){const h=document.createElement('h2');h.textContent=mode==='pcb'?'Copper route':'Wire';target.append(h);
       if(!edge.automatic)field(target,'Wire color',edge.tint,v=>{const actual=circuit.links.find(l=>l.uid===edge.uid);if(actual)actual.tint=v;},{type:'color'});
-      const p=document.createElement('p');p.textContent='Double-click to add a bend. Drag a bend to reshape the connection.';target.append(p);
+      const p=document.createElement('p');p.textContent='З’єднання згинається автоматично. Подвійний клік додає опорну точку; перетягни її, щоб змінити маршрут.';target.append(p);
       if(mode==='pcb'){const b=document.createElement('button');b.className='design-route';b.textContent=circuit.routing[edge.uid]?.copper?'Mark as unrouted':'Route on copper layer';b.onclick=()=>edit(()=>{const r=ensureRoute(edge.uid);r.copper=!r.copper;});target.append(b);}
       target.insertAdjacentHTML('beforeend',btn('delete','Delete connection','trash'));
     }else target.innerHTML=`<div class="design-inspector-empty">${icon('cursor')}<h2>Місце для кожної деталі.</h2><p>Вибери компонент або з’єднання, щоб змінити його властивості.</p></div>`;
