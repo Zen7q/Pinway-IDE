@@ -52,6 +52,8 @@ For a Nano with the old bootloader, select **Tools → Processor → ATmega328P 
 - Optional packages and user-controlled application updates.
 - Light, dark and system themes, a green default accent and interface scaling.
 
+Updates are optional. **Update IDE** downloads and verifies the platform installer, then opens it so you can complete installation when ready. Automatic checks can be disabled in Settings.
+
 ## Preview
 
 ![Pinway IDE home screen](docs/images/home.png)
@@ -88,7 +90,7 @@ docker build -t pinway-cli .
 docker run --rm pinway-cli version
 ```
 
-A prebuilt `pinway-cli-docker.tar.gz` is also provided in Releases. Load it with `docker load -i pinway-cli-docker.tar.gz`.
+A prebuilt Linux x86_64 `pinway-cli-docker.tar.gz` is also provided in Releases. Load it with `docker load -i pinway-cli-docker.tar.gz`.
 
 To compile `Blink/Blink.ino` inside your current directory, run the following command.
 
