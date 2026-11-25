@@ -16,3 +16,11 @@ native/target/
 
 # Python packaging caches
 __pycache__/
+
+# Local instructions, development journals and personal sketches
+/AGENTS.md
+/CHECKLIST.md
+/LICENSE-REVIEW.md
+/DISPLAY-PLAN.md
+/UI-DESIGN.md
+/examples/

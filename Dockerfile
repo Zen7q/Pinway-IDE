@@ -23,7 +23,7 @@ RUN arduino-cli core update-index \
     && arduino-cli core install arduino:avr@1.8.8 \
     && if [ "$ESP32" = true ]; then arduino-cli core install esp32:esp32@3.3.12; fi \
     && rm -rf /tmp/arduino-downloads
-COPY LICENSE THIRD_PARTY.md LICENSE-REVIEW.md /usr/local/share/pinway/
+COPY LICENSE THIRD_PARTY.md /usr/local/share/pinway/
 WORKDIR /workspace
 ENTRYPOINT ["arduino-cli"]
 CMD ["version"]

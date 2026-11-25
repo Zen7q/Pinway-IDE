@@ -2,11 +2,11 @@
 
 The Pinway license in `LICENSE` covers original project material. Each component
 below retains its own license and permissions, including commercial rights granted
-by its authors. See `LICENSE-REVIEW.md` for the dependency review and remaining
-source-distribution and notice obligations.
+by its authors. Preserve their license texts, attribution and applicable source
+distribution rights when redistributing those components.
 
-- [Tauri](https://github.com/tauri-apps/tauri) (MIT or Apache-2.0) hosts the desktop UI in the operating system’s WebView. `src-tauri/Cargo.lock` records the Rust dependencies and versions.
-- [CodeMirror 6 and Lezer](https://codemirror.net/) and their browser dependencies: MIT notices are collected in `Contents/Resources/npm-notices.txt`. The lockfile records the exact editor versions.
+- [Tauri](https://github.com/tauri-apps/tauri) (MIT or Apache-2.0) hosts the desktop UI in the operating system’s WebView. `Cargo.lock` records the Rust dependencies and versions.
+- [CodeMirror 6 and Lezer](https://codemirror.net/) and their browser dependencies: MIT notices are collected in `Contents/Resources/legal/npm-notices.txt`. The lockfile records the exact editor versions.
 - [Arduino CLI 1.5.1](https://github.com/arduino/arduino-cli/tree/v1.5.1) (GPL-3.0): official macOS ARM64 executable and accompanying license in `Contents/Resources/arduino`. It runs as a separate process.
 - [Arduino AVR Boards 1.8.8](https://github.com/arduino/ArduinoCore-avr/tree/1.8.8) (core LGPL-2.1 or later; see individual source and bootloader headers), [Arduino AVR GCC 7.3.0-atmel3.6.1-arduino7](https://github.com/arduino/toolchain-avr), [AVRDUDE 8.0.0-arduino1](https://github.com/arduino/avrdude/tree/8.0.0-arduino1), [ArduinoOTA](https://github.com/arduino/arduinoOTA), [dfu-util](https://dfu-util.sourceforge.net/).
 - Arduino CLI support tools: [Arduino ctags](https://github.com/arduino/ctags), [serial-discovery](https://github.com/arduino/serial-discovery), [mdns-discovery](https://github.com/arduino/mdns-discovery), [dfu-discovery](https://github.com/arduino/dfu-discovery), [serial-monitor](https://github.com/arduino/serial-monitor). The Arduino package index identifies the distributed archives and versions.
@@ -14,4 +14,4 @@ source-distribution and notice obligations.
 
 The board archives retain their upstream files, including component-specific licenses and notices, under `Contents/Resources/arduino/seed/packages`. The accompanying package indexes record upstream archive URLs, versions and checksums. Libraries installed through the Library Manager are provided separately by their authors.
 
-- The app-owned offline display/touch library pack is distributed as original Arduino library source under `Contents/Resources/display-libraries`. Exact upstream repositories, tags, archive and source SHA256 values are recorded in `config/display-libraries.lock.json` and the bundled `manifest.json`. Each library retains its original license files and source notices; an index with root license texts is provided in `display-libraries/THIRD_PARTY.txt`. These sources are inputs to user sketch compilation and are not linked into the Pinway IDE executable.
+- The app-owned offline display/touch library pack is distributed as original Arduino library source in the optional Display package. Exact upstream repositories, tags, archive and source SHA256 values are recorded in `config/display-libraries.lock.json` and the bundled `manifest.json`. Each library retains its original license files and source notices; an index with root license texts is provided in `libraries/THIRD_PARTY.txt`. These sources are inputs to user sketch compilation and are not linked into the Pinway IDE executable.

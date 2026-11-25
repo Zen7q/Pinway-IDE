@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include "../examples/TouchLed169/touch_button.h"
+#include "../src-tauri/display-templates/waveshare169/touch_button.h"
+using PinwayHardware::TouchButton;
 int main() {
   TouchButton button;
   // Press/hold/release produces one activation, even with repeated contact reports.
@@ -25,5 +26,5 @@ int main() {
   assert(wrap.update(false, true, true, true, UINT32_MAX - 100));
   assert(!wrap.update(false, true, true, true, 50));
   assert(wrap.update(false, true, true, true, 200));
-  std::cout << "TouchLed169: tap, hold, drag-out, duplicate IRQ, tap-only IRQ, debounce and clock-wrap checks passed\n";
+  std::cout << "TouchButton: tap, hold, drag-out, duplicate IRQ, tap-only IRQ, debounce and clock-wrap checks passed\n";
 }

@@ -14,7 +14,7 @@ def main():
     if destination.exists():
         shutil.rmtree(destination)
     destination.mkdir(parents=True)
-    for name in ('LICENSE', 'LICENSE-REVIEW.md', 'THIRD_PARTY.md'):
+    for name in ('LICENSE', 'THIRD_PARTY.md'):
         shutil.copy2(ROOT / name, destination / name)
     shutil.copytree(ROOT / 'licenses', destination / 'toolchain-licenses')
     npm = json.loads((ROOT / 'package-lock.json').read_text(encoding="utf-8"))['packages']
@@ -45,7 +45,7 @@ def main():
             shutil.copytree(folder, destination / 'mpl-sources' / name)
         sources.append({key: package.get(key) for key in ('name', 'version', 'license', 'repository')})
     (destination / 'rust-dependencies.json').write_text(json.dumps(sources, indent=2) + '\n')
-    (destination / 'SOURCES.txt').write_text('MPL component sources are included in mpl-sources/.\nToolchain component versions and upstream repositories are listed in THIRD_PARTY.md.\nSee LICENSE-REVIEW.md for remaining source-distribution review.\n')
+    (destination / 'SOURCES.txt').write_text('MPL component sources are included in mpl-sources/.\nToolchain component versions and upstream repositories are listed in THIRD_PARTY.md.\n')
 
 if __name__ == '__main__':
     main()

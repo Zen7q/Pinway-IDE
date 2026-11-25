@@ -48,7 +48,7 @@ For a Nano with the old bootloader, select **Tools → Processor → ATmega328P 
 - Arduino CLI compilation and upload, with board and port settings in Tools.
 - Library Manager, Serial Monitor and Plotter.
 - **Build** — breadboards, schematics and PCB planning. Current PCB footprints are illustrative. Fabrication export is still pending.
-- **Display** — device interface layouts, local previews and firmware generation for supported displays. See the [display catalog](DISPLAY-CATALOG.md) for supported profiles and implementation limits.
+- **Display** — device interface layouts, local previews and firmware generation for supported displays. See the [display catalog](docs/display-catalog.md) for supported profiles and implementation limits.
 - Optional packages and user-controlled application updates.
 - Light, dark and system themes, a green default accent and interface scaling.
 
@@ -106,4 +106,4 @@ Use [Issues](https://github.com/Zen7q/Pinway-IDE/issues) for bugs and proposals,
 
 ## License
 
-The [Pinway IDE Source-Available License 1.0](LICENSE) permits source inspection, modification, free redistribution and commercial firmware development. Selling the IDE or derivative versions requires written permission. Third-party components retain their own licenses. See the [license review and outstanding legal questions](LICENSE-REVIEW.md).
+The [Pinway IDE Source-Available License 1.0](LICENSE) permits source inspection, modification, free redistribution and commercial firmware development. Selling the IDE or derivative versions requires written permission. Third-party components retain their own licenses. See [third-party notices](THIRD_PARTY.md) for bundled components.

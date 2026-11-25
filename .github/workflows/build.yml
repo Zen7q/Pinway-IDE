@@ -29,6 +29,7 @@ jobs:
       - run: mkdir -p .toolchain/release-runtime .toolchain/legal
       - run: cargo test --locked -p pinway-ide
       - run: node --test tests/*.test.mjs
+      - run: c++ -std=c++17 tests/touch-button.cpp -o /tmp/pinway-touch-button && /tmp/pinway-touch-button
   windows:
     runs-on: windows-latest
     steps:
