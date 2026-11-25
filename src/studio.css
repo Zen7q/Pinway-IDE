@@ -377,11 +377,10 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 .board-install {margin:8px;width:calc(100% - 16px);white-space:normal}
 @media(max-width:640px) {.package-row {gap:8px}.package-row button {min-width:76px}#setup-dialog section {min-height:220px}.update-badge {max-width:90px}}
 
-.brand-logo {width:64px;height:64px;object-fit:contain;flex:none}
 #setup-dialog .dialog-head {align-items:center;gap:12px}
 #setup-dialog .dialog-head>div {flex:1;min-width:0}
 .setup-logo {width:44px;height:44px;object-fit:contain;flex:none}
-@media(max-width:640px) {.brand-logo {width:48px;height:48px}.hero-title {gap:10px}.hero-title h1 {font-size:32px}}
+@media(max-width:640px) {.hero-title {gap:10px}.hero-title h1 {font-size:32px}}
 
 @media(max-width:690px) {
   .chrome {gap:6px;padding-inline-end:8px}
