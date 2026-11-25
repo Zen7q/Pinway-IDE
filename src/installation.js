@@ -1,3 +1,4 @@
+const displayVersion = version => String(version).replace(/-alpha(?=\.|$)/, " alpha");
 const $ = id => document.getElementById(id);
 const names = { arduino: 'Arduino AVR', esp32: 'ESP32', build: 'Pinway Build', display: 'Pinway Display' };
 
@@ -99,7 +100,7 @@ export function mountInstallation({ call, theme, setTheme, autoUpdates, busy, se
     $('update-status').textContent = 'Перевірка оновлень…';
     try {
       update = await call('updateCheck');
-      $('update-status').textContent = update.available ? 'Доступна версія ' + update.version + '. Встановлення за вашим бажанням.'
+      $('update-status').textContent = update.available ? 'Доступна версія ' + displayVersion(update.version) + '. Встановлення за вашим бажанням.'
         : update.published ? 'У вас актуальна версія.' : 'Нових опублікованих версій поки немає.';
       for (const button of document.querySelectorAll('[data-update]')) button.hidden = !update.available;
     } catch (error) {
@@ -109,7 +110,7 @@ export function mountInstallation({ call, theme, setTheme, autoUpdates, busy, se
   $('update-check').onclick = () => void checkUpdates();
   function showUpdate() {
     $('settings-dialog').close();
-    $('update-version').textContent = 'Версія ' + update.version + '. Поточна версія залишиться доступною, доки ви самі не встановите нову.';
+    $('update-version').textContent = 'Версія ' + displayVersion(update.version) + '. Поточна версія залишиться доступною, доки ви самі не встановите нову.';
     $('update-dialog').showModal();
   }
   document.querySelectorAll('[data-update]').forEach(button => { button.onclick = showUpdate; });
@@ -137,8 +138,8 @@ export function mountInstallation({ call, theme, setTheme, autoUpdates, busy, se
     },
     async initialize() {
       await refresh();
-      $('version').textContent = 'v' + state.version;
-      $('installed-version').textContent = 'Pinway IDE ' + state.version;
+      $('version').textContent = 'v' + displayVersion(state.version);
+      $('installed-version').textContent = 'Pinway IDE ' + displayVersion(state.version);
       if (!state.onboarded) {
         $('setup-theme').value = theme(); render(); $('setup-dialog').showModal();
       }

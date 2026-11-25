@@ -20,7 +20,12 @@
     assert(testCalls.some(call => call.action === 'finishSetup'), 'Setup was not saved');
     results.push('Setup, theme and minimal startup');
     $('workspace-toggle').click();
-    document.querySelector('[data-workspace="build"]').click();
+    const menu = $('workspace-options').getBoundingClientRect();
+    const item = document.querySelector('[data-workspace="build"]');
+    const rect = item.getBoundingClientRect();
+    assert(menu.top >= 0 && menu.bottom <= innerHeight && menu.left >= 0 && menu.right <= innerWidth, 'Workspace menu is outside viewport before optional CSS loads');
+    assert(item.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)), 'Build item cannot receive pointer input');
+    item.click();
     await waitFor(() => $('package-prompt').open);
     $('package-prompt-later').click();
     await new Promise(resolve => requestAnimationFrame(resolve));

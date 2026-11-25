@@ -363,8 +363,8 @@ impl Arduino {
 
     pub fn monitor(&self, port: &str, baud: u64, app: &AppHandle) -> Result<Arc<Monitor>> {
         self.prepare()?;
-        let mut child = self
-            .command()
+        let mut command = self.command();
+        let mut child = spawn_background(command
             .args([
                 "monitor",
                 "--port",
@@ -377,8 +377,7 @@ impl Arduino {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .group_spawn()
-            .map_err(err)?;
+        ).map_err(err)?;
         let stdout = child.inner().stdout.take().unwrap();
         let stderr = child.inner().stderr.take().unwrap();
         let first = app.clone();
@@ -407,13 +406,20 @@ pub fn message(output: &Output) -> String {
     }
 }
 
+// Set flags on the group builder: command-group replaces Command's flags.
+fn spawn_background(command: &mut Command) -> std::io::Result<GroupChild> {
+    let mut group = command.group();
+    #[cfg(windows)]
+    group.creation_flags(0x08000000); // CREATE_NO_WINDOW; retain job control and pipes.
+    group.spawn()
+}
+
 fn run_command(cmd: &mut Command, seconds: u64, app: Option<AppHandle>) -> Result<Output> {
-    let mut child = cmd
+    let mut child = spawn_background(cmd
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .group_spawn()
-        .map_err(err)?;
+    ).map_err(err)?;
     let stdout = child.inner().stdout.take().unwrap();
     let stderr = child.inner().stderr.take().unwrap();
     let mirror = app.clone();
@@ -470,6 +476,18 @@ pub fn watch_monitor(app: AppHandle, monitor: Arc<Monitor>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_background_process_has_no_console() {
+        let script = r#"Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class ConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; if ([ConsoleProbe]::GetConsoleWindow() -ne [IntPtr]::Zero) { exit 7 }; Write-Output 'background-ok'"#;
+        let output = spawn_background(Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()))
+            .unwrap().wait_with_output().unwrap();
+        assert!(output.status.success(), "{:?}", output);
+        assert!(String::from_utf8_lossy(&output.stdout).contains("background-ok"));
+    }
 
     #[test]
     fn usb_catalog_match_requires_an_unambiguous_board_specific_interface() {

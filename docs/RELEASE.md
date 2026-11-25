@@ -35,7 +35,7 @@ Combine the platform-specific `installers` entries from each generated `pinway-r
 
 ## Updates and signing
 
-The application checks the latest stable GitHub Release at startup. Users can disable startup checks or check manually in Settings. When a newer version is available, **Update IDE** downloads the platform installer, verifies its size and SHA-256 and opens it. Users complete installation themselves.
+Stable builds check the latest stable GitHub Release at startup. Alpha builds also consider published prereleases and choose the highest semantic version. Publish alpha versions such as `0.3.2-alpha` as GitHub prereleases. Existing stable builds need a manual download to switch to alpha. Users can disable startup checks or check manually in Settings. When a newer version is available, **Update IDE** downloads the platform installer, verifies its size and SHA-256 and opens it. Users complete installation themselves.
 
 The release manifest is fetched over HTTPS from the project's GitHub repository. Its integrity depends on that repository's access controls. macOS packaging currently uses an ad-hoc signature. Apple Developer ID signing and notarization, and Windows Authenticode signing, require the appropriate publisher certificates.
 

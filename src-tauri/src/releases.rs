@@ -62,18 +62,28 @@ pub fn download(url: &str, destination: &Path, expected: &Value, mut progress: i
     Ok(())
 }
 
+fn newest_release(releases: &[Value], current: &semver::Version) -> Option<semver::Version> {
+    releases.iter().filter(|release| release["draft"] != true)
+        .filter_map(|release| semver::Version::parse(release["tag_name"].as_str()?.trim_start_matches('v')).ok())
+        .filter(|candidate| !current.pre.is_empty() || candidate.pre.is_empty())
+        .max()
+}
+
 pub fn latest() -> Result<Value> {
-    let url = format!("https://api.github.com/repos/{REPOSITORY}/releases/latest");
+    let current = semver::Version::parse(VERSION).map_err(err)?;
+    let endpoint = if current.pre.is_empty() { "releases/latest" } else { "releases?per_page=100" };
+    let url = format!("https://api.github.com/repos/{REPOSITORY}/{endpoint}");
     let response = client()?.get(url).timeout(Duration::from_secs(20)).send().map_err(err)?;
     if response.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(json!({"current":VERSION,"available":false,"published":false}));
     }
     let release: Value = response.error_for_status().map_err(err)?.json().map_err(err)?;
-    let tag = release["tag_name"].as_str().unwrap_or("");
-    let candidate = semver::Version::parse(tag.trim_start_matches('v')).map_err(err)?;
-    let current = semver::Version::parse(VERSION).map_err(err)?;
-    Ok(json!({"current":VERSION,"version":candidate.to_string(),
-        "available":candidate > current && candidate.pre.is_empty(),"published":true}))
+    let entries = release.as_array().cloned().unwrap_or_else(|| vec![release]);
+    match newest_release(&entries, &current) {
+        Some(candidate) => Ok(json!({"current":VERSION,"version":candidate.to_string(),
+            "available":candidate > current,"published":true})),
+        None => Ok(json!({"current":VERSION,"available":false,"published":false})),
+    }
 }
 
 pub fn installer(storage: &Path, mut progress: impl FnMut(u64, u64)) -> Result<PathBuf> {
@@ -93,6 +103,18 @@ pub fn installer(storage: &Path, mut progress: impl FnMut(u64, u64)) -> Result<P
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn prerelease_updates_follow_the_installed_channel() {
+        let entries = vec![json!({"tag_name":"v0.3.2-alpha.2"}), json!({"tag_name":"v0.3.2-alpha.10"}),
+            json!({"tag_name":"v0.3.1"}), json!({"tag_name":"invalid"}), json!({"tag_name":"v9.0.0","draft":true})];
+        let stable = semver::Version::parse("0.3.1").unwrap();
+        let alpha = semver::Version::parse("0.3.2-alpha").unwrap();
+        assert_eq!(newest_release(&entries, &stable).unwrap().to_string(), "0.3.1");
+        assert_eq!(newest_release(&entries, &alpha).unwrap().to_string(), "0.3.2-alpha.10");
+        let stable_release = vec![json!({"tag_name":"v0.3.2"}), entries[0].clone()];
+        assert_eq!(newest_release(&stable_release, &alpha).unwrap().to_string(), "0.3.2");
+    }
+
     #[test]
     fn downloads_verify_checksums_before_replacing_existing_files() {
         use std::net::TcpListener;
