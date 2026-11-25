@@ -3,15 +3,15 @@
 # Pinway IDE
 
 [![Build and test](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml/badge.svg)](https://github.com/Zen7q/Pinway-IDE/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/version-0.3.2_alpha-75dfbc)](https://github.com/Zen7q/Pinway-IDE/releases)
+[![Version](https://img.shields.io/badge/version-0.3.3_alpha-75dfbc)](https://github.com/Zen7q/Pinway-IDE/releases)
 [![License](https://img.shields.io/badge/license-source--available-75dfbc)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/Zen7q/Pinway-IDE/total)](https://github.com/Zen7q/Pinway-IDE/releases)
 
 A desktop IDE for Arduino C++ and ESP32, with a familiar editor layout and a macOS-inspired interface. Write firmware in Code, then add the Build circuit editor and Display interface designer when you need them.
 
-**[Download Pinway IDE](https://github.com/Zen7q/Pinway-IDE/releases/tag/v0.3.2)** · [User guide](docs/USAGE.md) · [Report a bug](https://github.com/Zen7q/Pinway-IDE/issues)
+**[Download Pinway IDE](https://github.com/Zen7q/Pinway-IDE/releases/tag/v0.3.3)** · [User guide](docs/USAGE.md) · [Report a bug](https://github.com/Zen7q/Pinway-IDE/issues)
 
-**0.3.2 alpha** is an early preview published as a regular release. Its numeric update version is `0.3.2`, so the updater in 0.3.1 can find it. It fixes workspace selection after a cold start and hides background Arduino CLI consoles on Windows.
+**0.3.3 alpha** is an early preview published as a regular release. Code, Build and Display share a resizable sidebar that keeps its width across workspaces and restarts. This release restores the Build dot grid, fixes the initial Display screen and removes the logo from the welcome screen. Numeric update versions let existing installations discover releases through Settings.
 
 ## Install
 
