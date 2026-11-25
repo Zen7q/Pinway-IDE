@@ -1223,7 +1223,9 @@ async function loadWorkspace(id) {
   try {
     const module = await import(url);
     const style = document.createElement('style');
-    style.dataset.module = id; style.textContent = content.css; document.head.append(style);
+    style.dataset.module = id; style.textContent = content.css;
+    // Workspace foundations precede the shared shell, just like bundled CSS.
+    document.querySelector('link[href="studio.css"]').before(style);
     if (id === 'build') {
       designer = module.mountDesigner(designerOptions);
       await designer.setProject(project);

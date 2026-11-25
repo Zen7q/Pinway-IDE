@@ -122,6 +122,13 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 .welcome-footer {border-color:var(--border);color:var(--faint);letter-spacing:1px}
 .welcome-footer i {background:var(--success)}
 
+/* Shared empty-workspace composition must not depend on loading Build. */
+.design-welcome {position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center;max-width:90%;width:350px}
+.design-welcome-symbol {width:49px;height:49px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:14px;margin:0 auto 24px;color:var(--accent);box-shadow:0 8px 24px #0002}
+.design-welcome-symbol svg {width:25px;height:25px}
+.design-welcome h1 {font-size:24px;letter-spacing:-.8px;line-height:1.25;font-weight:550;margin:12px 0}
+.design-welcome p {font-size:12px;line-height:1.8;color:var(--sub);margin:0 0 27px}
+
 /* Circuit panels stay docked; the viewport itself and its coordinates do not move. */
 .design-sidebar,.design-editor,.design-properties {border-radius:var(--panel-radius);box-shadow:var(--panel-shadow);background:var(--surface)}
 .design-activity {background:var(--surface);padding:8px 4px;gap:4px;width:44px}
@@ -309,11 +316,23 @@ input:not([type=checkbox]):not([type=color]),select {min-height:30px}
 #designer .design-welcome h1 {font-size:25px;line-height:1.3}
 #designer.design-collapsed .design-sidebar {display:none}
 #designer.design-collapsed .design-editor {left:16px}
-#display-editor .dp-left {width:var(--workspace-sidebar-width)}
-#display-editor .dp-right {width:var(--workspace-inspector-width)}
+#display-editor .dp-left {left:16px;width:var(--workspace-sidebar-width)}
+#display-editor .dp-right {right:16px;width:var(--workspace-inspector-width)}
 #display-editor .dp-stage {left:calc(var(--workspace-sidebar-width) + 32px);right:calc(var(--workspace-inspector-width) + 32px)}
 #display-editor .dp-message {left:calc(var(--workspace-sidebar-width) + 32px);right:calc(var(--workspace-inspector-width) + 32px)}
 #display-editor .dp-toolbar {left:calc((100% + var(--workspace-sidebar-width) - var(--workspace-inspector-width))/2);max-width:calc(100% - var(--workspace-sidebar-width) - var(--workspace-inspector-width) - 80px)}
+/* An unconfigured display has no canvas toolbar; keep its introduction in flow
+   so a short window can scroll the card instead of clipping its top and action. */
+#display-editor .dp-stage:has(.dp-start:not([hidden])) {top:20px;bottom:20px}
+#display-editor .dp-start {position:relative;left:auto;top:auto;transform:none;flex:none;margin:auto;max-height:100%;overflow:auto;box-sizing:border-box;padding-block:12px}
+@media(max-width:760px) {
+  #display-editor .dp-start {padding-block:8px}
+  #display-editor .dp-start .design-welcome-symbol {margin-bottom:12px}
+  #display-editor .dp-start h1 {font-size:22px;margin-block:8px}
+  #display-editor .dp-start p {line-height:1.5;margin-bottom:16px}
+  #display-editor:has(.dp-start:not([hidden])) .dp-right {display:none}
+  #display-editor .dp-stage:has(.dp-start:not([hidden])) {right:16px}
+}
 @media(max-width:1000px){:root{--workspace-inspector-width:208px}}
 @media(max-width:760px){:root{--workspace-inspector-width:160px}}
 /* Exact header rhythm across all workspace panels. */

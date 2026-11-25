@@ -40,9 +40,10 @@ http.createServer((req,res)=>{
  let request=new URL(req.url,'http://localhost'),url=request.pathname;
  if(url==='/Pinway.png'){res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(path.join(root,'assets/Pinway.png')));return;}
  if(url==='/installation-checks.js'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(root,'tests/installation-browser-checks.js')));return;}
+ if(url==='/layout-checks.js'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(root,'tests/workspace-layout-browser-checks.js')));return;}
  if(url==='/checks.js'){res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(root,'tests/display-browser-checks.js')));return;}
  if(url==='/mock.js'){res.setHeader('Content-Type','text/javascript');res.end(mock);return;}
- if(url==='/'){res.setHeader('Content-Type','text/html');res.end(fs.readFileSync(path.join(root,'src/index.html'),'utf8').replace('<html lang="uk">',request.searchParams.has('studio')?'<html lang="uk" data-host="tauri" data-macos>':'<html lang="uk">').replace('<script defer src="ui.bundle.js"></script>','<script defer src="mock.js"></script><script defer src="ui.bundle.js"></script>').replace('</body>', request.searchParams.has('checks')?'<script defer src="installation-checks.js"></script></body>':'</body>'));return;}
+ if(url==='/'){res.setHeader('Content-Type','text/html');res.end(fs.readFileSync(path.join(root,'src/index.html'),'utf8').replace('<html lang="uk">',request.searchParams.has('studio')?'<html lang="uk" data-host="tauri" data-macos>':'<html lang="uk">').replace('<script defer src="ui.bundle.js"></script>','<script defer src="mock.js"></script><script defer src="ui.bundle.js"></script>').replace('</body>', request.searchParams.has('layoutchecks')?'<script defer src="layout-checks.js"></script></body>':request.searchParams.has('checks')?'<script defer src="installation-checks.js"></script></body>':'</body>'));return;}
  const file=path.join(root,'src',url);if(!file.startsWith(root+'/src/')||!fs.existsSync(file)){res.statusCode=404;res.end();return;}
  res.setHeader('Content-Type',url.endsWith('.css')?'text/css':url.endsWith('.js')?'text/javascript':'application/octet-stream');res.end(fs.readFileSync(file));
 }).listen(8467,'127.0.0.1',()=>console.log('Display harness: http://127.0.0.1:8467'));

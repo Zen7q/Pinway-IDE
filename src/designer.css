@@ -44,12 +44,7 @@
 #design-scene [data-contact] {cursor:crosshair}
 #design-scene [data-link] {cursor:pointer}
 #design-scene [data-bend] {cursor:move}
-.design-welcome {position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);text-align:center;max-width:90%;width:350px}
-.design-welcome-symbol {width:49px;height:49px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:14px;margin:0 auto 24px;color:var(--accent);box-shadow:0 8px 24px #0002}
-.design-welcome-symbol svg {width:25px;height:25px}
 .design-eyebrow {font:600 9px var(--font-ui);letter-spacing:.16em;color:var(--sub)}
-.design-welcome h1 {font-size:24px;letter-spacing:-.8px;line-height:1.25;font-weight:550;margin:12px 0}
-.design-welcome p {font-size:12px;line-height:1.8;color:var(--sub);margin:0 0 27px}
 #designer .design-primary {display:inline-flex;align-items:center;justify-content:center;gap:13px;padding:9px 13px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:var(--control-radius);color:var(--accent);font-size:11px;background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
 .design-primary:hover {filter:brightness(1.12)}
 .design-hint {display:block;margin-top:17px;color:var(--sub);font-size:10px}

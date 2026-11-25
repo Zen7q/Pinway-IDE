@@ -7,7 +7,7 @@
 #display-editor button:active {transform:scale(.97)}
 #display-editor button:disabled {opacity:.32;cursor:default;transform:none}
 #display-editor button:focus-visible,#display-editor input:focus-visible,#display-editor select:focus-visible {outline:2px solid var(--dp-accent);outline-offset:2px}
-#display-editor svg:not(.dp-screen):not(.dp-map-card svg):not(.dp-map-wires) {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#display-editor svg:not(.dp-screen):not(.dp-map-card svg):not(.dp-map-wires):not(.design-welcome-symbol svg) {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 #display-editor .dp-panel {position:absolute;z-index:3;background:var(--dp-panel);border:1px solid var(--dp-line);border-radius:var(--panel-radius);box-shadow:var(--panel-shadow);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100% - 40px)}
 #display-editor .dp-left {left:16px;top:20px;width:224px;bottom:20px}
 #display-editor .dp-right {right:16px;top:20px;width:262px}
