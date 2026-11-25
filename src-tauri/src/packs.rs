@@ -15,7 +15,7 @@ pub fn state(storage: &Path, arduino: &Arduino) -> Result<Value> {
     arduino.prepare()?;
     let setup = fs::read(storage.join("setup.json")).ok()
         .and_then(|v| serde_json::from_slice::<Value>(&v).ok()).unwrap_or(Value::Null);
-    Ok(json!({"version":releases::VERSION,"onboarded":setup["complete"] == true,
+    Ok(json!({"version":releases::VERSION,"versionLabel":releases::VERSION_LABEL,"onboarded":setup["complete"] == true,
         "packs":[
             {"id":"arduino","name":"Arduino AVR","description":"Uno, Nano, Mega та інші AVR-плати","installed":true,"required":true},
             {"id":"esp32","name":"ESP32","description":"ESP32, C3, S3 та інші плати Espressif · близько 6,4 ГБ на диску","installed":arduino.has_esp(),"required":false},

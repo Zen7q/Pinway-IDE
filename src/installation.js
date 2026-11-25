@@ -138,8 +138,8 @@ export function mountInstallation({ call, theme, setTheme, autoUpdates, busy, se
     },
     async initialize() {
       await refresh();
-      $('version').textContent = 'v' + displayVersion(state.version);
-      $('installed-version').textContent = 'Pinway IDE ' + displayVersion(state.version);
+      $('version').textContent = 'v' + (state.versionLabel || displayVersion(state.version));
+      $('installed-version').textContent = 'Pinway IDE ' + (state.versionLabel || displayVersion(state.version));
       if (!state.onboarded) {
         $('setup-theme').value = theme(); render(); $('setup-dialog').showModal();
       }

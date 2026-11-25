@@ -6,6 +6,8 @@ use std::{fs, io::{Read, Write}, path::{Path, PathBuf}, time::Duration};
 
 pub const REPOSITORY: &str = "Zen7q/Pinway-IDE";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+// Product maturity is separate from the update-compatible numeric version.
+pub const VERSION_LABEL: &str = concat!(env!("CARGO_PKG_VERSION"), " alpha");
 
 pub fn client() -> Result<Client> {
     Client::builder().user_agent(concat!("Pinway-IDE/", env!("CARGO_PKG_VERSION")))
@@ -103,6 +105,17 @@ pub fn installer(storage: &Path, mut progress: impl FnMut(u64, u64)) -> Result<P
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn numeric_release_is_visible_to_legacy_stable_updaters() {
+        let current = semver::Version::parse("0.3.1").unwrap();
+        let candidate = semver::Version::parse("0.3.2").unwrap();
+        // Keep the exact availability rule shipped in 0.3.1 covered.
+        assert!(candidate > current && candidate.pre.is_empty());
+        assert_eq!(newest_release(&[json!({"tag_name":"v0.3.2"})], &current), Some(candidate));
+        assert!(semver::Version::parse(VERSION).unwrap().pre.is_empty());
+        assert_eq!(VERSION_LABEL, format!("{VERSION} alpha"));
+    }
+
     #[test]
     fn prerelease_updates_follow_the_installed_channel() {
         let entries = vec![json!({"tag_name":"v0.3.2-alpha.2"}), json!({"tag_name":"v0.3.2-alpha.10"}),

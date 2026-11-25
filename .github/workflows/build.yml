@@ -47,7 +47,7 @@ jobs:
       - run: python scripts/package-desktop.py
         env:
           PINWAY_TAURI_OUT: dist/windows-release
-      - run: cargo test --locked -p pinway-ide windows_background_process_has_no_console
+      - run: cargo test --release --locked -p pinway-ide windows_background_process_has_no_console
       - uses: actions/upload-artifact@v4
         with:
           name: pinway-windows-x64

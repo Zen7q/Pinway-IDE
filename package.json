@@ -1,7 +1,7 @@
 {
   "name": "pinway-ide",
   "productName": "Pinway IDE",
-  "version": "0.3.2-alpha",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
     "dev": "bash scripts/package-tauri.sh --dev",
